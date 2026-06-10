@@ -353,7 +353,36 @@ export default function RoomView() {
           }
         }
         setEvents(visibleEvents(r));
+        // 스레드 답글만 sync된 방이면 메인 타임라인이 비어버림
+        // → 표시할 게 생길 때까지 자동으로 과거를 채움 (스크롤 트리거 데드락 방지)
+        void fillUntilVisible(cl, r);
         return true;
+      };
+
+      // 보이는 이벤트가 최소치를 넘거나 타임라인 끝에 닿을 때까지 backwards 페이지네이션
+      const fillUntilVisible = async (cl2: MatrixClient, r: Room) => {
+        const timeline = r.getLiveTimeline();
+        for (let i = 0; i < 10 && visibleEvents(r).length < 15; i++) {
+          let more: boolean;
+          try {
+            more = await cl2.paginateEventTimeline(timeline, {
+              backwards: true,
+              limit: 50,
+            });
+          } catch {
+            break;
+          }
+          for (const ev of timeline.getEvents()) {
+            if (ev.getType() === EventType.RoomMessageEncrypted) {
+              cl2.decryptEventIfNeeded(ev);
+            }
+          }
+          setEvents(visibleEvents(r));
+          if (!more) {
+            setHasMore(false);
+            break;
+          }
+        }
       };
 
       const onSync = (state: SyncState) => {
