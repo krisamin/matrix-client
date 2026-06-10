@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+  EventStatus,
   EventType,
   MsgType,
   RelationType,
@@ -104,6 +105,34 @@ export function EventLine({
     }
   }
 
+  // 전송 상태 (local echo): null이면 서버 확정된 메시지
+  const status = ev.status;
+  const isFailed = status === EventStatus.NOT_SENT;
+  const isPending =
+    status === EventStatus.SENDING ||
+    status === EventStatus.QUEUED ||
+    status === EventStatus.ENCRYPTING;
+
+  async function resend() {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await client.resendEvent(ev, room);
+    } catch (e) {
+      console.warn("재전송 실패:", e);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function cancelFailed() {
+    try {
+      client.cancelPendingEvent(ev);
+    } catch (e) {
+      console.warn("전송 취소 실패:", e);
+    }
+  }
+
   return (
     <li
       className={`group flex flex-col py-1 ${mine ? "items-end" : "items-start"}`}
@@ -185,12 +214,37 @@ export function EventLine({
         <span
           className={`max-w-[80%] whitespace-pre-wrap break-words rounded-lg px-3 py-1.5 ${
             mine ? "bg-blue-600 text-white" : "bg-gray-200 dark:bg-gray-800"
-          }`}
+          } ${isPending ? "opacity-60" : ""} ${isFailed ? "opacity-60 ring-1 ring-red-400" : ""}`}
         >
           {placeholder}
         </span>
       ) : (
-        <MessageBody client={client} ev={ev} mine={mine} />
+        <span
+          className={`flex max-w-full ${isPending ? "opacity-60" : ""} ${isFailed ? "opacity-60" : ""}`}
+        >
+          <MessageBody client={client} ev={ev} mine={mine} />
+        </span>
+      )}
+      {isFailed && (
+        <span className="flex items-center gap-2 text-xs text-red-500">
+          ⚠ 전송 실패
+          <button
+            className="font-medium underline hover:text-red-600"
+            onClick={resend}
+            disabled={busy}
+          >
+            재전송
+          </button>
+          <button
+            className="text-gray-400 underline hover:text-gray-600"
+            onClick={cancelFailed}
+          >
+            삭제
+          </button>
+        </span>
+      )}
+      {isPending && (
+        <span className="text-xs text-gray-400">전송 중...</span>
       )}
       <ReactionBar client={client} room={room} ev={ev} myUserId={myUserId} />
       {onOpenThread && (

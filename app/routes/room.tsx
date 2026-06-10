@@ -132,9 +132,15 @@ export default function RoomView() {
       const onThreadUpdate = () => {
         refresh(); // 스레드 답글 수 배지 갱신
       };
+      // local echo 상태 변화(전송중→완료/실패) 반영 — 실패 표시/재전송 UI의 데이터 소스
+      const onLocalEcho = (_ev: MatrixEvent, r: Room) => {
+        if (r.roomId !== roomId) return;
+        refresh();
+      };
       cl.on(RoomEvent.Timeline, onTimeline);
       cl.on(MatrixEventEvent.Decrypted, onDecrypted);
       cl.on(MatrixEventEvent.Replaced, onReplaced);
+      cl.on(RoomEvent.LocalEchoUpdated, onLocalEcho);
       // ThreadEvent는 Room이 emit — 방이 생긴 뒤에 단다
       const tryAttachThreadListener = () => {
         const r = cl.getRoom(roomId);
@@ -158,6 +164,7 @@ export default function RoomView() {
         cl.off(RoomEvent.Timeline, onTimeline);
         cl.off(MatrixEventEvent.Decrypted, onDecrypted);
         cl.off(MatrixEventEvent.Replaced, onReplaced);
+        cl.off(RoomEvent.LocalEchoUpdated, onLocalEcho);
         const r = cl.getRoom(roomId);
         r?.off(ThreadEvent.Update, onThreadUpdate);
         r?.off(ThreadEvent.NewReply, onThreadUpdate);
