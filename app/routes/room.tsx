@@ -125,7 +125,12 @@ function ThreadPanel({
   const [events, setEvents] = useState<MatrixEvent[]>([]);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const [initialising, setInitialising] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const stickToBottomRef = useRef(true);
+  const listRef = useRef<HTMLUListElement>(null);
 
   useEffect(() => {
     const thread =
@@ -133,32 +138,33 @@ function ThreadPanel({
       room.createThread(rootId, room.findEventById(rootId), [], true);
 
     const refresh = () => {
-      const evs = thread.liveTimeline
-        .getEvents()
-        .filter(
-          (ev) =>
-            ev.getType() === EventType.RoomMessage ||
-            ev.getType() === EventType.RoomMessageEncrypted ||
-            ev.isDecryptionFailure(),
-        );
+      // 주의: liveTimeline 레퍼런스를 미리 잡아두면 안 됨 —
+      // SDK가 초기화 시 resetLiveTimeline()으로 갈아끼움.
+      // thread.events getter는 항상 현재 타임라인을 가리킴.
+      const evs = thread.events.filter(
+        (ev) =>
+          ev.getType() === EventType.RoomMessage ||
+          ev.getType() === EventType.RoomMessageEncrypted ||
+          ev.isDecryptionFailure(),
+      );
       for (const ev of evs) {
         if (ev.getType() === EventType.RoomMessageEncrypted) {
           client.decryptEventIfNeeded(ev);
         }
       }
       setEvents([...evs]);
+      if (thread.initialEventsFetched) setInitialising(false);
     };
 
     refresh();
-    // 서버에서 과거 답글 로드 (이미 로드됐으면 no-op에 가깝게 동작)
-    client
-      .paginateEventTimeline(thread.liveTimeline, { backwards: true, limit: 50 })
-      .then(refresh)
-      .catch(() => {});
 
+    // SDK가 초기 fetch(리셋 + 최신 답글 로드)를 스스로 수행하고
+    // 끝나면 ThreadEvent.Update / RoomEvent.TimelineReset을 emit함
     const onUpdate = () => refresh();
     thread.on(ThreadEvent.Update, onUpdate);
     thread.on(ThreadEvent.NewReply, onUpdate);
+    thread.on(RoomEvent.Timeline, onUpdate);
+    thread.on(RoomEvent.TimelineReset, onUpdate);
     const onDecrypted = (ev: MatrixEvent) => {
       if (ev.threadRootId === rootId || ev.getId() === rootId) refresh();
     };
@@ -166,9 +172,56 @@ function ThreadPanel({
     return () => {
       thread.off(ThreadEvent.Update, onUpdate);
       thread.off(ThreadEvent.NewReply, onUpdate);
+      thread.off(RoomEvent.Timeline, onUpdate);
+      thread.off(RoomEvent.TimelineReset, onUpdate);
       client.off(MatrixEventEvent.Decrypted, onDecrypted);
     };
   }, [client, room, rootId]);
+
+  // 새 답글 오면 바닥 고정 (사용자가 위를 보고 있으면 유지)
+  useEffect(() => {
+    if (stickToBottomRef.current) {
+      bottomRef.current?.scrollIntoView({ behavior: "instant" });
+    }
+  }, [events]);
+
+  async function loadOlderReplies() {
+    if (loadingOlder) return;
+    setLoadingOlder(true);
+    try {
+      const thread = room.getThread(rootId);
+      if (!thread) return;
+      // 호출 시점의 liveTimeline 사용 (리셋 이후의 현재 타임라인)
+      await client.paginateEventTimeline(thread.liveTimeline, {
+        backwards: true,
+        limit: 50,
+      });
+      const evs = thread.events.filter(
+        (ev) =>
+          ev.getType() === EventType.RoomMessage ||
+          ev.getType() === EventType.RoomMessageEncrypted ||
+          ev.isDecryptionFailure(),
+      );
+      for (const ev of evs) {
+        if (ev.getType() === EventType.RoomMessageEncrypted) {
+          client.decryptEventIfNeeded(ev);
+        }
+      }
+      setEvents([...evs]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLoadingOlder(false);
+    }
+  }
+
+  function onScroll() {
+    const list = listRef.current;
+    if (!list) return;
+    stickToBottomRef.current =
+      list.scrollHeight - list.scrollTop - list.clientHeight < 80;
+    if (list.scrollTop < 100) loadOlderReplies();
+  }
 
   async function sendReply() {
     if (!draft.trim() || sending) return;
@@ -177,6 +230,7 @@ function ThreadPanel({
     try {
       await client.sendTextMessage(room.roomId, rootId, draft);
       setDraft("");
+      stickToBottomRef.current = true;
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -192,7 +246,12 @@ function ThreadPanel({
           ✕
         </button>
       </header>
-      <ul className="flex-1 overflow-y-auto py-2">
+      <ul ref={listRef} onScroll={onScroll} className="flex-1 overflow-y-auto py-2">
+        {(initialising || loadingOlder) && (
+          <li className="py-2 text-center text-xs text-gray-500">
+            {initialising ? "스레드 불러오는 중..." : "과거 답글 불러오는 중..."}
+          </li>
+        )}
         {events.map((ev) => (
           <EventLine
             key={ev.getId()}
@@ -201,9 +260,10 @@ function ThreadPanel({
             client={client}
           />
         ))}
-        {events.length === 0 && (
+        {!initialising && events.length === 0 && (
           <li className="py-2 text-xs text-gray-500">답글 없음</li>
         )}
+        <div ref={bottomRef} />
       </ul>
       {error && <p className="pb-1 text-xs text-red-500">{error}</p>}
       <form
