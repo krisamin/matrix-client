@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, Link } from "react-router";
 import { ClientEvent, SyncState, type Room } from "matrix-js-sdk";
 import { getClient } from "../lib/matrix";
 import { clearSession } from "../lib/session";
@@ -71,11 +71,16 @@ export default function Home() {
       </header>
       <ul className="flex flex-col divide-y divide-gray-200 dark:divide-gray-800">
         {rooms.map((room) => (
-          <li key={room.roomId} className="flex flex-col py-3">
-            <span className="font-medium">{room.name}</span>
-            <span className="text-xs text-gray-500">
-              {room.roomId} · 멤버 {room.getJoinedMemberCount()}명
-            </span>
+          <li key={room.roomId}>
+            <Link
+              to={`/room/${encodeURIComponent(room.roomId)}`}
+              className="flex flex-col py-3 hover:bg-gray-50 dark:hover:bg-gray-900"
+            >
+              <span className="font-medium">{room.name}</span>
+              <span className="text-xs text-gray-500">
+                {room.roomId} · 멤버 {room.getJoinedMemberCount()}명
+              </span>
+            </Link>
           </li>
         ))}
         {rooms.length === 0 && (
