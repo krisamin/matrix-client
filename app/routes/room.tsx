@@ -11,8 +11,9 @@ import {
   type MatrixClient,
   type MatrixEvent,
   type Room,
+  type EventTimelineSet,
 } from "matrix-js-sdk";
-import { getReadyClient, ensureStarted } from "../lib/matrix";
+import { getReadyClient, ensureStarted, getNoThreadTimelineSet } from "../lib/matrix";
 import { getMediaBlobUrl, uploadAndSendFile, type MediaSource } from "../lib/media";
 
 export function meta() {
@@ -94,10 +95,11 @@ function MediaView({
 }
 
 /** 타임라인에서 표시할 이벤트만 추림 (복호화되면 type이 m.room.message로 바뀜).
- *  스레드 답글은 메인 타임라인에서 제외 (스레드 패널에서 표시) */
-function visibleEvents(room: Room): MatrixEvent[] {
-  return room
-    .getLiveTimeline()
+ *  스레드 답글은 메인 타임라인에서 제외 (스레드 패널에서 표시).
+ *  timelineSet이 있으면 그 라이브 타임라인(MSC3874 필터드)을 사용. */
+function visibleEvents(room: Room, tlSet?: EventTimelineSet | null): MatrixEvent[] {
+  const timeline = tlSet?.getLiveTimeline() ?? room.getLiveTimeline();
+  return timeline
     .getEvents()
     .filter(
       (ev) =>
@@ -145,7 +147,7 @@ function ThreadPanel({
       console.debug(
         `[thread:${rootId.slice(0, 12)}] refresh(${reason})`,
         `raw=${raw.length}`,
-        `replyCount=${thread.replyCount}`,
+        `replyCount=${thread.length}`,
         `fetched=${thread.initialEventsFetched}`,
         `lastTs=${raw.length ? new Date(raw[raw.length - 1].getTs()).toLocaleTimeString() : "-"}`,
         `types=${[...new Set(raw.map((e) => e.getType()))].join(",")}`,
@@ -414,6 +416,7 @@ export default function RoomView() {
   const listRef = useRef<HTMLUListElement>(null);
   const stickToBottomRef = useRef(true);
   const loadingOlderRef = useRef(false);
+  const tlSetRef = useRef<EventTimelineSet | null>(null);
   const myUserId = client?.getUserId() ?? "";
 
   useEffect(() => {
@@ -440,16 +443,28 @@ export default function RoomView() {
           }
         }
         setEvents(visibleEvents(r));
-        // 스레드 답글만 sync된 방이면 메인 타임라인이 비어버림
-        // → 표시할 게 생길 때까지 자동으로 과거를 채움 (스크롤 트리거 데드락 방지)
-        void fillUntilVisible(cl, r);
+        // MSC3874: 스레드 답글 제외 필터드 타임라인 생성 → 이후 페이지네이션은
+        // 서버가 스레드 답글 빼고 줌 (빈 페이지 데드락 원천 차단)
+        void (async () => {
+          const tlSet = await getNoThreadTimelineSet(cl, r);
+          tlSetRef.current = tlSet;
+          if (tlSet) {
+            setEvents(visibleEvents(r, tlSet));
+          }
+          await fillUntilVisible(cl, r);
+        })();
         return true;
       };
 
       // 보이는 이벤트가 최소치를 넘거나 타임라인 끝에 닿을 때까지 backwards 페이지네이션
       const fillUntilVisible = async (cl2: MatrixClient, r: Room) => {
-        const timeline = r.getLiveTimeline();
-        for (let i = 0; i < 10 && visibleEvents(r).length < 15; i++) {
+        const tlSet = tlSetRef.current;
+        for (
+          let i = 0;
+          i < 10 && visibleEvents(r, tlSet).length < 15;
+          i++
+        ) {
+          const timeline = tlSet?.getLiveTimeline() ?? r.getLiveTimeline();
           let more: boolean;
           try {
             more = await cl2.paginateEventTimeline(timeline, {
@@ -464,7 +479,7 @@ export default function RoomView() {
               cl2.decryptEventIfNeeded(ev);
             }
           }
-          setEvents(visibleEvents(r));
+          setEvents(visibleEvents(r, tlSet));
           if (!more) {
             setHasMore(false);
             break;
@@ -479,7 +494,7 @@ export default function RoomView() {
 
       const refresh = () => {
         const r = cl.getRoom(roomId);
-        if (r) setEvents(visibleEvents(r));
+        if (r) setEvents(visibleEvents(r, tlSetRef.current));
       };
       const onTimeline = (_ev: MatrixEvent, r?: Room) => {
         if (r?.roomId !== roomId) return;
@@ -538,7 +553,8 @@ export default function RoomView() {
     const prevScrollHeight = list?.scrollHeight ?? 0;
     const prevScrollTop = list?.scrollTop ?? 0;
     try {
-      const timeline = room.getLiveTimeline();
+      const timeline =
+        tlSetRef.current?.getLiveTimeline() ?? room.getLiveTimeline();
       const more = await client.paginateEventTimeline(timeline, {
         backwards: true,
         limit: 30,
@@ -550,7 +566,7 @@ export default function RoomView() {
           client.decryptEventIfNeeded(ev);
         }
       }
-      setEvents(visibleEvents(room));
+      setEvents(visibleEvents(room, tlSetRef.current));
       // 스크롤 위치 보존: 늘어난 높이만큼 내려서 보던 메시지 유지
       requestAnimationFrame(() => {
         if (list) {

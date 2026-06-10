@@ -1,4 +1,11 @@
-import { createClient, OidcTokenRefresher, type MatrixClient } from "matrix-js-sdk";
+import {
+  createClient,
+  Filter,
+  OidcTokenRefresher,
+  type EventTimelineSet,
+  type MatrixClient,
+  type Room,
+} from "matrix-js-sdk";
 import {
   decodeRecoveryKey,
   deriveRecoveryKeyFromPassphrase,
@@ -113,5 +120,52 @@ export function resetClient(): void {
 export function ensureStarted(client: MatrixClient): void {
   if (!client.clientRunning) {
     client.startClient({ initialSyncLimit: 20, threadSupport: true });
+  }
+}
+
+/**
+ * 메인 타임라인용 "스레드 답글 제외" 필터드 timelineSet.
+ * MSC3874 (not_rel_types) — Synapse experimental_features.msc3874_enabled=true 필요.
+ * 서버가 /messages 페이지네이션에서 스레드 답글을 빼고 주므로
+ * "한 페이지 전부 스레드 답글이라 빈 화면" 문제가 원천 차단됨.
+ * 필터 등록 실패(서버 미지원 등) 시 null 반환 → 호출부는 라이브 타임라인 fallback.
+ */
+export async function getNoThreadTimelineSet(
+  client: MatrixClient,
+  room: Room,
+): Promise<EventTimelineSet | null> {
+  try {
+    const filter = new Filter(client.getUserId());
+    filter.setDefinition({
+      room: {
+        timeline: {
+          not_rel_types: ["m.thread"],
+        } as Record<string, unknown>,
+      },
+    });
+    // 함정: SDK FilterComponent.toJSON()은 아는 키만 직렬화해서
+    // not_rel_types가 /messages 요청에서 누락됨 → toJSON을 감싸서 강제 포함.
+    // (getRoomTimelineFilterComponent()는 setDefinition 때 만든 동일 인스턴스 반환)
+    const comp = filter.getRoomTimelineFilterComponent();
+    if (comp) {
+      const origToJSON = comp.toJSON.bind(comp);
+      comp.toJSON = () => ({
+        ...origToJSON(),
+        not_rel_types: ["m.thread"],
+      });
+    }
+    const filterId = await client.getOrCreateFilter(
+      `NO_THREAD_TIMELINE_${room.roomId}`,
+      filter,
+    );
+    filter.filterId = filterId;
+    return room.getOrCreateFilteredTimelineSet(filter, {
+      prepopulateTimeline: false,
+      useSyncEvents: true,
+      pendingEvents: true,
+    });
+  } catch (e) {
+    console.warn("no-thread filtered timeline 생성 실패, fallback:", e);
+    return null;
   }
 }
