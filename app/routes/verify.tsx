@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import {
+  ImportRoomKeyStage,
   VerificationPhase,
   VerificationRequestEvent,
   VerifierEvent,
@@ -18,6 +19,8 @@ type Step =
   | { kind: "waiting"; note: string }
   | { kind: "sas"; emojis: [string, string][]; sas: ShowSasCallbacks }
   | { kind: "done" }
+  | { kind: "restoring"; progress: string }
+  | { kind: "restored"; imported: number; total: number }
   | { kind: "error"; message: string };
 
 export default function Verify() {
@@ -84,6 +87,48 @@ export default function Verify() {
     }
   }
 
+  async function restoreBackup() {
+    setStep({ kind: "restoring", progress: "백업 키 확인 중..." });
+    try {
+      const client = await getReadyClient()!;
+      const crypto = client.getCrypto();
+      if (!crypto) throw new Error("crypto 미초기화");
+
+      // SAS 인증 시 gossip으로 백업 키가 와있을 수 있음. 없으면 4S에서 로드.
+      const key = await crypto.getSessionBackupPrivateKey();
+      if (!key) {
+        setStep({
+          kind: "restoring",
+          progress:
+            "secret storage에서 백업 키 가져오는 중... (Element 쪽에서 키 공유 승인이 필요할 수 있어)",
+        });
+        await crypto.loadSessionBackupPrivateKeyFromSecretStorage();
+      }
+
+      await crypto.checkKeyBackupAndEnable();
+      const result = await crypto.restoreKeyBackup({
+        progressCallback: (p) =>
+          setStep({
+            kind: "restoring",
+            progress:
+              p.stage === ImportRoomKeyStage.LoadKeys
+                ? `키 가져오는 중... ${p.successes}/${p.total}`
+                : "백업에서 키 받아오는 중...",
+          }),
+      });
+      setStep({
+        kind: "restored",
+        imported: result.imported,
+        total: result.total,
+      });
+    } catch (e) {
+      setStep({
+        kind: "error",
+        message: `백업 복구 실패: ${e instanceof Error ? e.message : String(e)}`,
+      });
+    }
+  }
+
   return (
     <main className="mx-auto flex min-h-screen max-w-xl flex-col gap-4 p-6">
       <header className="flex items-center gap-3">
@@ -99,12 +144,20 @@ export default function Verify() {
             이미 로그인된 다른 기기(Element)와 이모지 비교로 이 브라우저를
             인증해. 인증되면 키 공유를 받아서 암호화 메시지를 읽을 수 있어.
           </p>
-          <button
-            className="rounded bg-blue-600 px-4 py-2 text-white"
-            onClick={start}
-          >
-            인증 시작
-          </button>
+          <div className="flex gap-2">
+            <button
+              className="rounded bg-blue-600 px-4 py-2 text-white"
+              onClick={start}
+            >
+              인증 시작
+            </button>
+            <button
+              className="rounded border border-gray-300 px-4 py-2 dark:border-gray-700"
+              onClick={restoreBackup}
+            >
+              키 백업 복구만
+            </button>
+          </div>
         </>
       )}
 
@@ -140,7 +193,34 @@ export default function Verify() {
 
       {step.kind === "done" && (
         <div className="flex flex-col gap-3">
-          <p className="text-green-600">✅ 인증 완료! 키 공유 받는 중...</p>
+          <p className="text-green-600">✅ 인증 완료!</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            과거 암호화 메시지도 읽으려면 키 백업에서 복구해야 해.
+          </p>
+          <div className="flex gap-2">
+            <button
+              className="rounded bg-blue-600 px-4 py-2 text-white"
+              onClick={restoreBackup}
+            >
+              과거 메시지 키 복구
+            </button>
+            <button
+              className="rounded border border-gray-300 px-4 py-2 dark:border-gray-700"
+              onClick={() => navigate("/")}
+            >
+              건너뛰고 방 목록으로
+            </button>
+          </div>
+        </div>
+      )}
+
+      {step.kind === "restoring" && <p>{step.progress}</p>}
+
+      {step.kind === "restored" && (
+        <div className="flex flex-col gap-3">
+          <p className="text-green-600">
+            ✅ 키 복구 완료! ({step.imported}/{step.total}개 가져옴)
+          </p>
           <button
             className="self-start rounded bg-blue-600 px-4 py-2 text-white"
             onClick={() => navigate("/")}
