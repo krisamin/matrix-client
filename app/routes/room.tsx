@@ -401,12 +401,22 @@ function ThreadPanel({
       if (ev.threadRootId === rootId || ev.getId() === rootId) refresh();
     };
     client.on(MatrixEventEvent.Decrypted, onDecrypted);
+    // 수정(m.replace) 적용 신호. E2EE에선 수정 이벤트 복호화가 끝난 "뒤"에
+    // 비동기로 원본에 makeReplaced 되므로, 이걸 안 들으면 스트리밍 봇
+    // 메시지가 중간 버전에서 박제됨. (Replaced는 "수정된 원본" 이벤트가
+    // emit → threadRootId 필터 사용 가능. 수정 이벤트 자체는 threadRootId가
+    // 없어 Decrypted 필터로는 못 잡음 — 실측)
+    const onReplaced = (ev: MatrixEvent) => {
+      if (ev.threadRootId === rootId || ev.getId() === rootId) refresh();
+    };
+    client.on(MatrixEventEvent.Replaced, onReplaced);
     return () => {
       thread.off(ThreadEvent.Update, onUpdate);
       thread.off(ThreadEvent.NewReply, onUpdate);
       thread.off(RoomEvent.Timeline, onUpdate);
       thread.off(RoomEvent.TimelineReset, onUpdate);
       client.off(MatrixEventEvent.Decrypted, onDecrypted);
+      client.off(MatrixEventEvent.Replaced, onReplaced);
     };
   }, [client, room, rootId]);
 
@@ -706,11 +716,18 @@ export default function RoomView() {
         if (ev.getRoomId() !== roomId) return;
         refresh();
       };
+      // E2EE 수정(m.replace)은 복호화 후 비동기로 원본에 합쳐짐(makeReplaced)
+      // → 그 시점에 다시 그려야 최종 수정 내용이 보임 (스트리밍 봇 메시지)
+      const onReplaced = (ev: MatrixEvent) => {
+        if (ev.getRoomId() !== roomId) return;
+        refresh();
+      };
       const onThreadUpdate = () => {
         refresh(); // 스레드 답글 수 배지 갱신
       };
       cl.on(RoomEvent.Timeline, onTimeline);
       cl.on(MatrixEventEvent.Decrypted, onDecrypted);
+      cl.on(MatrixEventEvent.Replaced, onReplaced);
       // ThreadEvent는 Room이 emit — 방이 생긴 뒤에 단다
       const tryAttachThreadListener = () => {
         const r = cl.getRoom(roomId);
@@ -733,6 +750,7 @@ export default function RoomView() {
         cl.off(ClientEvent.Sync, onSync);
         cl.off(RoomEvent.Timeline, onTimeline);
         cl.off(MatrixEventEvent.Decrypted, onDecrypted);
+        cl.off(MatrixEventEvent.Replaced, onReplaced);
         const r = cl.getRoom(roomId);
         r?.off(ThreadEvent.Update, onThreadUpdate);
         r?.off(ThreadEvent.NewReply, onThreadUpdate);
