@@ -12,9 +12,84 @@ import {
   type Room,
 } from "matrix-js-sdk";
 import { getReadyClient } from "../lib/matrix";
+import { getMediaBlobUrl, type MediaSource } from "../lib/media";
 
 export function meta() {
   return [{ title: "방 — matrix-client" }];
+}
+
+const MEDIA_MSGTYPES = [
+  MsgType.Image,
+  MsgType.Video,
+  MsgType.Audio,
+  MsgType.File,
+] as string[];
+
+/** 이미지/비디오/오디오/파일 첨부 렌더 (인증 미디어 + E2EE 복호화 처리) */
+function MediaView({
+  client,
+  ev,
+}: {
+  client: MatrixClient;
+  ev: MatrixEvent;
+}) {
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const content = ev.getContent();
+  const msgtype = content.msgtype as string;
+
+  useEffect(() => {
+    const source: MediaSource = {
+      url: content.url,
+      file: content.file,
+      mimetype: content.info?.mimetype,
+    };
+    const promise = getMediaBlobUrl(client, source);
+    if (!promise) {
+      setError("미디어 URL 없음");
+      return;
+    }
+    let alive = true;
+    promise
+      .then((u) => alive && setBlobUrl(u))
+      .catch((e) => alive && setError(e instanceof Error ? e.message : String(e)));
+    return () => {
+      alive = false;
+    };
+  }, [client, ev]);
+
+  if (error) return <span className="text-sm text-red-400">⚠ {error}</span>;
+  if (!blobUrl)
+    return <span className="text-sm text-gray-400">미디어 로딩 중...</span>;
+
+  switch (msgtype) {
+    case MsgType.Image:
+      return (
+        <a href={blobUrl} target="_blank" rel="noreferrer">
+          <img
+            src={blobUrl}
+            alt={content.body ?? "이미지"}
+            className="max-h-80 max-w-full rounded-lg object-contain"
+          />
+        </a>
+      );
+    case MsgType.Video:
+      return (
+        <video src={blobUrl} controls className="max-h-80 max-w-full rounded-lg" />
+      );
+    case MsgType.Audio:
+      return <audio src={blobUrl} controls />;
+    default:
+      return (
+        <a
+          href={blobUrl}
+          download={content.body ?? "file"}
+          className="text-blue-500 underline"
+        >
+          📎 {content.body ?? "파일 다운로드"}
+        </a>
+      );
+  }
 }
 
 /** 타임라인에서 표시할 이벤트만 추림 (복호화되면 type이 m.room.message로 바뀜) */
@@ -30,10 +105,22 @@ function visibleEvents(room: Room): MatrixEvent[] {
     );
 }
 
-function EventLine({ ev, myUserId }: { ev: MatrixEvent; myUserId: string }) {
+function EventLine({
+  ev,
+  myUserId,
+  client,
+}: {
+  ev: MatrixEvent;
+  myUserId: string;
+  client: MatrixClient;
+}) {
   const sender = ev.getSender() ?? "?";
   const mine = sender === myUserId;
   const content = ev.getContent();
+  const isMedia =
+    ev.getType() === EventType.RoomMessage &&
+    MEDIA_MSGTYPES.includes(content.msgtype as string) &&
+    !ev.isRedacted();
   let body: string;
   if (ev.isDecryptionFailure()) {
     body = "🔒 복호화 실패 (키 없음 — 기기 인증/키 백업 확인)";
@@ -41,8 +128,6 @@ function EventLine({ ev, myUserId }: { ev: MatrixEvent; myUserId: string }) {
     body = "🔒 복호화 중...";
   } else if (ev.isRedacted()) {
     body = "(삭제된 메시지)";
-  } else if (content.msgtype === MsgType.Image) {
-    body = `🖼 이미지: ${content.body ?? ""}`;
   } else {
     body = content.body ?? `(${content.msgtype ?? ev.getType()})`;
   }
@@ -55,13 +140,19 @@ function EventLine({ ev, myUserId }: { ev: MatrixEvent; myUserId: string }) {
       <span className="text-xs text-gray-500">
         {sender} · {time}
       </span>
-      <span
-        className={`max-w-[80%] whitespace-pre-wrap break-words rounded-lg px-3 py-1.5 ${
-          mine ? "bg-blue-600 text-white" : "bg-gray-200 dark:bg-gray-800"
-        }`}
-      >
-        {body}
-      </span>
+      {isMedia ? (
+        <span className="max-w-[80%]">
+          <MediaView client={client} ev={ev} />
+        </span>
+      ) : (
+        <span
+          className={`max-w-[80%] whitespace-pre-wrap break-words rounded-lg px-3 py-1.5 ${
+            mine ? "bg-blue-600 text-white" : "bg-gray-200 dark:bg-gray-800"
+          }`}
+        >
+          {body}
+        </span>
+      )}
     </li>
   );
 }
@@ -223,9 +314,16 @@ export default function RoomView() {
             — 대화의 시작 —
           </li>
         )}
-        {events.map((ev) => (
-          <EventLine key={ev.getId()} ev={ev} myUserId={myUserId} />
-        ))}
+        {events.map((ev) =>
+          client ? (
+            <EventLine
+              key={ev.getId()}
+              ev={ev}
+              myUserId={myUserId}
+              client={client}
+            />
+          ) : null,
+        )}
         <div ref={bottomRef} />
       </ul>
       {error && <p className="pb-1 text-sm text-red-500">{error}</p>}
