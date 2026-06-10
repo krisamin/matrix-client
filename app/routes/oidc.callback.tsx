@@ -28,7 +28,7 @@ export default function OidcCallback() {
     }
     (async () => {
       // 토큰 교환 (PKCE 검증 포함, state는 SDK가 sessionStorage에서 복원)
-      const { tokenResponse, homeserverUrl, oidcClientSettings } =
+      const { tokenResponse, homeserverUrl, oidcClientSettings, idTokenClaims } =
         await completeAuthorizationCodeGrant(code, state);
 
       // whoami로 userId/deviceId 확정
@@ -49,6 +49,8 @@ export default function OidcCallback() {
         deviceId,
         issuer: oidcClientSettings.issuer,
         clientId: oidcClientSettings.clientId,
+        redirectUri: `${window.location.origin}/oidc/callback`,
+        idTokenClaims,
       });
       navigate("/", { replace: true });
     })().catch((e) => setError(e instanceof Error ? e.message : String(e)));

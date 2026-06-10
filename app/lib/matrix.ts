@@ -1,10 +1,10 @@
-import { createClient, type MatrixClient } from "matrix-js-sdk";
+import { createClient, OidcTokenRefresher, type MatrixClient } from "matrix-js-sdk";
 import {
   decodeRecoveryKey,
   deriveRecoveryKeyFromPassphrase,
 } from "matrix-js-sdk/lib/crypto-api";
 import type { SecretStorageKeyDescription } from "matrix-js-sdk/lib/secret-storage";
-import { loadSession } from "./session";
+import { loadSession, updateSessionTokens } from "./session";
 
 let clientPromise: Promise<MatrixClient> | null = null;
 
@@ -47,10 +47,33 @@ export function getReadyClient(): Promise<MatrixClient> | null {
   const session = loadSession();
   if (!session) return null;
   clientPromise = (async () => {
+    // OIDC 토큰 자동 갱신: M_UNKNOWN_TOKEN 시 http-api가 이 함수를 호출
+    let tokenRefreshFunction;
+    if (session.refreshToken && session.redirectUri && session.idTokenClaims) {
+      class PersistingRefresher extends OidcTokenRefresher {
+        protected async persistTokens(tokens: {
+          accessToken: string;
+          refreshToken?: string;
+        }): Promise<void> {
+          updateSessionTokens(tokens.accessToken, tokens.refreshToken);
+        }
+      }
+      const refresher = new PersistingRefresher(
+        session.issuer,
+        session.clientId,
+        session.redirectUri,
+        session.deviceId,
+        session.idTokenClaims,
+      );
+      tokenRefreshFunction = (refreshToken: string) =>
+        refresher.doRefreshAccessToken(refreshToken);
+    }
+
     const client = createClient({
       baseUrl: session.homeserverUrl,
       accessToken: session.accessToken,
       refreshToken: session.refreshToken,
+      tokenRefreshFunction,
       userId: session.userId,
       deviceId: session.deviceId,
       cryptoCallbacks: {
