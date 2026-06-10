@@ -150,6 +150,15 @@ function ThreadPanel({
         `lastTs=${raw.length ? new Date(raw[raw.length - 1].getTs()).toLocaleTimeString() : "-"}`,
         `types=${[...new Set(raw.map((e) => e.getType()))].join(",")}`,
       );
+      console.debug(
+        `[thread:${rootId.slice(0, 12)}] events:\n` +
+          raw
+            .map(
+              (e, i) =>
+                `  ${i} ${new Date(e.getTs()).toLocaleTimeString()} ${e.getType()} ${e.getSender()?.slice(1, 8)} ${e.getId()?.slice(0, 10)}`,
+            )
+            .join("\n"),
+      );
       const evs = raw.filter(
         (ev) =>
           ev.getType() === EventType.RoomMessage ||
