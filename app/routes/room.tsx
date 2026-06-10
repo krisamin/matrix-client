@@ -12,7 +12,7 @@ import {
   type Room,
 } from "matrix-js-sdk";
 import { getReadyClient } from "../lib/matrix";
-import { getMediaBlobUrl, type MediaSource } from "../lib/media";
+import { getMediaBlobUrl, uploadAndSendFile, type MediaSource } from "../lib/media";
 
 export function meta() {
   return [{ title: "방 — matrix-client" }];
@@ -168,6 +168,8 @@ export default function RoomView() {
   const [error, setError] = useState<string | null>(null);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+  const [uploading, setUploading] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
   const stickToBottomRef = useRef(true);
@@ -294,6 +296,24 @@ export default function RoomView() {
     }
   }
 
+  async function sendFiles(files: FileList | File[]) {
+    if (!client || !roomId || uploading) return;
+    setError(null);
+    try {
+      for (const file of Array.from(files)) {
+        setUploading(`${file.name} 업로드 중...`);
+        await uploadAndSendFile(client, roomId, file, (loaded, total) => {
+          const pct = total ? Math.round((loaded / total) * 100) : 0;
+          setUploading(`${file.name} 업로드 중... ${pct}%`);
+        });
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setUploading(null);
+    }
+  }
+
   return (
     <main className="mx-auto flex h-screen max-w-2xl flex-col p-4">
       <header className="flex items-center gap-3 border-b border-gray-200 pb-3 dark:border-gray-800">
@@ -327,6 +347,7 @@ export default function RoomView() {
         <div ref={bottomRef} />
       </ul>
       {error && <p className="pb-1 text-sm text-red-500">{error}</p>}
+      {uploading && <p className="pb-1 text-sm text-gray-500">{uploading}</p>}
       <form
         className="flex gap-2"
         onSubmit={(e) => {
@@ -335,9 +356,35 @@ export default function RoomView() {
         }}
       >
         <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          className="hidden"
+          onChange={(e) => {
+            if (e.target.files?.length) sendFiles(e.target.files);
+            e.target.value = "";
+          }}
+        />
+        <button
+          type="button"
+          className="rounded border border-gray-300 px-3 py-2 disabled:opacity-50 dark:border-gray-700"
+          disabled={!!uploading}
+          onClick={() => fileInputRef.current?.click()}
+          title="파일 첨부"
+        >
+          📎
+        </button>
+        <input
           className="flex-1 rounded border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
+          onPaste={(e) => {
+            const files = Array.from(e.clipboardData.files);
+            if (files.length) {
+              e.preventDefault();
+              sendFiles(files);
+            }
+          }}
           placeholder="메시지 입력..."
         />
         <button

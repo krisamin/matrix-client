@@ -1,6 +1,11 @@
 import type { MatrixClient } from "matrix-js-sdk";
+import { MsgType } from "matrix-js-sdk";
 import type { EncryptedFile } from "matrix-js-sdk/lib/@types/media";
-import { decryptAttachment } from "matrix-encrypt-attachment";
+import type { RoomMessageEventContent } from "matrix-js-sdk/lib/@types/events";
+import {
+  decryptAttachment,
+  encryptAttachment,
+} from "matrix-encrypt-attachment";
 
 /** mxc URL → blob object URL 캐시 (세션 동안 유지) */
 const blobUrlCache = new Map<string, Promise<string>>();
@@ -60,4 +65,89 @@ export function getMediaBlobUrl(
   blobUrlCache.set(mxcUrl, promise);
   promise.catch(() => blobUrlCache.delete(mxcUrl));
   return promise;
+}
+
+function msgTypeForFile(file: File): MsgType {
+  if (file.type.startsWith("image/")) return MsgType.Image;
+  if (file.type.startsWith("video/")) return MsgType.Video;
+  if (file.type.startsWith("audio/")) return MsgType.Audio;
+  return MsgType.File;
+}
+
+/** 이미지/비디오의 원본 크기 추출 (실패하면 생략) */
+async function probeDimensions(
+  file: File,
+): Promise<{ w: number; h: number } | null> {
+  const url = URL.createObjectURL(file);
+  try {
+    if (file.type.startsWith("image/")) {
+      return await new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () =>
+          resolve({ w: img.naturalWidth, h: img.naturalHeight });
+        img.onerror = () => resolve(null);
+        img.src = url;
+      });
+    }
+    if (file.type.startsWith("video/")) {
+      return await new Promise((resolve) => {
+        const video = document.createElement("video");
+        video.onloadedmetadata = () =>
+          resolve({ w: video.videoWidth, h: video.videoHeight });
+        video.onerror = () => resolve(null);
+        video.src = url;
+      });
+    }
+    return null;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+/**
+ * 파일을 업로드하고 해당 방에 미디어 메시지로 전송한다.
+ * E2EE 방이면 encryptAttachment로 암호화한 ciphertext를 올리고
+ * content.file(키/iv/해시 포함)로 보낸다. 평문 방은 content.url.
+ */
+export async function uploadAndSendFile(
+  client: MatrixClient,
+  roomId: string,
+  file: File,
+  onProgress?: (loaded: number, total: number) => void,
+): Promise<void> {
+  const room = client.getRoom(roomId);
+  const encrypted = room?.hasEncryptionStateEvent() ?? false;
+  const msgtype = msgTypeForFile(file);
+  const dims = await probeDimensions(file);
+
+  const info: Record<string, unknown> = {
+    mimetype: file.type || "application/octet-stream",
+    size: file.size,
+    ...(dims ? { w: dims.w, h: dims.h } : {}),
+  };
+
+  const baseContent = { msgtype, body: file.name, info };
+
+  if (encrypted) {
+    const plaintext = await file.arrayBuffer();
+    const { data, info: fileInfo } = await encryptAttachment(plaintext);
+    const { content_uri } = await client.uploadContent(new Blob([data]), {
+      // ciphertext는 항상 octet-stream으로 (mimetype 누출 방지)
+      type: "application/octet-stream",
+      progressHandler: (p) => onProgress?.(p.loaded, p.total),
+    });
+    await client.sendMessage(roomId, {
+      ...baseContent,
+      file: { ...fileInfo, url: content_uri } as EncryptedFile,
+    } as unknown as RoomMessageEventContent);
+  } else {
+    const { content_uri } = await client.uploadContent(file, {
+      type: file.type || "application/octet-stream",
+      progressHandler: (p) => onProgress?.(p.loaded, p.total),
+    });
+    await client.sendMessage(roomId, {
+      ...baseContent,
+      url: content_uri,
+    } as unknown as RoomMessageEventContent);
+  }
 }
