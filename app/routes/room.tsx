@@ -172,6 +172,32 @@ export default function RoomView() {
     }
   }, [events]);
 
+  // 읽음 처리: 탭이 보이는 상태에서 마지막 메시지가 바뀌면 read receipt 전송
+  // (이게 없으면 다른 클라이언트에서 안읽음 배지가 영원히 안 꺼짐)
+  const lastReceiptRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!client || events.length === 0) return;
+    const sendReceipt = () => {
+      if (document.visibilityState !== "visible") return;
+      const last = events[events.length - 1];
+      const id = last.getId();
+      if (!id || id.startsWith("~") || lastReceiptRef.current === id) return;
+      lastReceiptRef.current = id;
+      client.sendReadReceipt(last).catch((e) => {
+        lastReceiptRef.current = null; // 실패 시 재시도 허용
+        console.warn("read receipt 실패:", e);
+      });
+    };
+    sendReceipt();
+    // 백그라운드에서 새 메시지 → 탭으로 돌아왔을 때 읽음 처리
+    document.addEventListener("visibilitychange", sendReceipt);
+    window.addEventListener("focus", sendReceipt);
+    return () => {
+      document.removeEventListener("visibilitychange", sendReceipt);
+      window.removeEventListener("focus", sendReceipt);
+    };
+  }, [client, events]);
+
   async function loadOlder() {
     if (!client || !room || loadingOlderRef.current || !hasMore) return;
     loadingOlderRef.current = true;

@@ -117,6 +117,21 @@ export function ThreadPanel({
     }
   }, [events]);
 
+  // 스레드 읽음 처리 (MSC3771 thread_id receipt — SDK가 이벤트의
+  // threadRootId를 보고 자동으로 스레드 수신확인으로 보냄)
+  const lastReceiptRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (events.length === 0 || document.visibilityState !== "visible") return;
+    const last = events[events.length - 1];
+    const id = last.getId();
+    if (!id || id.startsWith("~") || lastReceiptRef.current === id) return;
+    lastReceiptRef.current = id;
+    client.sendReadReceipt(last).catch((e) => {
+      lastReceiptRef.current = null;
+      console.warn("thread read receipt 실패:", e);
+    });
+  }, [client, events]);
+
   async function loadOlderReplies() {
     if (loadingOlder) return;
     setLoadingOlder(true);
