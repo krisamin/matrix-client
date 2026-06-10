@@ -6,7 +6,7 @@ import {
   type MatrixClient,
   type Room,
 } from "matrix-js-sdk";
-import { getReadyClient, resetClient } from "../lib/matrix";
+import { getReadyClient, resetClient, ensureStarted } from "../lib/matrix";
 import { clearSession } from "../lib/session";
 
 export function meta() {
@@ -50,7 +50,7 @@ export default function Home() {
       };
       c.on(ClientEvent.Sync, onSync);
       if (!c.clientRunning) {
-        c.startClient({ initialSyncLimit: 20 });
+        ensureStarted(c);
       } else {
         refreshRooms();
       }

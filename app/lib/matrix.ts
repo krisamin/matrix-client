@@ -108,3 +108,10 @@ export function resetClient(): void {
   clientPromise?.then((c) => c.stopClient()).catch(() => {});
   clientPromise = null;
 }
+
+/** 모든 라우트에서 같은 옵션으로 startClient 하도록 통일 (threadSupport 포함) */
+export function ensureStarted(client: MatrixClient): void {
+  if (!client.clientRunning) {
+    client.startClient({ initialSyncLimit: 20, threadSupport: true });
+  }
+}

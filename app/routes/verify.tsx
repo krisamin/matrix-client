@@ -8,7 +8,11 @@ import {
   type ShowSasCallbacks,
   type VerificationRequest,
 } from "matrix-js-sdk/lib/crypto-api";
-import { getReadyClient, setSecretInputProvider } from "../lib/matrix";
+import {
+  getReadyClient,
+  setSecretInputProvider,
+  ensureStarted,
+} from "../lib/matrix";
 
 export function meta() {
   return [{ title: "기기 인증 — matrix-client" }];
@@ -38,7 +42,7 @@ export default function Verify() {
     setStep({ kind: "waiting", note: "다른 기기(Element)에 인증 요청 보내는 중..." });
     try {
       const client = await getReadyClient()!;
-      if (!client.clientRunning) client.startClient({ initialSyncLimit: 20 });
+      if (!client.clientRunning) ensureStarted(client);
       const crypto = client.getCrypto();
       if (!crypto) throw new Error("crypto 미초기화");
 
