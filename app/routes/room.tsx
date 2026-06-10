@@ -75,7 +75,12 @@ export default function RoomView() {
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
+  const stickToBottomRef = useRef(true);
+  const loadingOlderRef = useRef(false);
   const myUserId = client?.getUserId() ?? "";
 
   useEffect(() => {
@@ -134,8 +139,55 @@ export default function RoomView() {
   }, [roomId, navigate]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "instant" });
+    if (stickToBottomRef.current) {
+      bottomRef.current?.scrollIntoView({ behavior: "instant" });
+    }
   }, [events]);
+
+  async function loadOlder() {
+    if (!client || !room || loadingOlderRef.current || !hasMore) return;
+    loadingOlderRef.current = true;
+    setLoadingOlder(true);
+    const list = listRef.current;
+    const prevScrollHeight = list?.scrollHeight ?? 0;
+    const prevScrollTop = list?.scrollTop ?? 0;
+    try {
+      const timeline = room.getLiveTimeline();
+      const more = await client.paginateEventTimeline(timeline, {
+        backwards: true,
+        limit: 30,
+      });
+      setHasMore(more);
+      // 새로 들어온 과거 암호화 이벤트 복호화
+      for (const ev of timeline.getEvents()) {
+        if (ev.getType() === EventType.RoomMessageEncrypted) {
+          client.decryptEventIfNeeded(ev);
+        }
+      }
+      setEvents(visibleEvents(room));
+      // 스크롤 위치 보존: 늘어난 높이만큼 내려서 보던 메시지 유지
+      requestAnimationFrame(() => {
+        if (list) {
+          list.scrollTop = prevScrollTop + (list.scrollHeight - prevScrollHeight);
+        }
+      });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      loadingOlderRef.current = false;
+      setLoadingOlder(false);
+    }
+  }
+
+  function onScroll() {
+    const list = listRef.current;
+    if (!list) return;
+    // 바닥 근처(80px)에 있을 때만 새 메시지 오면 자동 스크롤
+    stickToBottomRef.current =
+      list.scrollHeight - list.scrollTop - list.clientHeight < 80;
+    // 위쪽 200px 안으로 올라오면 과거 로드
+    if (list.scrollTop < 200) loadOlder();
+  }
 
   async function send() {
     if (!client || !roomId || !draft.trim() || sending) return;
@@ -160,7 +212,17 @@ export default function RoomView() {
         <h1 className="truncate text-lg font-bold">{room?.name ?? roomId}</h1>
         {room?.hasEncryptionStateEvent() && <span title="E2EE 방">🔐</span>}
       </header>
-      <ul className="flex-1 overflow-y-auto py-3">
+      <ul ref={listRef} onScroll={onScroll} className="flex-1 overflow-y-auto py-3">
+        {loadingOlder && (
+          <li className="py-2 text-center text-xs text-gray-500">
+            과거 메시지 불러오는 중...
+          </li>
+        )}
+        {!hasMore && (
+          <li className="py-2 text-center text-xs text-gray-500">
+            — 대화의 시작 —
+          </li>
+        )}
         {events.map((ev) => (
           <EventLine key={ev.getId()} ev={ev} myUserId={myUserId} />
         ))}
