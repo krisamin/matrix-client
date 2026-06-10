@@ -13,6 +13,7 @@ import {
 } from "matrix-js-sdk";
 import { getReadyClient, resetClient, ensureStarted } from "../lib/matrix";
 import { clearSession } from "../lib/session";
+import { KnownMembership } from "matrix-js-sdk/lib/types";
 
 export function meta() {
   return [{ title: "matrix-client" }];
@@ -60,6 +61,8 @@ export default function Home() {
   const navigate = useNavigate();
   const [client, setClient] = useState<MatrixClient | null>(null);
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [invites, setInvites] = useState<Room[]>([]);
+  const [inviteBusy, setInviteBusy] = useState<string | null>(null);
   const [syncState, setSyncState] = useState<string>("starting");
   const [userId, setUserId] = useState<string>("");
   const [verified, setVerified] = useState<boolean | null>(null);
@@ -82,10 +85,18 @@ export default function Home() {
         .then((s) => setVerified(s?.crossSigningVerified ?? false));
 
       const refreshRooms = () => {
-        const sorted = [...cl.getRooms()].sort(
-          (a, b) => b.getLastActiveTimestamp() - a.getLastActiveTimestamp(),
+        const all = cl.getRooms();
+        setInvites(
+          all.filter((r) => r.getMyMembership() === KnownMembership.Invite),
         );
-        setRooms(sorted);
+        setRooms(
+          all
+            .filter((r) => r.getMyMembership() === KnownMembership.Join)
+            .sort(
+              (a, b) =>
+                b.getLastActiveTimestamp() - a.getLastActiveTimestamp(),
+            ),
+        );
       };
       const onSync = (state: SyncState) => {
         setSyncState(state);
@@ -122,6 +133,32 @@ export default function Home() {
     window.location.href = "/login";
   }
 
+  async function acceptInvite(roomId: string) {
+    if (!client || inviteBusy) return;
+    setInviteBusy(roomId);
+    try {
+      await client.joinRoom(roomId);
+      navigate(`/room/${encodeURIComponent(roomId)}`);
+    } catch (e) {
+      console.warn("초대 수락 실패:", e);
+    } finally {
+      setInviteBusy(null);
+    }
+  }
+
+  async function rejectInvite(roomId: string) {
+    if (!client || inviteBusy) return;
+    setInviteBusy(roomId);
+    try {
+      await client.leave(roomId);
+      setInvites((prev) => prev.filter((r) => r.roomId !== roomId));
+    } catch (e) {
+      console.warn("초대 거절 실패:", e);
+    } finally {
+      setInviteBusy(null);
+    }
+  }
+
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-4 p-6">
       <header className="flex items-center justify-between">
@@ -151,6 +188,51 @@ export default function Home() {
           </button>
         </div>
       </header>
+      {invites.length > 0 && (
+        <section className="flex flex-col gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 dark:border-amber-700 dark:bg-amber-950/40">
+          <h2 className="text-sm font-bold text-amber-700 dark:text-amber-400">
+            📨 초대받은 방 {invites.length}개
+          </h2>
+          <ul className="flex flex-col gap-2">
+            {invites.map((room) => {
+              const inviter = room.getMember(userId)?.events.member?.getSender();
+              return (
+                <li
+                  key={room.roomId}
+                  className="flex items-center justify-between gap-2"
+                >
+                  <div className="flex min-w-0 flex-col">
+                    <span className="truncate text-sm font-medium">
+                      {room.name}
+                    </span>
+                    {inviter && (
+                      <span className="truncate text-xs text-gray-500">
+                        {inviter} 님의 초대
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex shrink-0 gap-1.5">
+                    <button
+                      className="rounded bg-blue-600 px-2.5 py-1 text-xs text-white disabled:opacity-50"
+                      disabled={inviteBusy === room.roomId}
+                      onClick={() => acceptInvite(room.roomId)}
+                    >
+                      수락
+                    </button>
+                    <button
+                      className="rounded border border-gray-300 px-2.5 py-1 text-xs disabled:opacity-50 dark:border-gray-700"
+                      disabled={inviteBusy === room.roomId}
+                      onClick={() => rejectInvite(room.roomId)}
+                    >
+                      거절
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
       <ul className="flex flex-col divide-y divide-gray-200 dark:divide-gray-800">
         {rooms.map((room) => {
           const unread = room.getUnreadNotificationCount(
