@@ -16,6 +16,7 @@ import {
 import { getReadyClient, ensureStarted, getNoThreadTimelineSet } from "../lib/matrix";
 import { uploadAndSendFile } from "../lib/media";
 import { visibleEvents } from "../lib/timeline";
+import { useSendTyping, useTypingMembers } from "../lib/typing";
 import { EventLine } from "../components/EventLine";
 import { ThreadPanel } from "../components/ThreadPanel";
 
@@ -45,6 +46,8 @@ export default function RoomView() {
   const loadingOlderRef = useRef(false);
   const tlSetRef = useRef<EventTimelineSet | null>(null);
   const myUserId = client?.getUserId() ?? "";
+  const typingNames = useTypingMembers(client, room);
+  const { notifyTyping, clearTyping } = useSendTyping(client, roomId);
 
   useEffect(() => {
     const promise = getReadyClient();
@@ -280,6 +283,7 @@ export default function RoomView() {
         await client.sendTextMessage(roomId, draft);
       }
       setDraft("");
+      clearTyping();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -366,6 +370,13 @@ export default function RoomView() {
             )}
             <div ref={bottomRef} />
           </ul>
+          {typingNames.length > 0 && (
+            <p className="pb-1 text-xs text-gray-400">
+              {typingNames.join(", ")}
+              {typingNames.length === 1 ? "이(가)" : "들이"} 입력 중
+              <span className="animate-pulse">...</span>
+            </p>
+          )}
           {error && <p className="pb-1 text-sm text-red-500">{error}</p>}
           {uploading && (
             <p className="pb-1 text-sm text-gray-500">{uploading}</p>
@@ -414,7 +425,10 @@ export default function RoomView() {
             <input
               className="flex-1 rounded border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
               value={draft}
-              onChange={(e) => setDraft(e.target.value)}
+              onChange={(e) => {
+                setDraft(e.target.value);
+                if (e.target.value) notifyTyping();
+              }}
               onPaste={(e) => {
                 const files = Array.from(e.clipboardData.files);
                 if (files.length) {
