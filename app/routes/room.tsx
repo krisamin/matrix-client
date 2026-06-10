@@ -17,6 +17,7 @@ import { getReadyClient, ensureStarted, getNoThreadTimelineSet } from "../lib/ma
 import { uploadAndSendFile } from "../lib/media";
 import { visibleEvents } from "../lib/timeline";
 import { useSendTyping, useTypingMembers } from "../lib/typing";
+import { attachNotifications } from "../lib/notifications";
 import { EventLine } from "../components/EventLine";
 import { ThreadPanel } from "../components/ThreadPanel";
 
@@ -59,6 +60,7 @@ export default function RoomView() {
     promise.then((cl) => {
       setClient(cl);
       if (!cl.clientRunning) ensureStarted(cl);
+      attachNotifications(cl);
 
       const bind = () => {
         const r = cl.getRoom(roomId);

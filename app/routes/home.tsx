@@ -14,6 +14,11 @@ import {
 import { getReadyClient, resetClient, ensureStarted } from "../lib/matrix";
 import { clearSession } from "../lib/session";
 import { KnownMembership } from "matrix-js-sdk/lib/types";
+import {
+  attachNotifications,
+  notificationPermission,
+  requestNotificationPermission,
+} from "../lib/notifications";
 
 export function meta() {
   return [{ title: "matrix-client" }];
@@ -66,6 +71,7 @@ export default function Home() {
   const [syncState, setSyncState] = useState<string>("starting");
   const [userId, setUserId] = useState<string>("");
   const [verified, setVerified] = useState<boolean | null>(null);
+  const [notifPerm, setNotifPerm] = useState(notificationPermission());
 
   useEffect(() => {
     const promise = getReadyClient();
@@ -79,6 +85,7 @@ export default function Home() {
       c = cl;
       setClient(cl);
       setUserId(cl.getUserId() ?? "");
+      attachNotifications(cl);
 
       cl.getCrypto()
         ?.getDeviceVerificationStatus(cl.getUserId()!, cl.getDeviceId()!)
@@ -169,6 +176,18 @@ export default function Home() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {notifPerm === "default" && (
+            <button
+              className="rounded border border-gray-300 px-3 py-1 text-sm dark:border-gray-700"
+              onClick={async () => {
+                await requestNotificationPermission();
+                setNotifPerm(notificationPermission());
+              }}
+              title="새 메시지 데스크톱 알림 켜기"
+            >
+              🔔 알림 켜기
+            </button>
+          )}
           {verified === false && (
             <Link
               to="/verify"
