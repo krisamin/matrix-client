@@ -5,6 +5,7 @@ import {
   EventType,
   MatrixEventEvent,
   MsgType,
+  RelationType,
   RoomEvent,
   SyncState,
   ThreadEvent,
@@ -13,6 +14,7 @@ import {
   type Room,
   type EventTimelineSet,
 } from "matrix-js-sdk";
+import { RelationsEvent } from "matrix-js-sdk/lib/models/relations";
 import { getReadyClient, ensureStarted, getNoThreadTimelineSet } from "../lib/matrix";
 import { getMediaBlobUrl, uploadAndSendFile, type MediaSource } from "../lib/media";
 
@@ -99,22 +101,151 @@ function MediaView({
  *  timelineSet이 있으면 그 라이브 타임라인(MSC3874 필터드)을 사용. */
 function visibleEvents(room: Room, tlSet?: EventTimelineSet | null): MatrixEvent[] {
   const timeline = tlSet?.getLiveTimeline() ?? room.getLiveTimeline();
-  const raw = timeline.getEvents();
-  const visible = raw.filter(
-    (ev) =>
-      (ev.getType() === EventType.RoomMessage ||
+  return timeline
+    .getEvents()
+    .filter(
+      (ev) =>
+        (ev.getType() === EventType.RoomMessage ||
+          ev.getType() === EventType.RoomMessageEncrypted ||
+          ev.isDecryptionFailure()) &&
+        (!ev.threadRootId || ev.isThreadRoot),
+    );
+}
+
+/** 스레드 타임라인에서 표시할 이벤트만 추림 + 시간순 정렬.
+ *  (SDK race로 thread.events 순서가 꼬일 수 있어 정렬 필수 — aa44ce0) */
+function visibleThreadEvents(
+  client: MatrixClient,
+  threadEvents: MatrixEvent[],
+): MatrixEvent[] {
+  const evs = threadEvents
+    .filter(
+      (ev) =>
+        ev.getType() === EventType.RoomMessage ||
         ev.getType() === EventType.RoomMessageEncrypted ||
-        ev.isDecryptionFailure()) &&
-      (!ev.threadRootId || ev.isThreadRoot),
+        ev.isDecryptionFailure(),
+    )
+    .sort((a, b) => a.getTs() - b.getTs());
+  for (const ev of evs) {
+    if (ev.getType() === EventType.RoomMessageEncrypted) {
+      client.decryptEventIfNeeded(ev);
+    }
+  }
+  return evs;
+}
+
+const QUICK_REACTIONS = ["👍", "❤️", "😂", "🎉", "😮", "👀"];
+
+/** 리액션 칩 + 추가 버튼. 메인/스레드 공용 (relations 컨테이너는 room 단위 공유) */
+function ReactionBar({
+  client,
+  room,
+  ev,
+  myUserId,
+  threadId,
+}: {
+  client: MatrixClient;
+  room: Room;
+  ev: MatrixEvent;
+  myUserId: string;
+  threadId: string | null;
+}) {
+  const [, force] = useState(0);
+  const [showPicker, setShowPicker] = useState(false);
+  const eventId = ev.getId();
+  const relations = eventId
+    ? room.relations.getChildEventsForEvent(
+        eventId,
+        RelationType.Annotation,
+        EventType.Reaction,
+      )
+    : undefined;
+
+  // 리액션 추가/삭제 실시간 반영
+  useEffect(() => {
+    if (!relations) return;
+    const bump = () => force((n) => n + 1);
+    relations.on(RelationsEvent.Add, bump);
+    relations.on(RelationsEvent.Remove, bump);
+    relations.on(RelationsEvent.Redaction, bump);
+    return () => {
+      relations.off(RelationsEvent.Add, bump);
+      relations.off(RelationsEvent.Remove, bump);
+      relations.off(RelationsEvent.Redaction, bump);
+    };
+  }, [relations]);
+
+  if (!eventId || ev.isRedacted()) return null;
+
+  const annotations = (relations?.getSortedAnnotationsByKey() ?? [])
+    .map(([key, set]) => {
+      const live = [...set].filter((e) => !e.isRedacted());
+      return {
+        key,
+        count: live.length,
+        mine: live.find((e) => e.getSender() === myUserId),
+      };
+    })
+    .filter((a) => a.count > 0);
+
+  async function toggle(key: string) {
+    setShowPicker(false);
+    const existing = annotations.find((a) => a.key === key)?.mine;
+    try {
+      if (existing) {
+        await client.redactEvent(room.roomId, threadId, existing.getId()!);
+      } else {
+        await client.sendEvent(room.roomId, threadId, EventType.Reaction, {
+          "m.relates_to": {
+            rel_type: RelationType.Annotation,
+            event_id: eventId!,
+            key,
+          },
+        });
+      }
+    } catch (e) {
+      console.warn("리액션 전송 실패:", e);
+    }
+  }
+
+  return (
+    <span className="relative flex flex-wrap items-center gap-1">
+      {annotations.map((a) => (
+        <button
+          key={a.key}
+          onClick={() => toggle(a.key)}
+          className={`rounded-full border px-1.5 py-0.5 text-xs ${
+            a.mine
+              ? "border-blue-400 bg-blue-100 dark:bg-blue-950"
+              : "border-gray-300 bg-gray-100 dark:border-gray-700 dark:bg-gray-900"
+          }`}
+          title={a.mine ? "리액션 취소" : "리액션"}
+        >
+          {a.key} {a.count}
+        </button>
+      ))}
+      <button
+        onClick={() => setShowPicker((v) => !v)}
+        className="rounded-full px-1 text-xs text-gray-400 opacity-0 hover:text-gray-600 group-hover:opacity-100"
+        title="리액션 추가"
+      >
+        ＋😊
+      </button>
+      {showPicker && (
+        <span className="absolute bottom-full z-10 mb-1 flex gap-1 rounded-lg border border-gray-300 bg-white p-1.5 shadow dark:border-gray-700 dark:bg-gray-900">
+          {QUICK_REACTIONS.map((key) => (
+            <button
+              key={key}
+              onClick={() => toggle(key)}
+              className="rounded px-1 text-base hover:bg-gray-100 dark:hover:bg-gray-800"
+            >
+              {key}
+            </button>
+          ))}
+        </span>
+      )}
+    </span>
   );
-  const liveRaw = room.getLiveTimeline().getEvents();
-  console.debug(
-    `[main:${room.roomId.slice(1, 9)}] src=${tlSet ? "filtered" : "live"}`,
-    `raw=${raw.length} visible=${visible.length} liveRaw=${liveRaw.length}`,
-    `rawTypes=${[...new Set(raw.map((e) => e.getType()))].join(",") || "-"}`,
-    `lastTs=${raw.length ? new Date(raw[raw.length - 1].getTs()).toLocaleTimeString() : "-"}`,
-  );
-  return visible;
 }
 
 /** 스레드 패널: 루트 이벤트 + 답글 타임라인 + 입력창 */
@@ -146,68 +277,32 @@ function ThreadPanel({
       room.getThread(rootId) ??
       room.createThread(rootId, room.findEventById(rootId), [], true);
 
-    const refresh = (reason = "?") => {
+    const refresh = () => {
       // 주의: liveTimeline 레퍼런스를 미리 잡아두면 안 됨 —
       // SDK가 초기화 시 resetLiveTimeline()으로 갈아끼움.
       // thread.events getter는 항상 현재 타임라인을 가리킴.
-      const raw = thread.events;
-      console.debug(
-        `[thread:${rootId.slice(0, 12)}] refresh(${reason})`,
-        `raw=${raw.length}`,
-        `replyCount=${thread.length}`,
-        `fetched=${thread.initialEventsFetched}`,
-        `lastTs=${raw.length ? new Date(raw[raw.length - 1].getTs()).toLocaleTimeString() : "-"}`,
-        `types=${[...new Set(raw.map((e) => e.getType()))].join(",")}`,
-      );
-      console.debug(
-        `[thread:${rootId.slice(0, 12)}] events:\n` +
-          raw
-            .map(
-              (e, i) =>
-                `  ${i} ${new Date(e.getTs()).toLocaleTimeString()} ${e.getType()} ${e.getSender()?.slice(1, 8)} ${e.getId()?.slice(0, 10)}`,
-            )
-            .join("\n"),
-      );
-      const evs = raw
-        .filter(
-          (ev) =>
-            ev.getType() === EventType.RoomMessage ||
-            ev.getType() === EventType.RoomMessageEncrypted ||
-            ev.isDecryptionFailure(),
-        )
-        // SDK 알려진 race: 초기 fetch 중 sync로 온 이벤트가 타임라인 앞에
-        // 끼어 순서가 꼬일 수 있음 → 렌더 전 항상 시간순 정렬
-        .sort((a, b) => a.getTs() - b.getTs());
-      for (const ev of evs) {
-        if (ev.getType() === EventType.RoomMessageEncrypted) {
-          client.decryptEventIfNeeded(ev);
-        }
-      }
-      setEvents([...evs]);
+      setEvents(visibleThreadEvents(client, thread.events));
       if (thread.initialEventsFetched) setInitialising(false);
     };
 
-    refresh("mount");
+    refresh();
 
     // SDK가 초기 fetch(리셋 + 최신 답글 로드)를 스스로 수행하고
     // 끝나면 ThreadEvent.Update / RoomEvent.TimelineReset을 emit함
-    const onUpdate = () => refresh("update");
-    const onNewReply = () => refresh("newReply");
-    const onTimeline = () => refresh("timeline");
-    const onReset = () => refresh("reset");
+    const onUpdate = () => refresh();
     thread.on(ThreadEvent.Update, onUpdate);
-    thread.on(ThreadEvent.NewReply, onNewReply);
-    thread.on(RoomEvent.Timeline, onTimeline);
-    thread.on(RoomEvent.TimelineReset, onReset);
+    thread.on(ThreadEvent.NewReply, onUpdate);
+    thread.on(RoomEvent.Timeline, onUpdate);
+    thread.on(RoomEvent.TimelineReset, onUpdate);
     const onDecrypted = (ev: MatrixEvent) => {
-      if (ev.threadRootId === rootId || ev.getId() === rootId) refresh("decrypted");
+      if (ev.threadRootId === rootId || ev.getId() === rootId) refresh();
     };
     client.on(MatrixEventEvent.Decrypted, onDecrypted);
     return () => {
       thread.off(ThreadEvent.Update, onUpdate);
-      thread.off(ThreadEvent.NewReply, onNewReply);
-      thread.off(RoomEvent.Timeline, onTimeline);
-      thread.off(RoomEvent.TimelineReset, onReset);
+      thread.off(ThreadEvent.NewReply, onUpdate);
+      thread.off(RoomEvent.Timeline, onUpdate);
+      thread.off(RoomEvent.TimelineReset, onUpdate);
       client.off(MatrixEventEvent.Decrypted, onDecrypted);
     };
   }, [client, room, rootId]);
@@ -230,20 +325,7 @@ function ThreadPanel({
         backwards: true,
         limit: 50,
       });
-      const evs = thread.events
-        .filter(
-          (ev) =>
-            ev.getType() === EventType.RoomMessage ||
-            ev.getType() === EventType.RoomMessageEncrypted ||
-            ev.isDecryptionFailure(),
-        )
-        .sort((a, b) => a.getTs() - b.getTs());
-      for (const ev of evs) {
-        if (ev.getType() === EventType.RoomMessageEncrypted) {
-          client.decryptEventIfNeeded(ev);
-        }
-      }
-      setEvents([...evs]);
+      setEvents(visibleThreadEvents(client, thread.events));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -294,6 +376,8 @@ function ThreadPanel({
             ev={ev}
             myUserId={myUserId}
             client={client}
+            room={room}
+            threadId={rootId}
           />
         ))}
         {!initialising && events.length === 0 && (
@@ -330,11 +414,15 @@ function EventLine({
   ev,
   myUserId,
   client,
+  room,
+  threadId = null,
   onOpenThread,
 }: {
   ev: MatrixEvent;
   myUserId: string;
   client: MatrixClient;
+  room: Room;
+  threadId?: string | null;
   onOpenThread?: (rootId: string) => void;
 }) {
   const sender = ev.getSender() ?? "?";
@@ -381,6 +469,13 @@ function EventLine({
           {body}
         </span>
       )}
+      <ReactionBar
+        client={client}
+        room={room}
+        ev={ev}
+        myUserId={myUserId}
+        threadId={threadId}
+      />
       {onOpenThread && (
         <span className="flex gap-2 text-xs">
           {threadLength > 0 && (
@@ -660,12 +755,13 @@ export default function RoomView() {
               </li>
             )}
             {events.map((ev) =>
-              client ? (
+              client && room ? (
                 <EventLine
                   key={ev.getId()}
                   ev={ev}
                   myUserId={myUserId}
                   client={client}
+                  room={room}
                   onOpenThread={setThreadRootId}
                 />
               ) : null,

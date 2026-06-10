@@ -139,8 +139,9 @@ export async function getNoThreadTimelineSet(
     filter.setDefinition({
       room: {
         timeline: {
-          // 진짜 메시지만: 리액션/redaction 등 잡 이벤트 서버에서 제외
-          types: ["m.room.message", "m.room.encrypted"],
+          // 메시지 + 리액션만 (리액션은 화면에 직접 안 그리지만
+          // SDK relations aggregation에 필요 — 칩 렌더의 데이터 소스)
+          types: ["m.room.message", "m.room.encrypted", "m.reaction"],
         },
       },
     });
