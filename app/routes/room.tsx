@@ -159,12 +159,16 @@ function ThreadPanel({
             )
             .join("\n"),
       );
-      const evs = raw.filter(
-        (ev) =>
-          ev.getType() === EventType.RoomMessage ||
-          ev.getType() === EventType.RoomMessageEncrypted ||
-          ev.isDecryptionFailure(),
-      );
+      const evs = raw
+        .filter(
+          (ev) =>
+            ev.getType() === EventType.RoomMessage ||
+            ev.getType() === EventType.RoomMessageEncrypted ||
+            ev.isDecryptionFailure(),
+        )
+        // SDK 알려진 race: 초기 fetch 중 sync로 온 이벤트가 타임라인 앞에
+        // 끼어 순서가 꼬일 수 있음 → 렌더 전 항상 시간순 정렬
+        .sort((a, b) => a.getTs() - b.getTs());
       for (const ev of evs) {
         if (ev.getType() === EventType.RoomMessageEncrypted) {
           client.decryptEventIfNeeded(ev);
@@ -217,12 +221,14 @@ function ThreadPanel({
         backwards: true,
         limit: 50,
       });
-      const evs = thread.events.filter(
-        (ev) =>
-          ev.getType() === EventType.RoomMessage ||
-          ev.getType() === EventType.RoomMessageEncrypted ||
-          ev.isDecryptionFailure(),
-      );
+      const evs = thread.events
+        .filter(
+          (ev) =>
+            ev.getType() === EventType.RoomMessage ||
+            ev.getType() === EventType.RoomMessageEncrypted ||
+            ev.isDecryptionFailure(),
+        )
+        .sort((a, b) => a.getTs() - b.getTs());
       for (const ev of evs) {
         if (ev.getType() === EventType.RoomMessageEncrypted) {
           client.decryptEventIfNeeded(ev);
