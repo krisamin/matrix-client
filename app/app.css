@@ -13,3 +13,110 @@ body {
     color-scheme: dark;
   }
 }
+
+/* 메시지 본문 내 HTML(마크다운 변환 결과) 스타일 —
+   Tailwind preflight가 다 리셋해버리므로 직접 복원 */
+.message-body {
+  overflow-wrap: anywhere;
+}
+.message-body p {
+  margin: 0;
+}
+.message-body p + p {
+  margin-top: 0.5em;
+}
+.message-body a {
+  text-decoration: underline;
+  color: #3b82f6;
+}
+.message-body.bg-blue-600 a {
+  color: #bfdbfe;
+}
+.message-body code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85em;
+  background: rgb(0 0 0 / 8%);
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+}
+.message-body pre {
+  background: rgb(0 0 0 / 8%);
+  padding: 0.6em 0.8em;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 0.4em 0;
+}
+.message-body pre code {
+  background: none;
+  padding: 0;
+  font-size: 0.8rem;
+}
+.dark .message-body code,
+.dark .message-body pre {
+  background: rgb(255 255 255 / 10%);
+}
+.message-body.bg-blue-600 code,
+.message-body.bg-blue-600 pre {
+  background: rgb(255 255 255 / 15%);
+}
+.message-body blockquote {
+  border-left: 3px solid rgb(128 128 128 / 50%);
+  padding-left: 0.6em;
+  margin: 0.3em 0;
+  opacity: 0.85;
+}
+.message-body ul,
+.message-body ol {
+  padding-left: 1.4em;
+  margin: 0.25em 0;
+}
+.message-body ul {
+  list-style: disc;
+}
+.message-body ol {
+  list-style: decimal;
+}
+.message-body h1,
+.message-body h2,
+.message-body h3,
+.message-body h4 {
+  font-weight: 700;
+  margin: 0.5em 0 0.25em;
+}
+.message-body h1 {
+  font-size: 1.3em;
+}
+.message-body h2 {
+  font-size: 1.2em;
+}
+.message-body h3 {
+  font-size: 1.1em;
+}
+.message-body table {
+  border-collapse: collapse;
+  margin: 0.4em 0;
+  font-size: 0.85em;
+}
+.message-body th,
+.message-body td {
+  border: 1px solid rgb(128 128 128 / 40%);
+  padding: 0.25em 0.5em;
+}
+.message-body hr {
+  border: none;
+  border-top: 1px solid rgb(128 128 128 / 40%);
+  margin: 0.6em 0;
+}
+.message-body img {
+  max-height: 200px;
+  border-radius: 6px;
+}
+/* 스포일러 (data-mx-spoiler) — 클릭 전 가림 */
+.message-body span[data-mx-spoiler] {
+  background: currentcolor;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.message-body span[data-mx-spoiler]:hover {
+  background: transparent;
+}

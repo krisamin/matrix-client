@@ -6,6 +6,7 @@ import {
 } from "matrix-js-sdk";
 import { MEDIA_MSGTYPES } from "../lib/timeline";
 import { MediaView } from "./MediaView";
+import { MessageBody } from "./MessageBody";
 import { ReactionBar } from "./ReactionBar";
 
 /** 메시지 한 줄: 발신자/시각 + 본문(텍스트/미디어) + 리액션 + 스레드 버튼 */
@@ -30,15 +31,17 @@ export function EventLine({
     ev.getType() === EventType.RoomMessage &&
     MEDIA_MSGTYPES.includes(content.msgtype as string) &&
     !ev.isRedacted();
-  let body: string;
+  // 일반 텍스트 메시지(마크다운/HTML 포함)는 MessageBody가 렌더,
+  // 그 외 상태(복호화중/실패/삭제)는 평문 placeholder
+  let placeholder: string | null = null;
   if (ev.isDecryptionFailure()) {
-    body = "🔒 복호화 실패 (키 없음 — 기기 인증/키 백업 확인)";
+    placeholder = "🔒 복호화 실패 (키 없음 — 기기 인증/키 백업 확인)";
   } else if (ev.getType() === EventType.RoomMessageEncrypted) {
-    body = "🔒 복호화 중...";
+    placeholder = "🔒 복호화 중...";
   } else if (ev.isRedacted()) {
-    body = "(삭제된 메시지)";
-  } else {
-    body = content.body ?? `(${content.msgtype ?? ev.getType()})`;
+    placeholder = "(삭제된 메시지)";
+  } else if (!isMedia && content.body == null) {
+    placeholder = `(${content.msgtype ?? ev.getType()})`;
   }
   const time = new Date(ev.getTs()).toLocaleTimeString("ko-KR", {
     hour: "2-digit",
@@ -50,19 +53,26 @@ export function EventLine({
     >
       <span className="text-xs text-gray-500">
         {sender} · {time}
+        {ev.replacingEvent() && (
+          <span className="ml-1 opacity-70" title="수정됨">
+            (수정됨)
+          </span>
+        )}
       </span>
       {isMedia ? (
         <span className="max-w-[80%]">
           <MediaView client={client} ev={ev} />
         </span>
-      ) : (
+      ) : placeholder ? (
         <span
           className={`max-w-[80%] whitespace-pre-wrap break-words rounded-lg px-3 py-1.5 ${
             mine ? "bg-blue-600 text-white" : "bg-gray-200 dark:bg-gray-800"
           }`}
         >
-          {body}
+          {placeholder}
         </span>
+      ) : (
+        <MessageBody client={client} ev={ev} mine={mine} />
       )}
       <ReactionBar client={client} room={room} ev={ev} myUserId={myUserId} />
       {onOpenThread && (
