@@ -96,7 +96,21 @@ function MediaView({
   }
 }
 
-/** 타임라인에서 표시할 이벤트만 추림 (복호화되면 type이 m.room.message로 바뀜).
+/** 메시지 이벤트인지 (복호화되면 type이 m.room.message로 바뀜).
+ *  m.replace(수정) 이벤트는 제외 — 수정 내용은 SDK makeReplaced로 원본에
+ *  합쳐지므로 별도 렌더하면 중복 표시됨 (Element도 렌더에서 숨김).
+ *  서버 필터(not_rel_types)는 페이지네이션에만 적용되고 sync 라이브
+ *  이벤트는 클라 필터를 통과하므로 여기서 걸러야 함. */
+function isDisplayableMessage(ev: MatrixEvent): boolean {
+  return (
+    (ev.getType() === EventType.RoomMessage ||
+      ev.getType() === EventType.RoomMessageEncrypted ||
+      ev.isDecryptionFailure()) &&
+    !ev.isRelation(RelationType.Replace)
+  );
+}
+
+/** 타임라인에서 표시할 이벤트만 추림.
  *  스레드 답글은 메인 타임라인에서 제외 (스레드 패널에서 표시).
  *  timelineSet이 있으면 그 라이브 타임라인(MSC3874 필터드)을 사용. */
 function visibleEvents(room: Room, tlSet?: EventTimelineSet | null): MatrixEvent[] {
@@ -104,11 +118,7 @@ function visibleEvents(room: Room, tlSet?: EventTimelineSet | null): MatrixEvent
   return timeline
     .getEvents()
     .filter(
-      (ev) =>
-        (ev.getType() === EventType.RoomMessage ||
-          ev.getType() === EventType.RoomMessageEncrypted ||
-          ev.isDecryptionFailure()) &&
-        (!ev.threadRootId || ev.isThreadRoot),
+      (ev) => isDisplayableMessage(ev) && (!ev.threadRootId || ev.isThreadRoot),
     );
 }
 
@@ -119,12 +129,7 @@ function visibleThreadEvents(
   threadEvents: MatrixEvent[],
 ): MatrixEvent[] {
   const evs = threadEvents
-    .filter(
-      (ev) =>
-        ev.getType() === EventType.RoomMessage ||
-        ev.getType() === EventType.RoomMessageEncrypted ||
-        ev.isDecryptionFailure(),
-    )
+    .filter(isDisplayableMessage)
     .sort((a, b) => a.getTs() - b.getTs());
   for (const ev of evs) {
     if (ev.getType() === EventType.RoomMessageEncrypted) {
@@ -161,6 +166,24 @@ function ReactionBar({
         EventType.Reaction,
       )
     : undefined;
+
+  // 리액션이 아직 없는 메시지는 relations 컨테이너 자체가 없음 —
+  // 첫 리액션 도착으로 컨테이너가 생기면 리렌더해서 구독 경로 재구성
+  // (없으면 "0개였던 메시지에 새 리액션이 달려도 안 보이는" 버그)
+  useEffect(() => {
+    const onCreated = (relationType: string, eventType: string) => {
+      if (
+        relationType === RelationType.Annotation &&
+        eventType === EventType.Reaction
+      ) {
+        force((n) => n + 1);
+      }
+    };
+    ev.on(MatrixEventEvent.RelationsCreated, onCreated);
+    return () => {
+      ev.off(MatrixEventEvent.RelationsCreated, onCreated);
+    };
+  }, [ev]);
 
   // 리액션 추가/삭제 실시간 반영 (Relations 인스턴스 이벤트)
   useEffect(() => {
