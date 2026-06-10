@@ -137,11 +137,20 @@ function ThreadPanel({
       room.getThread(rootId) ??
       room.createThread(rootId, room.findEventById(rootId), [], true);
 
-    const refresh = () => {
+    const refresh = (reason = "?") => {
       // 주의: liveTimeline 레퍼런스를 미리 잡아두면 안 됨 —
       // SDK가 초기화 시 resetLiveTimeline()으로 갈아끼움.
       // thread.events getter는 항상 현재 타임라인을 가리킴.
-      const evs = thread.events.filter(
+      const raw = thread.events;
+      console.debug(
+        `[thread:${rootId.slice(0, 12)}] refresh(${reason})`,
+        `raw=${raw.length}`,
+        `replyCount=${thread.replyCount}`,
+        `fetched=${thread.initialEventsFetched}`,
+        `lastTs=${raw.length ? new Date(raw[raw.length - 1].getTs()).toLocaleTimeString() : "-"}`,
+        `types=${[...new Set(raw.map((e) => e.getType()))].join(",")}`,
+      );
+      const evs = raw.filter(
         (ev) =>
           ev.getType() === EventType.RoomMessage ||
           ev.getType() === EventType.RoomMessageEncrypted ||
@@ -156,24 +165,27 @@ function ThreadPanel({
       if (thread.initialEventsFetched) setInitialising(false);
     };
 
-    refresh();
+    refresh("mount");
 
     // SDK가 초기 fetch(리셋 + 최신 답글 로드)를 스스로 수행하고
     // 끝나면 ThreadEvent.Update / RoomEvent.TimelineReset을 emit함
-    const onUpdate = () => refresh();
+    const onUpdate = () => refresh("update");
+    const onNewReply = () => refresh("newReply");
+    const onTimeline = () => refresh("timeline");
+    const onReset = () => refresh("reset");
     thread.on(ThreadEvent.Update, onUpdate);
-    thread.on(ThreadEvent.NewReply, onUpdate);
-    thread.on(RoomEvent.Timeline, onUpdate);
-    thread.on(RoomEvent.TimelineReset, onUpdate);
+    thread.on(ThreadEvent.NewReply, onNewReply);
+    thread.on(RoomEvent.Timeline, onTimeline);
+    thread.on(RoomEvent.TimelineReset, onReset);
     const onDecrypted = (ev: MatrixEvent) => {
-      if (ev.threadRootId === rootId || ev.getId() === rootId) refresh();
+      if (ev.threadRootId === rootId || ev.getId() === rootId) refresh("decrypted");
     };
     client.on(MatrixEventEvent.Decrypted, onDecrypted);
     return () => {
       thread.off(ThreadEvent.Update, onUpdate);
-      thread.off(ThreadEvent.NewReply, onUpdate);
-      thread.off(RoomEvent.Timeline, onUpdate);
-      thread.off(RoomEvent.TimelineReset, onUpdate);
+      thread.off(ThreadEvent.NewReply, onNewReply);
+      thread.off(RoomEvent.Timeline, onTimeline);
+      thread.off(RoomEvent.TimelineReset, onReset);
       client.off(MatrixEventEvent.Decrypted, onDecrypted);
     };
   }, [client, room, rootId]);
