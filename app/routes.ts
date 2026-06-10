@@ -5,4 +5,5 @@ export default [
   route("login", "routes/login.tsx"),
   route("oidc/callback", "routes/oidc.callback.tsx"),
   route("room/:roomId", "routes/room.tsx"),
+  route("verify", "routes/verify.tsx"),
 ] satisfies RouteConfig;

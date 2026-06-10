@@ -1,7 +1,12 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router";
-import { ClientEvent, SyncState, type Room } from "matrix-js-sdk";
-import { getClient } from "../lib/matrix";
+import {
+  ClientEvent,
+  SyncState,
+  type MatrixClient,
+  type Room,
+} from "matrix-js-sdk";
+import { getReadyClient, resetClient } from "../lib/matrix";
 import { clearSession } from "../lib/session";
 
 export function meta() {
@@ -13,42 +18,50 @@ export default function Home() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [syncState, setSyncState] = useState<string>("starting");
   const [userId, setUserId] = useState<string>("");
+  const [verified, setVerified] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const client = getClient();
-    if (!client) {
+    const promise = getReadyClient();
+    if (!promise) {
       navigate("/login", { replace: true });
       return;
     }
-    setUserId(client.getUserId() ?? "");
+    let client: MatrixClient | undefined;
+    let onSync: ((state: SyncState) => void) | undefined;
+    promise.then((c) => {
+      client = c;
+      setUserId(c.getUserId() ?? "");
 
-    const refreshRooms = () => {
-      const sorted = [...client.getRooms()].sort(
-        (a, b) => b.getLastActiveTimestamp() - a.getLastActiveTimestamp(),
-      );
-      setRooms(sorted);
-    };
+      c.getCrypto()
+        ?.getDeviceVerificationStatus(c.getUserId()!, c.getDeviceId()!)
+        .then((s) => setVerified(s?.crossSigningVerified ?? false));
 
-    const onSync = (state: SyncState) => {
-      setSyncState(state);
-      if (state === SyncState.Prepared || state === SyncState.Syncing) {
+      const refreshRooms = () => {
+        const sorted = [...c.getRooms()].sort(
+          (a, b) => b.getLastActiveTimestamp() - a.getLastActiveTimestamp(),
+        );
+        setRooms(sorted);
+      };
+      onSync = (state: SyncState) => {
+        setSyncState(state);
+        if (state === SyncState.Prepared || state === SyncState.Syncing) {
+          refreshRooms();
+        }
+      };
+      c.on(ClientEvent.Sync, onSync);
+      if (!c.clientRunning) {
+        c.startClient({ initialSyncLimit: 20 });
+      } else {
         refreshRooms();
       }
-    };
-    client.on(ClientEvent.Sync, onSync);
-
-    if (!client.clientRunning) {
-      client.startClient({ initialSyncLimit: 20 });
-    } else {
-      refreshRooms();
-    }
-
+    });
     return () => {
-      client.off(ClientEvent.Sync, onSync);
+      if (client && onSync) client.off(ClientEvent.Sync, onSync);
     };
   }, [navigate]);
 
   function logout() {
+    resetClient();
     clearSession();
     window.location.href = "/login";
   }
@@ -62,12 +75,25 @@ export default function Home() {
             {userId} · sync: {syncState}
           </p>
         </div>
-        <button
-          className="rounded border border-gray-300 px-3 py-1 text-sm dark:border-gray-700"
-          onClick={logout}
-        >
-          로그아웃
-        </button>
+        <div className="flex items-center gap-2">
+          {verified === false && (
+            <Link
+              to="/verify"
+              className="rounded bg-amber-500 px-3 py-1 text-sm text-white"
+            >
+              기기 인증 필요
+            </Link>
+          )}
+          {verified === true && (
+            <span className="text-sm text-green-600">✅ 인증됨</span>
+          )}
+          <button
+            className="rounded border border-gray-300 px-3 py-1 text-sm dark:border-gray-700"
+            onClick={logout}
+          >
+            로그아웃
+          </button>
+        </div>
       </header>
       <ul className="flex flex-col divide-y divide-gray-200 dark:divide-gray-800">
         {rooms.map((room) => (

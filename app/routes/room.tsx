@@ -3,19 +3,21 @@ import { Link, useNavigate, useParams } from "react-router";
 import {
   ClientEvent,
   EventType,
+  MatrixEventEvent,
   MsgType,
   RoomEvent,
   SyncState,
+  type MatrixClient,
   type MatrixEvent,
   type Room,
 } from "matrix-js-sdk";
-import { getClient } from "../lib/matrix";
+import { getReadyClient } from "../lib/matrix";
 
 export function meta() {
   return [{ title: "방 — matrix-client" }];
 }
 
-/** 타임라인에서 표시할 이벤트만 추림 */
+/** 타임라인에서 표시할 이벤트만 추림 (복호화되면 type이 m.room.message로 바뀜) */
 function visibleEvents(room: Room): MatrixEvent[] {
   return room
     .getLiveTimeline()
@@ -23,7 +25,8 @@ function visibleEvents(room: Room): MatrixEvent[] {
     .filter(
       (ev) =>
         ev.getType() === EventType.RoomMessage ||
-        ev.getType() === EventType.RoomMessageEncrypted,
+        ev.getType() === EventType.RoomMessageEncrypted ||
+        ev.isDecryptionFailure(),
     );
 }
 
@@ -32,8 +35,10 @@ function EventLine({ ev, myUserId }: { ev: MatrixEvent; myUserId: string }) {
   const mine = sender === myUserId;
   const content = ev.getContent();
   let body: string;
-  if (ev.getType() === EventType.RoomMessageEncrypted) {
-    body = "🔒 암호화된 메시지 (E2EE 아직 미지원)";
+  if (ev.isDecryptionFailure()) {
+    body = "🔒 복호화 실패 (키 없음 — 기기 인증/키 백업 확인)";
+  } else if (ev.getType() === EventType.RoomMessageEncrypted) {
+    body = "🔒 복호화 중...";
   } else if (ev.isRedacted()) {
     body = "(삭제된 메시지)";
   } else if (content.msgtype === MsgType.Image) {
@@ -52,9 +57,7 @@ function EventLine({ ev, myUserId }: { ev: MatrixEvent; myUserId: string }) {
       </span>
       <span
         className={`max-w-[80%] whitespace-pre-wrap break-words rounded-lg px-3 py-1.5 ${
-          mine
-            ? "bg-blue-600 text-white"
-            : "bg-gray-200 dark:bg-gray-800"
+          mine ? "bg-blue-600 text-white" : "bg-gray-200 dark:bg-gray-800"
         }`}
       >
         {body}
@@ -66,47 +69,69 @@ function EventLine({ ev, myUserId }: { ev: MatrixEvent; myUserId: string }) {
 export default function RoomView() {
   const { roomId } = useParams<{ roomId: string }>();
   const navigate = useNavigate();
+  const [client, setClient] = useState<MatrixClient | null>(null);
   const [room, setRoom] = useState<Room | null>(null);
   const [events, setEvents] = useState<MatrixEvent[]>([]);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const client = getClient();
   const myUserId = client?.getUserId() ?? "";
 
   useEffect(() => {
-    if (!client || !roomId) {
+    const promise = getReadyClient();
+    if (!promise || !roomId) {
       navigate("/login", { replace: true });
       return;
     }
-    if (!client.clientRunning) client.startClient({ initialSyncLimit: 20 });
+    let c: MatrixClient | undefined;
+    let cleanup: (() => void) | undefined;
+    promise.then((cl) => {
+      c = cl;
+      setClient(cl);
+      if (!cl.clientRunning) cl.startClient({ initialSyncLimit: 20 });
 
-    const bind = () => {
-      const r = client.getRoom(roomId);
-      if (!r) return false;
-      setRoom(r);
-      setEvents(visibleEvents(r));
-      return true;
-    };
+      const bind = () => {
+        const r = cl.getRoom(roomId);
+        if (!r) return false;
+        setRoom(r);
+        // 과거 암호화 이벤트 복호화 시도
+        for (const ev of r.getLiveTimeline().getEvents()) {
+          if (ev.getType() === EventType.RoomMessageEncrypted) {
+            cl.decryptEventIfNeeded(ev);
+          }
+        }
+        setEvents(visibleEvents(r));
+        return true;
+      };
 
-    // sync 전에 직접 진입한 경우 Prepared까지 대기
-    const onSync = (state: SyncState) => {
-      if (state === SyncState.Prepared) bind();
-    };
-    if (!bind()) client.on(ClientEvent.Sync, onSync);
+      const onSync = (state: SyncState) => {
+        if (state === SyncState.Prepared) bind();
+      };
+      if (!bind()) cl.on(ClientEvent.Sync, onSync);
 
-    const onTimeline = (_ev: MatrixEvent, r?: Room) => {
-      if (r?.roomId !== roomId) return;
-      setEvents(visibleEvents(r));
-    };
-    client.on(RoomEvent.Timeline, onTimeline);
-
-    return () => {
-      client.off(ClientEvent.Sync, onSync);
-      client.off(RoomEvent.Timeline, onTimeline);
-    };
-  }, [client, roomId, navigate]);
+      const refresh = () => {
+        const r = cl.getRoom(roomId);
+        if (r) setEvents(visibleEvents(r));
+      };
+      const onTimeline = (_ev: MatrixEvent, r?: Room) => {
+        if (r?.roomId !== roomId) return;
+        refresh();
+      };
+      const onDecrypted = (ev: MatrixEvent) => {
+        if (ev.getRoomId() !== roomId) return;
+        refresh();
+      };
+      cl.on(RoomEvent.Timeline, onTimeline);
+      cl.on(MatrixEventEvent.Decrypted, onDecrypted);
+      cleanup = () => {
+        cl.off(ClientEvent.Sync, onSync);
+        cl.off(RoomEvent.Timeline, onTimeline);
+        cl.off(MatrixEventEvent.Decrypted, onDecrypted);
+      };
+    });
+    return () => cleanup?.();
+  }, [roomId, navigate]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "instant" });
@@ -132,9 +157,8 @@ export default function RoomView() {
         <Link to="/" className="text-blue-500">
           ←
         </Link>
-        <h1 className="truncate text-lg font-bold">
-          {room?.name ?? roomId}
-        </h1>
+        <h1 className="truncate text-lg font-bold">{room?.name ?? roomId}</h1>
+        {room?.hasEncryptionStateEvent() && <span title="E2EE 방">🔐</span>}
       </header>
       <ul className="flex-1 overflow-y-auto py-3">
         {events.map((ev) => (

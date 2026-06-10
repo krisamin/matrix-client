@@ -7,6 +7,10 @@ export default defineConfig({
   resolve: {
     tsconfigPaths: true,
   },
+  // rust crypto WASM은 vite dep optimizer가 망가뜨리므로 제외
+  optimizeDeps: {
+    exclude: ["@matrix-org/matrix-sdk-crypto-wasm"],
+  },
   server: {
     host: "0.0.0.0",
     port: 5173,
