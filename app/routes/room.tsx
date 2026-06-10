@@ -4,6 +4,7 @@ import {
   ClientEvent,
   EventType,
   MatrixEventEvent,
+  MsgType,
   RoomEvent,
   SyncState,
   ThreadEvent,
@@ -35,6 +36,8 @@ export default function RoomView() {
   const [hasMore, setHasMore] = useState(true);
   const [uploading, setUploading] = useState<string | null>(null);
   const [threadRootId, setThreadRootId] = useState<string | null>(null);
+  const [replyTo, setReplyTo] = useState<MatrixEvent | null>(null);
+  const [highlightId, setHighlightId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
@@ -256,12 +259,47 @@ export default function RoomView() {
     setSending(true);
     setError(null);
     try {
-      await client.sendTextMessage(roomId, draft);
+      if (replyTo) {
+        // 답장: m.in_reply_to 관계 + 구식 클라용 fallback 인용문 (스펙 권장)
+        const orig = replyTo.getContent().body ?? "";
+        const fallbackQuote = orig
+          .split("\n")
+          .map((l: string, i: number) =>
+            i === 0 ? `> <${replyTo.getSender()}> ${l}` : `> ${l}`,
+          )
+          .join("\n");
+        await client.sendEvent(roomId, EventType.RoomMessage, {
+          msgtype: MsgType.Text,
+          body: `${fallbackQuote}\n\n${draft}`,
+          "m.relates_to": {
+            "m.in_reply_to": { event_id: replyTo.getId()! },
+          },
+        });
+        setReplyTo(null);
+      } else {
+        await client.sendTextMessage(roomId, draft);
+      }
       setDraft("");
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setSending(false);
+    }
+  }
+
+  /** 인용 박스 클릭 → 원문으로 스크롤 + 잠깐 강조.
+   *  로드된 범위에 없으면 과거를 더 불러오며 시도 (최대 5페이지) */
+  async function jumpTo(eventId: string) {
+    for (let i = 0; i < 5; i++) {
+      const el = document.getElementById(`ev-${eventId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        setHighlightId(eventId);
+        setTimeout(() => setHighlightId(null), 1600);
+        return;
+      }
+      if (!hasMore) break;
+      await loadOlder();
     }
   }
 
@@ -320,6 +358,9 @@ export default function RoomView() {
                   client={client}
                   room={room}
                   onOpenThread={setThreadRootId}
+                  onReply={setReplyTo}
+                  onJumpTo={jumpTo}
+                  highlighted={highlightId === ev.getId()}
                 />
               ) : null,
             )}
@@ -328,6 +369,21 @@ export default function RoomView() {
           {error && <p className="pb-1 text-sm text-red-500">{error}</p>}
           {uploading && (
             <p className="pb-1 text-sm text-gray-500">{uploading}</p>
+          )}
+          {replyTo && (
+            <div className="mb-1 flex items-center gap-2 rounded border-l-2 border-blue-400 bg-gray-100 px-2 py-1 text-xs dark:bg-gray-900">
+              <span className="shrink-0 text-blue-500">↩ 답장:</span>
+              <span className="min-w-0 flex-1 truncate text-gray-500">
+                {replyTo.getSender()} — {replyTo.getContent().body ?? ""}
+              </span>
+              <button
+                className="shrink-0 px-1 text-gray-400 hover:text-gray-600"
+                onClick={() => setReplyTo(null)}
+                title="답장 취소"
+              >
+                ✕
+              </button>
+            </div>
           )}
           <form
             className="flex gap-2"

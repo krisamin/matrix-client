@@ -12,6 +12,7 @@ import { MEDIA_MSGTYPES } from "../lib/timeline";
 import { MediaView } from "./MediaView";
 import { MessageBody } from "./MessageBody";
 import { ReactionBar } from "./ReactionBar";
+import { ReplyQuote, getReplyToId } from "./ReplyQuote";
 
 /** 메시지 한 줄: 발신자/시각 + 본문(텍스트/미디어) + 리액션 + 스레드 버튼 */
 export function EventLine({
@@ -20,12 +21,21 @@ export function EventLine({
   client,
   room,
   onOpenThread,
+  onReply,
+  onJumpTo,
+  highlighted,
 }: {
   ev: MatrixEvent;
   myUserId: string;
   client: MatrixClient;
   room: Room;
   onOpenThread?: (rootId: string) => void;
+  /** 설정 시 hover에 답장 버튼 표시 */
+  onReply?: (ev: MatrixEvent) => void;
+  /** 인용 박스 클릭 시 원문으로 점프 */
+  onJumpTo?: (eventId: string) => void;
+  /** 점프 직후 잠깐 강조 */
+  highlighted?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [editDraft, setEditDraft] = useState("");
@@ -33,6 +43,7 @@ export function EventLine({
   const sender = ev.getSender() ?? "?";
   const mine = sender === myUserId;
   const content = ev.getContent();
+  const replyToId = getReplyToId(ev);
   const threadLength = ev.isThreadRoot ? (ev.getThread()?.length ?? 0) : 0;
   const isMedia =
     ev.getType() === EventType.RoomMessage &&
@@ -135,7 +146,10 @@ export function EventLine({
 
   return (
     <li
-      className={`group flex flex-col py-1 ${mine ? "items-end" : "items-start"}`}
+      id={`ev-${ev.getId()}`}
+      className={`group flex flex-col rounded py-1 transition-colors duration-700 ${
+        mine ? "items-end" : "items-start"
+      } ${highlighted ? "bg-yellow-100 dark:bg-yellow-900/40" : ""}`}
     >
       <span className="flex items-center gap-1.5 text-xs text-gray-500">
         <span>
@@ -146,27 +160,46 @@ export function EventLine({
             </span>
           )}
         </span>
-        {canModify && !editing && (
-          <span className="hidden gap-1 group-hover:flex">
-            {canEdit && (
-              <button
-                className="text-gray-400 hover:text-gray-600"
-                onClick={startEdit}
-                title="수정"
-              >
-                ✏️
-              </button>
-            )}
+        <span className="hidden gap-1 group-hover:flex">
+          {onReply && !ev.isRedacted() && (
             <button
-              className="text-gray-400 hover:text-red-500"
-              onClick={remove}
-              title="삭제"
+              className="text-gray-400 hover:text-blue-500"
+              onClick={() => onReply(ev)}
+              title="답장"
             >
-              🗑
+              ↩
             </button>
-          </span>
-        )}
+          )}
+          {canModify && !editing && (
+            <>
+              {canEdit && (
+                <button
+                  className="text-gray-400 hover:text-gray-600"
+                  onClick={startEdit}
+                  title="수정"
+                >
+                  ✏️
+                </button>
+              )}
+              <button
+                className="text-gray-400 hover:text-red-500"
+                onClick={remove}
+                title="삭제"
+              >
+                🗑
+              </button>
+            </>
+          )}
+        </span>
       </span>
+      {replyToId && (
+        <ReplyQuote
+          client={client}
+          room={room}
+          replyToId={replyToId}
+          onClick={onJumpTo ? () => onJumpTo(replyToId) : undefined}
+        />
+      )}
       {editing ? (
         <form
           className="flex w-full max-w-[80%] flex-col gap-1"
