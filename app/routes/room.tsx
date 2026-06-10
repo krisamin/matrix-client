@@ -152,6 +152,9 @@ function ReactionBar({
 }) {
   const [, force] = useState(0);
   const [showPicker, setShowPicker] = useState(false);
+  // 낙관적 취소: redact 직후 SDK aggregation 갱신을 기다리지 않고 즉시 칩에서 제외
+  // (SDK Relations의 redaction 반영은 local echo 인스턴스 불일치로 누락될 수 있음)
+  const hiddenRef = useRef<Set<string>>(new Set());
   const eventId = ev.getId();
   const relations = eventId
     ? room.relations.getChildEventsForEvent(
@@ -161,7 +164,7 @@ function ReactionBar({
       )
     : undefined;
 
-  // 리액션 추가/삭제 실시간 반영
+  // 리액션 추가/삭제 실시간 반영 (Relations 인스턴스 이벤트)
   useEffect(() => {
     if (!relations) return;
     const bump = () => force((n) => n + 1);
@@ -175,11 +178,30 @@ function ReactionBar({
     };
   }, [relations]);
 
+  // room 레벨 Redaction 백업 구독 — Relations 경로가 누락해도 리렌더 보장
+  useEffect(() => {
+    const onRedaction = (redactionEv: MatrixEvent) => {
+      const redactsId = redactionEv.event.redacts;
+      if (!redactsId) return;
+      const set = relations ? [...relations.getRelations()] : [];
+      if (set.some((e) => e.getId() === redactsId)) {
+        hiddenRef.current.add(redactsId);
+        force((n) => n + 1);
+      }
+    };
+    room.on(RoomEvent.Redaction, onRedaction);
+    return () => {
+      room.off(RoomEvent.Redaction, onRedaction);
+    };
+  }, [room, relations]);
+
   if (!eventId || ev.isRedacted()) return null;
 
   const annotations = (relations?.getSortedAnnotationsByKey() ?? [])
     .map(([key, set]) => {
-      const live = [...set].filter((e) => !e.isRedacted());
+      const live = [...set].filter(
+        (e) => !e.isRedacted() && !hiddenRef.current.has(e.getId() ?? ""),
+      );
       return {
         key,
         count: live.length,
@@ -193,7 +215,17 @@ function ReactionBar({
     const existing = annotations.find((a) => a.key === key)?.mine;
     try {
       if (existing) {
-        await client.redactEvent(room.roomId, threadId, existing.getId()!);
+        const id = existing.getId()!;
+        // 낙관적 반영: 응답 기다리지 않고 즉시 숨김
+        hiddenRef.current.add(id);
+        force((n) => n + 1);
+        try {
+          await client.redactEvent(room.roomId, threadId, id);
+        } catch (e) {
+          hiddenRef.current.delete(id); // 실패 시 롤백
+          force((n) => n + 1);
+          throw e;
+        }
       } else {
         await client.sendEvent(room.roomId, threadId, EventType.Reaction, {
           "m.relates_to": {
