@@ -2,8 +2,13 @@ import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router";
 import {
   ClientEvent,
+  EventType,
+  MatrixEventEvent,
+  NotificationCountType,
+  RoomEvent,
   SyncState,
   type MatrixClient,
+  type MatrixEvent,
   type Room,
 } from "matrix-js-sdk";
 import { getReadyClient, resetClient, ensureStarted } from "../lib/matrix";
@@ -13,8 +18,47 @@ export function meta() {
   return [{ title: "matrix-client" }];
 }
 
+/** 방의 마지막 표시 가능한 메시지 미리보기 텍스트 */
+function lastMessagePreview(client: MatrixClient, room: Room): string {
+  const events = room.getLiveTimeline().getEvents();
+  for (let i = events.length - 1; i >= 0; i--) {
+    const ev = events[i];
+    const type = ev.getType();
+    if (type === EventType.RoomMessageEncrypted) {
+      client.decryptEventIfNeeded(ev);
+      return "🔒 암호화된 메시지";
+    }
+    if (type !== EventType.RoomMessage) continue;
+    if (ev.isRedacted()) return "(삭제된 메시지)";
+    const content = ev.getContent();
+    const msgtype = content.msgtype as string;
+    if (msgtype === "m.image") return "📷 사진";
+    if (msgtype === "m.video") return "🎞 동영상";
+    if (msgtype === "m.audio") return "🎙 음성";
+    if (msgtype === "m.file") return `📎 ${content.body ?? "파일"}`;
+    // body 첫 줄만 (마크다운 원문이라도 미리보기론 충분)
+    return (content.body ?? "").split("\n")[0];
+  }
+  return "";
+}
+
+function lastActiveLabel(room: Room): string {
+  const ts = room.getLastActiveTimestamp();
+  if (!ts || ts <= 0) return "";
+  const d = new Date(ts);
+  const now = new Date();
+  const sameDay = d.toDateString() === now.toDateString();
+  if (sameDay)
+    return d.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  if (d.toDateString() === yesterday.toDateString()) return "어제";
+  return d.toLocaleDateString("ko-KR", { month: "short", day: "numeric" });
+}
+
 export default function Home() {
   const navigate = useNavigate();
+  const [client, setClient] = useState<MatrixClient | null>(null);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [syncState, setSyncState] = useState<string>("starting");
   const [userId, setUserId] = useState<string>("");
@@ -26,38 +70,50 @@ export default function Home() {
       navigate("/login", { replace: true });
       return;
     }
-    let client: MatrixClient | undefined;
-    let onSync: ((state: SyncState) => void) | undefined;
-    promise.then((c) => {
-      client = c;
-      setUserId(c.getUserId() ?? "");
+    let c: MatrixClient | undefined;
+    let cleanup: (() => void) | undefined;
+    promise.then((cl) => {
+      c = cl;
+      setClient(cl);
+      setUserId(cl.getUserId() ?? "");
 
-      c.getCrypto()
-        ?.getDeviceVerificationStatus(c.getUserId()!, c.getDeviceId()!)
+      cl.getCrypto()
+        ?.getDeviceVerificationStatus(cl.getUserId()!, cl.getDeviceId()!)
         .then((s) => setVerified(s?.crossSigningVerified ?? false));
 
       const refreshRooms = () => {
-        const sorted = [...c.getRooms()].sort(
+        const sorted = [...cl.getRooms()].sort(
           (a, b) => b.getLastActiveTimestamp() - a.getLastActiveTimestamp(),
         );
         setRooms(sorted);
       };
-      onSync = (state: SyncState) => {
+      const onSync = (state: SyncState) => {
         setSyncState(state);
         if (state === SyncState.Prepared || state === SyncState.Syncing) {
           refreshRooms();
         }
       };
-      c.on(ClientEvent.Sync, onSync);
-      if (!c.clientRunning) {
-        ensureStarted(c);
+      // 새 메시지/읽음 갱신 실시간 반영
+      const onTimeline = () => refreshRooms();
+      const onReceipt = () => refreshRooms();
+      const onDecrypted = (_ev: MatrixEvent) => refreshRooms();
+      cl.on(ClientEvent.Sync, onSync);
+      cl.on(RoomEvent.Timeline, onTimeline);
+      cl.on(RoomEvent.Receipt, onReceipt);
+      cl.on(MatrixEventEvent.Decrypted, onDecrypted);
+      if (!cl.clientRunning) {
+        ensureStarted(cl);
       } else {
         refreshRooms();
       }
+      cleanup = () => {
+        cl.off(ClientEvent.Sync, onSync);
+        cl.off(RoomEvent.Timeline, onTimeline);
+        cl.off(RoomEvent.Receipt, onReceipt);
+        cl.off(MatrixEventEvent.Decrypted, onDecrypted);
+      };
     });
-    return () => {
-      if (client && onSync) client.off(ClientEvent.Sync, onSync);
-    };
+    return () => cleanup?.();
   }, [navigate]);
 
   function logout() {
@@ -96,19 +152,51 @@ export default function Home() {
         </div>
       </header>
       <ul className="flex flex-col divide-y divide-gray-200 dark:divide-gray-800">
-        {rooms.map((room) => (
-          <li key={room.roomId}>
-            <Link
-              to={`/room/${encodeURIComponent(room.roomId)}`}
-              className="flex flex-col py-3 hover:bg-gray-50 dark:hover:bg-gray-900"
-            >
-              <span className="font-medium">{room.name}</span>
-              <span className="text-xs text-gray-500">
-                {room.roomId} · 멤버 {room.getJoinedMemberCount()}명
-              </span>
-            </Link>
-          </li>
-        ))}
+        {rooms.map((room) => {
+          const unread = room.getUnreadNotificationCount(
+            NotificationCountType.Total,
+          );
+          const highlight = room.getUnreadNotificationCount(
+            NotificationCountType.Highlight,
+          );
+          const preview = client ? lastMessagePreview(client, room) : "";
+          return (
+            <li key={room.roomId}>
+              <Link
+                to={`/room/${encodeURIComponent(room.roomId)}`}
+                className="flex items-center gap-3 py-3 hover:bg-gray-50 dark:hover:bg-gray-900"
+              >
+                <div className="flex min-w-0 flex-1 flex-col">
+                  <span className="flex items-center gap-1.5 font-medium">
+                    {room.hasEncryptionStateEvent() && (
+                      <span className="text-xs" title="E2EE 방">
+                        🔐
+                      </span>
+                    )}
+                    <span className="truncate">{room.name}</span>
+                  </span>
+                  <span className="truncate text-xs text-gray-500">
+                    {preview || `멤버 ${room.getJoinedMemberCount()}명`}
+                  </span>
+                </div>
+                <div className="flex shrink-0 flex-col items-end gap-1">
+                  <span className="text-xs text-gray-400">
+                    {lastActiveLabel(room)}
+                  </span>
+                  {unread > 0 && (
+                    <span
+                      className={`min-w-5 rounded-full px-1.5 py-0.5 text-center text-xs font-bold text-white ${
+                        highlight > 0 ? "bg-red-500" : "bg-blue-500"
+                      }`}
+                    >
+                      {unread > 99 ? "99+" : unread}
+                    </span>
+                  )}
+                </div>
+              </Link>
+            </li>
+          );
+        })}
         {rooms.length === 0 && (
           <li className="py-3 text-sm text-gray-500">
             동기화 중이거나 방이 없어...
