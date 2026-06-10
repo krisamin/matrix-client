@@ -343,6 +343,7 @@ function ThreadPanel({
   const bottomRef = useRef<HTMLDivElement>(null);
   const stickToBottomRef = useRef(true);
   const listRef = useRef<HTMLUListElement>(null);
+  const backfillingRef = useRef(false);
 
   useEffect(() => {
     const thread =
@@ -354,7 +355,37 @@ function ThreadPanel({
       // SDK가 초기화 시 resetLiveTimeline()으로 갈아끼움.
       // thread.events getter는 항상 현재 타임라인을 가리킴.
       setEvents(visibleThreadEvents(client, thread.events));
-      if (thread.initialEventsFetched) setInitialising(false);
+      if (thread.initialEventsFetched) {
+        setInitialising(false);
+        // 초기 로드분이 수정(m.replace)/리액션 위주면 필터 후 한두 개만
+        // 남아 스크롤바가 없음 → 스크롤 트리거 데드락. 표시할 게
+        // 모일 때까지 자동 백필 (메인 타임라인 fillUntilVisible과 동일 패턴)
+        void backfillUntilVisible();
+      }
+    };
+
+    const backfillUntilVisible = async () => {
+      if (backfillingRef.current) return;
+      backfillingRef.current = true;
+      try {
+        for (
+          let i = 0;
+          i < 10 && visibleThreadEvents(client, thread.events).length < 15;
+          i++
+        ) {
+          // backward 토큰이 없으면 스레드 시작 도달
+          const more = await client.paginateEventTimeline(thread.liveTimeline, {
+            backwards: true,
+            limit: 50,
+          });
+          setEvents(visibleThreadEvents(client, thread.events));
+          if (!more) break;
+        }
+      } catch (e) {
+        console.warn("[thread backfill] 실패:", e);
+      } finally {
+        backfillingRef.current = false;
+      }
     };
 
     refresh();
