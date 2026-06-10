@@ -160,7 +160,11 @@ export async function getNoThreadTimelineSet(
     );
     filter.filterId = filterId;
     return room.getOrCreateFilteredTimelineSet(filter, {
-      prepopulateTimeline: false,
+      // true: 현재 라이브 타임라인 이벤트를 복사 + backward 토큰을 가장
+      // 오래된 unfiltered 토큰으로 세팅 → 빈 화면/토큰 null 문제 방지.
+      // (스레드 답글이 섞여 들어와도 visibleEvents()가 클라에서 걸러냄 —
+      //  서버 필터는 이후 페이지네이션부터 적용)
+      prepopulateTimeline: true,
       useSyncEvents: true,
       pendingEvents: true,
     });

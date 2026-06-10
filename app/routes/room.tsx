@@ -471,7 +471,8 @@ export default function RoomView() {
               backwards: true,
               limit: 50,
             });
-          } catch {
+          } catch (e) {
+            console.warn("[fillUntilVisible] paginate 실패:", e);
             break;
           }
           for (const ev of timeline.getEvents()) {
