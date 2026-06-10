@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import DOMPurify from "dompurify";
 import type { MatrixClient, MatrixEvent } from "matrix-js-sdk";
+import { getReplyToId } from "./ReplyQuote";
 
 /** Matrix 스펙(11.2.1.7 m.room.message msgtypes)이 허용하는 HTML 태그 —
  *  Element(HtmlUtils)와 동일 집합 기준. script/iframe/style 등은 자동 차단. */
@@ -36,6 +37,11 @@ DOMPurify.addHook("afterSanitizeAttributes", (node) => {
 /** mx-reply(구식 답장 인용 fallback) 제거 — 답장 UI는 별도 렌더 */
 function stripMxReply(html: string): string {
   return html.replace(/<mx-reply>[\s\S]*?<\/mx-reply>/g, "");
+}
+
+/** 평문 body의 답장 fallback 인용부("> <@u> ..." 줄들) 제거 */
+function stripPlainReplyFallback(text: string): string {
+  return text.replace(/^(>.*\n)+\n?/, "");
 }
 
 /** mxc:// 이미지 URL을 인증 미디어 HTTP URL로 변환 */
@@ -75,16 +81,21 @@ export function MessageBody({
     const useHtml =
       content.format === "org.matrix.custom.html" &&
       typeof content.formatted_body === "string";
+    // 답장 메시지의 평문 fallback 인용부는 ReplyQuote가 따로 그리므로 제거
+    const isReply = getReplyToId(ev) != null;
+    const plainBody = isReply
+      ? stripPlainReplyFallback(content.body ?? "")
+      : (content.body ?? "");
     const raw = useHtml
       ? convertMxcUrls(client, stripMxReply(content.formatted_body))
-      : linkifyPlain(content.body ?? "");
+      : linkifyPlain(plainBody);
     return DOMPurify.sanitize(raw, {
       ALLOWED_TAGS,
       ALLOWED_ATTR,
       // href는 http/https/mailto/matrix.to만
       ALLOWED_URI_REGEXP: /^(?:https?|mailto|magnet):|^#|^matrix:/i,
     });
-  }, [client, content]);
+  }, [client, ev, content]);
 
   return (
     <span
