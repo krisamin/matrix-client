@@ -142,13 +142,11 @@ function ReactionBar({
   room,
   ev,
   myUserId,
-  threadId,
 }: {
   client: MatrixClient;
   room: Room;
   ev: MatrixEvent;
   myUserId: string;
-  threadId: string | null;
 }) {
   const [, force] = useState(0);
   const [showPicker, setShowPicker] = useState(false);
@@ -197,22 +195,40 @@ function ReactionBar({
 
   if (!eventId || ev.isRedacted()) return null;
 
+  // Element 패턴 (ReactionsRowAdapter): ① sender 기준 dedupe — 같은 리액션이
+  // 페이지네이션/sync/bundled 경로로 중복 인스턴스가 쌓임 (스펙상 1인 1키 1리액션)
+  // ② 내 리액션은 getAnnotationsBySender()[userId]에서 key 매칭으로
+  const myAnnotations = relations?.getAnnotationsBySender()?.[myUserId];
+  const findMine = (key: string): MatrixEvent | undefined =>
+    myAnnotations
+      ? [...myAnnotations].find(
+          (e) =>
+            !e.isRedacted() &&
+            !hiddenRef.current.has(e.getId() ?? "") &&
+            e.getRelation()?.key === key,
+        )
+      : undefined;
+
   const annotations = (relations?.getSortedAnnotationsByKey() ?? [])
     .map(([key, set]) => {
       const live = [...set].filter(
         (e) => !e.isRedacted() && !hiddenRef.current.has(e.getId() ?? ""),
       );
-      return {
-        key,
-        count: live.length,
-        mine: live.find((e) => e.getSender() === myUserId),
-      };
+      // sender당 1개만 카운트 (Matrix 스펙)
+      const seen = new Set<string>();
+      const deduped = live.filter((e) => {
+        const s = e.getSender() ?? "";
+        if (seen.has(s)) return false;
+        seen.add(s);
+        return true;
+      });
+      return { key, count: deduped.length, mine: findMine(key) };
     })
     .filter((a) => a.count > 0);
 
   async function toggle(key: string) {
     setShowPicker(false);
-    const existing = annotations.find((a) => a.key === key)?.mine;
+    const existing = findMine(key);
     try {
       if (existing) {
         const id = existing.getId()!;
@@ -220,14 +236,15 @@ function ReactionBar({
         hiddenRef.current.add(id);
         force((n) => n + 1);
         try {
-          await client.redactEvent(room.roomId, threadId, id);
+          // Element와 동일: threadId 없이 호출 (리액션은 event_id 관계로 라우팅)
+          await client.redactEvent(room.roomId, id);
         } catch (e) {
           hiddenRef.current.delete(id); // 실패 시 롤백
           force((n) => n + 1);
           throw e;
         }
       } else {
-        await client.sendEvent(room.roomId, threadId, EventType.Reaction, {
+        await client.sendEvent(room.roomId, EventType.Reaction, {
           "m.relates_to": {
             rel_type: RelationType.Annotation,
             event_id: eventId!,
@@ -409,7 +426,6 @@ function ThreadPanel({
             myUserId={myUserId}
             client={client}
             room={room}
-            threadId={rootId}
           />
         ))}
         {!initialising && events.length === 0 && (
@@ -447,14 +463,12 @@ function EventLine({
   myUserId,
   client,
   room,
-  threadId = null,
   onOpenThread,
 }: {
   ev: MatrixEvent;
   myUserId: string;
   client: MatrixClient;
   room: Room;
-  threadId?: string | null;
   onOpenThread?: (rootId: string) => void;
 }) {
   const sender = ev.getSender() ?? "?";
@@ -506,7 +520,6 @@ function EventLine({
         room={room}
         ev={ev}
         myUserId={myUserId}
-        threadId={threadId}
       />
       {onOpenThread && (
         <span className="flex gap-2 text-xs">
