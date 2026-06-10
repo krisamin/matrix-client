@@ -113,6 +113,13 @@ export default function Verify() {
       }
 
       await crypto.checkKeyBackupAndEnable();
+
+      // 4S가 열린 김에 cross-signing 개인키도 가져와서 이 기기를 자기 서명
+      // (이게 없으면 백업은 풀려도 기기가 '미인증'으로 남음)
+      setStep({ kind: "restoring", progress: "기기 cross-signing 서명 중..." });
+      await crypto.bootstrapCrossSigning({});
+      await crypto.crossSignDevice(client.getDeviceId()!);
+
       const result = await crypto.restoreKeyBackup({
         progressCallback: (p) =>
           setStep({
