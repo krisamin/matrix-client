@@ -139,12 +139,15 @@ export async function getNoThreadTimelineSet(
     filter.setDefinition({
       room: {
         timeline: {
+          // 진짜 메시지만: 리액션/redaction 등 잡 이벤트 서버에서 제외
+          types: ["m.room.message", "m.room.encrypted"],
           not_rel_types: ["m.thread"],
         } as Record<string, unknown>,
       },
     });
     // 함정: SDK FilterComponent.toJSON()은 아는 키만 직렬화해서
     // not_rel_types가 /messages 요청에서 누락됨 → toJSON을 감싸서 강제 포함.
+    // (types는 toJSON이 아는 키라 그대로 실림)
     // (getRoomTimelineFilterComponent()는 setDefinition 때 만든 동일 인스턴스 반환)
     const comp = filter.getRoomTimelineFilterComponent();
     if (comp) {
