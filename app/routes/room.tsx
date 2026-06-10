@@ -99,15 +99,22 @@ function MediaView({
  *  timelineSet이 있으면 그 라이브 타임라인(MSC3874 필터드)을 사용. */
 function visibleEvents(room: Room, tlSet?: EventTimelineSet | null): MatrixEvent[] {
   const timeline = tlSet?.getLiveTimeline() ?? room.getLiveTimeline();
-  return timeline
-    .getEvents()
-    .filter(
-      (ev) =>
-        (ev.getType() === EventType.RoomMessage ||
-          ev.getType() === EventType.RoomMessageEncrypted ||
-          ev.isDecryptionFailure()) &&
-        (!ev.threadRootId || ev.isThreadRoot),
-    );
+  const raw = timeline.getEvents();
+  const visible = raw.filter(
+    (ev) =>
+      (ev.getType() === EventType.RoomMessage ||
+        ev.getType() === EventType.RoomMessageEncrypted ||
+        ev.isDecryptionFailure()) &&
+      (!ev.threadRootId || ev.isThreadRoot),
+  );
+  const liveRaw = room.getLiveTimeline().getEvents();
+  console.debug(
+    `[main:${room.roomId.slice(1, 9)}] src=${tlSet ? "filtered" : "live"}`,
+    `raw=${raw.length} visible=${visible.length} liveRaw=${liveRaw.length}`,
+    `rawTypes=${[...new Set(raw.map((e) => e.getType()))].join(",") || "-"}`,
+    `lastTs=${raw.length ? new Date(raw[raw.length - 1].getTs()).toLocaleTimeString() : "-"}`,
+  );
+  return visible;
 }
 
 /** 스레드 패널: 루트 이벤트 + 답글 타임라인 + 입력창 */
