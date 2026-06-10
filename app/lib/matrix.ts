@@ -141,20 +141,21 @@ export async function getNoThreadTimelineSet(
         timeline: {
           // 진짜 메시지만: 리액션/redaction 등 잡 이벤트 서버에서 제외
           types: ["m.room.message", "m.room.encrypted"],
-          not_rel_types: ["m.thread"],
-        } as Record<string, unknown>,
+        },
       },
     });
-    // 함정: SDK FilterComponent.toJSON()은 아는 키만 직렬화해서
-    // not_rel_types가 /messages 요청에서 누락됨 → toJSON을 감싸서 강제 포함.
-    // (types는 toJSON이 아는 키라 그대로 실림)
-    // (getRoomTimelineFilterComponent()는 setDefinition 때 만든 동일 인스턴스 반환)
+    // 함정 1: Synapse 1.154 MSC3874는 **unstable 키만** 인식
+    // (스테이블 not_rel_types는 조용히 무시 — 실측 확인)
+    // 함정 2: SDK FilterComponent.toJSON()은 아는 키만 직렬화 → toJSON 래핑으로 강제 포함
+    // m.replace도 제외: 스트리밍 봇의 수정 이벤트가 페이지를 채우는 것 방지
+    // (수정 내용은 bundled relations로 원본에 합쳐져 옴)
+    const NOT_REL = { "org.matrix.msc3874.not_rel_types": ["m.thread", "m.replace"] };
     const comp = filter.getRoomTimelineFilterComponent();
     if (comp) {
       const origToJSON = comp.toJSON.bind(comp);
       comp.toJSON = () => ({
         ...origToJSON(),
-        not_rel_types: ["m.thread"],
+        ...NOT_REL,
       });
     }
     const filterId = await client.getOrCreateFilter(
