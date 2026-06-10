@@ -8,7 +8,7 @@ import {
   type ShowSasCallbacks,
   type VerificationRequest,
 } from "matrix-js-sdk/lib/crypto-api";
-import { getReadyClient } from "../lib/matrix";
+import { getReadyClient, setSecretInputProvider } from "../lib/matrix";
 
 export function meta() {
   return [{ title: "기기 인증 — matrix-client" }];
@@ -89,6 +89,13 @@ export default function Verify() {
 
   async function restoreBackup() {
     setStep({ kind: "restoring", progress: "백업 키 확인 중..." });
+    // secret storage 접근 시 보안 키(또는 passphrase)를 prompt로 입력받음
+    setSecretInputProvider(async () => {
+      const input = window.prompt(
+        "Element에서 받은 보안 키(EsTx ...) 또는 보안 문구를 입력해:",
+      );
+      return input;
+    });
     try {
       const client = await getReadyClient()!;
       const crypto = client.getCrypto();
@@ -126,6 +133,8 @@ export default function Verify() {
         kind: "error",
         message: `백업 복구 실패: ${e instanceof Error ? e.message : String(e)}`,
       });
+    } finally {
+      setSecretInputProvider(null);
     }
   }
 
