@@ -19,6 +19,7 @@ import {
   notificationPermission,
   requestNotificationPermission,
 } from "../lib/notifications";
+import { ConnectionBanner } from "../components/ConnectionBanner";
 
 export function meta() {
   return [{ title: "matrix-client" }];
@@ -207,6 +208,7 @@ export default function Home() {
           </button>
         </div>
       </header>
+      <ConnectionBanner client={client} />
       {invites.length > 0 && (
         <section className="flex flex-col gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 dark:border-amber-700 dark:bg-amber-950/40">
           <h2 className="text-sm font-bold text-amber-700 dark:text-amber-400">
