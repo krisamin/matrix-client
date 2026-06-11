@@ -12,9 +12,10 @@ import { NotificationCountType } from "matrix-js-sdk";
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { useRooms } from "../hooks/useRooms";
-import { getDmUserId, resetClient } from "../lib/matrix";
+import { resetClient } from "../lib/matrix";
 import { quotePreview } from "../lib/reply";
 import { clearSession } from "../lib/session";
+import { buildRoomTree, type SpaceNode } from "../lib/spaces";
 import { RoomAvatar } from "./Avatar";
 
 /** 방 하나의 트리 노드 — 클릭 시 이동, 스레드 자식 노드 펼침 */
@@ -98,6 +99,82 @@ function RoomNode({
   );
 }
 
+/** Space 트리 노드 — 접을 수 있는 부모, 아래 하위 Space/방 재귀 렌더 */
+function SpaceTreeNode({
+  client,
+  node,
+  activeRoomId,
+  activeThreadId,
+}: {
+  client: MatrixClient;
+  node: SpaceNode;
+  activeRoomId?: string;
+  activeThreadId?: string;
+}) {
+  /** 이 Space 서브트리에 활성 방이 들어있는지 (있으면 자동 펼침 유지) */
+  const containsActive = (n: SpaceNode): boolean =>
+    n.rooms.some((r) => r.roomId === activeRoomId) ||
+    n.children.some(containsActive);
+  const [collapsed, setCollapsed] = useState(false);
+  const expanded = !collapsed || containsActive(node);
+
+  return (
+    <div>
+      <button
+        type="button"
+        className="tree-row"
+        onClick={() => setCollapsed((v) => !v)}
+        title={expanded ? "접기" : "펼치기"}
+      >
+        {expanded ? (
+          <ChevronDown className="h-3.5 w-3.5 shrink-0 text-fg-3" />
+        ) : (
+          <ChevronRight className="h-3.5 w-3.5 shrink-0 text-fg-3" />
+        )}
+        <RoomAvatar client={client} room={node.space} size={16} />
+        <span className="min-w-0 flex-1 truncate font-medium text-fg-0">
+          {node.space.name}
+        </span>
+      </button>
+      {expanded && (
+        <div className="tree-children">
+          {node.children.map((child) => (
+            <SpaceTreeNode
+              key={child.space.roomId}
+              client={client}
+              node={child}
+              activeRoomId={activeRoomId}
+              activeThreadId={activeThreadId}
+            />
+          ))}
+          {node.rooms.map((room) => (
+            <RoomNode
+              key={room.roomId}
+              client={client}
+              room={room}
+              active={activeRoomId === room.roomId}
+              activeThreadId={
+                activeRoomId === room.roomId ? activeThreadId : undefined
+              }
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** 섹션 라벨 (Direct / Spaces / Rooms) */
+function SectionLabel({ children }: { children: string }) {
+  return (
+    <div className="mt-3 flex h-6 items-center px-2 first:mt-0">
+      <span className="text-[10px] font-semibold uppercase tracking-widest text-fg-3">
+        {children}
+      </span>
+    </div>
+  );
+}
+
 /** 좌측 사이드바: 유저 헤더(48px) + 방 트리 + sync 푸터(36px) */
 export function Sidebar({ client }: { client: MatrixClient }) {
   const navigate = useNavigate();
@@ -107,8 +184,7 @@ export function Sidebar({ client }: { client: MatrixClient }) {
   const userId = client.getUserId() ?? "";
   const localpart = userId.replace(/^@/, "").split(":")[0];
 
-  const dms = rooms.filter((r) => getDmUserId(client, r));
-  const groups = rooms.filter((r) => !getDmUserId(client, r));
+  const tree = buildRoomTree(client, rooms);
 
   function logout() {
     resetClient();
@@ -141,27 +217,18 @@ export function Sidebar({ client }: { client: MatrixClient }) {
     }
   }
 
-  const renderSection = (label: string, list: Room[]) =>
-    list.length > 0 && (
-      <>
-        <div className="mt-3 flex h-6 items-center px-2 first:mt-0">
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-fg-3">
-            {label}
-          </span>
-        </div>
-        {list.map((room) => (
-          <RoomNode
-            key={room.roomId}
-            client={client}
-            room={room}
-            active={params.roomId === room.roomId}
-            activeThreadId={
-              params.roomId === room.roomId ? params.threadId : undefined
-            }
-          />
-        ))}
-      </>
-    );
+  const renderRooms = (list: Room[]) =>
+    list.map((room) => (
+      <RoomNode
+        key={room.roomId}
+        client={client}
+        room={room}
+        active={params.roomId === room.roomId}
+        activeThreadId={
+          params.roomId === room.roomId ? params.threadId : undefined
+        }
+      />
+    ));
 
   return (
     <aside className="flex w-64 shrink-0 flex-col border-r border-line bg-bg-1">
@@ -184,11 +251,7 @@ export function Sidebar({ client }: { client: MatrixClient }) {
       <nav className="flex-1 select-none overflow-y-auto p-3">
         {invites.length > 0 && (
           <>
-            <div className="flex h-6 items-center px-2">
-              <span className="text-[10px] font-semibold uppercase tracking-widest text-fg-3">
-                Invites
-              </span>
-            </div>
+            <SectionLabel>Invites</SectionLabel>
             {invites.map((room) => (
               <div key={room.roomId} className="tree-row">
                 <span className="min-w-0 flex-1 truncate">{room.name}</span>
@@ -214,8 +277,32 @@ export function Sidebar({ client }: { client: MatrixClient }) {
             ))}
           </>
         )}
-        {renderSection("Direct", dms)}
-        {renderSection("Rooms", groups)}
+        {tree.dms.length > 0 && (
+          <>
+            <SectionLabel>Direct</SectionLabel>
+            {renderRooms(tree.dms)}
+          </>
+        )}
+        {tree.spaces.length > 0 && (
+          <>
+            <SectionLabel>Spaces</SectionLabel>
+            {tree.spaces.map((node) => (
+              <SpaceTreeNode
+                key={node.space.roomId}
+                client={client}
+                node={node}
+                activeRoomId={params.roomId}
+                activeThreadId={params.threadId}
+              />
+            ))}
+          </>
+        )}
+        {tree.orphanRooms.length > 0 && (
+          <>
+            <SectionLabel>Rooms</SectionLabel>
+            {renderRooms(tree.orphanRooms)}
+          </>
+        )}
         {rooms.length === 0 && invites.length === 0 && (
           <p className="px-2 py-3 text-[11px] text-fg-3">
             동기화 중이거나 방이 없어...
