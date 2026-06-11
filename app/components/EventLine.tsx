@@ -63,6 +63,11 @@ export function EventLine({
   const [editDraft, setEditDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  // 마운트 시점에 "방금 도착한" 이벤트(5초 이내 / local echo)만 등장 애니메이션.
+  // 과거 로드로 들어온 옛 메시지가 출렁이는 것 방지 (마운트 1회 판정 고정)
+  const [animateIn] = useState(
+    () => ev.status != null || Date.now() - ev.getTs() < 5000,
+  );
   const sender = ev.getSender() ?? "?";
   const senderName = ev.sender?.name ?? sender;
   const mine = sender === myUserId;
@@ -189,7 +194,7 @@ export function EventLine({
       id={`ev-${ev.getId()}`}
       className={`group relative px-5 py-0.5 transition-colors hover:bg-bg-2/60 ${
         showHeader ? "mt-3" : ""
-      } ${highlighted ? "!bg-bg-3" : ""}`}
+      } ${highlighted ? "!bg-bg-3" : ""} ${animateIn ? "msg-in" : ""}`}
     >
       {/* 그룹 헤더: 발신자 + 시각 (+수정됨) */}
       {showHeader && (

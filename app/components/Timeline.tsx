@@ -66,9 +66,7 @@ export function Timeline({
     } else {
       const anchor = anchorRef.current;
       if (anchor) {
-        const el = list.querySelector<HTMLElement>(
-          `#${CSS.escape(anchor.id)}`,
-        );
+        const el = list.querySelector<HTMLElement>(`#${CSS.escape(anchor.id)}`);
         // 앵커 요소가 이동한 만큼 scrollTop도 이동 → 화면상 위치 불변
         if (el) list.scrollTop += el.offsetTop - anchor.top;
       }

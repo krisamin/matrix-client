@@ -210,6 +210,21 @@ body {
   background: transparent;
 }
 
+/* ── 새 메시지 등장 애니메이션 ── */
+@keyframes msg-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.msg-in {
+  animation: msg-in 0.22s ease-out;
+}
+
 /* ── 코드 구문 강조 (highlight.js) — 토큰 팔레트 기반 커스텀 다크 테마 ── */
 .message-body .hljs-comment,
 .message-body .hljs-quote {

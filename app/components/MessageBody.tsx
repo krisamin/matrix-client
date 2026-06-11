@@ -116,6 +116,58 @@ function linkifyPlain(text: string): string {
     .replace(/\n/g, "<br/>");
 }
 
+/** 수정(타이핑) reveal — root의 텍스트 노드들을 순회하며 fromOffset 이후
+ *  글자를 숨겼다가 점진적으로 풀어 "촤라라락" 타이핑 느낌을 만든다.
+ *  반환: 취소 함수 (다음 수정이 겹치면 이전 애니메이션 중단) */
+function revealTyping(root: HTMLElement, fromOffset: number): () => void {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const hidden: { node: Text; full: string }[] = [];
+  let offset = 0;
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+    const node = n as Text;
+    const full = node.data;
+    const start = offset;
+    offset += full.length;
+    if (offset <= fromOffset) continue; // 전부 공통 prefix — 그대로
+    const keep = Math.max(0, fromOffset - start);
+    hidden.push({ node, full });
+    node.data = full.slice(0, keep);
+  }
+  if (hidden.length === 0) return () => {};
+
+  const totalChars = hidden.reduce(
+    (sum, h) => sum + (h.full.length - h.node.data.length),
+    0,
+  );
+  // 길이에 비례하되 0.25~0.8s로 캡 (너무 길면 답답, 짧으면 안 보임)
+  const duration = Math.min(800, Math.max(250, totalChars * 12));
+  let cancelled = false;
+  const startTime = performance.now();
+
+  const tick = (now: number) => {
+    if (cancelled) return;
+    const progress = Math.min(1, (now - startTime) / duration);
+    let budget = Math.floor(totalChars * progress);
+    for (const h of hidden) {
+      const revealed = Math.min(
+        h.full.length,
+        h.node.data.length + Math.max(0, budget),
+      );
+      budget -= revealed - h.node.data.length;
+      if (revealed !== h.node.data.length)
+        h.node.data = h.full.slice(0, revealed);
+    }
+    if (progress < 1) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+
+  return () => {
+    cancelled = true;
+    // 즉시 전체 공개 (다음 렌더가 어차피 갈아끼우지만 안전하게)
+    for (const h of hidden) h.node.data = h.full;
+  };
+}
+
 /** 메시지 본문 렌더러: formatted_body(HTML)가 있으면 살균 후 렌더,
  *  없으면 평문 + URL 링크화 + <br> 변환. 코드블록은 highlight.js로 구문 강조.
  *  수정(m.replace)된 이벤트는 SDK가 getContent()에서 최신 내용을
@@ -157,7 +209,9 @@ export function MessageBody({
     });
   }, [client, ev, body, formattedBody, evType]);
 
-  // 코드블록 구문 강조 (렌더 후 DOM에 적용 — html 갱신마다)
+  // 코드블록 구문 강조 + 수정 시 타이핑 reveal (렌더 후 DOM에 적용)
+  const prevTextRef = useRef<string | null>(null);
+  const cancelRevealRef = useRef<(() => void) | null>(null);
   // biome-ignore lint/correctness/useExhaustiveDependencies: html은 innerHTML 갱신 후 재실행 트리거 용도
   useEffect(() => {
     const root = ref.current;
@@ -167,6 +221,22 @@ export function MessageBody({
       delete (block as HTMLElement).dataset.highlighted;
       hljs.highlightElement(block as HTMLElement);
     }
+
+    // 수정(m.replace)으로 본문이 바뀐 경우: 공통 prefix 이후부터 타이핑 reveal.
+    // 첫 마운트(prev=null)는 스킵 — 과거 로드/입장 시 출렁임 방지
+    const newText = root.textContent ?? "";
+    const prevText = prevTextRef.current;
+    prevTextRef.current = newText;
+    if (prevText == null || prevText === newText) return;
+    cancelRevealRef.current?.();
+    let common = 0;
+    const max = Math.min(prevText.length, newText.length);
+    while (common < max && prevText[common] === newText[common]) common++;
+    cancelRevealRef.current = revealTyping(root, common);
+    return () => {
+      cancelRevealRef.current?.();
+      cancelRevealRef.current = null;
+    };
   }, [html]);
 
   return (
