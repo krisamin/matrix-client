@@ -94,9 +94,20 @@ export function useRoomTimeline(client: MatrixClient, roomId: string) {
     };
     if (!bind()) client.on(ClientEvent.Sync, onSync);
 
-    const refresh = () => {
+    const refreshNow = () => {
       const r = client.getRoom(roomId);
       if (r) setEvents(visibleEvents(r, tlSetRef.current));
+    };
+    // 복호화/수정 이벤트는 페이지네이션 중 메시지당 수십 번 연쇄로 터짐 —
+    // 프레임당 1회로 배칭해서 전체 리스트 리렌더 폭주 방지
+    let refreshScheduled = false;
+    const refresh = () => {
+      if (refreshScheduled) return;
+      refreshScheduled = true;
+      requestAnimationFrame(() => {
+        refreshScheduled = false;
+        refreshNow();
+      });
     };
     const onTimeline = (_ev: MatrixEvent, r?: Room) => {
       if (r?.roomId === roomId) refresh();

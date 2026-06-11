@@ -37,7 +37,7 @@ export function useThreadTimeline(
       room.getThread(rootId) ??
       room.createThread(rootId, room.findEventById(rootId), [], true);
 
-    const refresh = () => {
+    const refreshNow = () => {
       // 주의: liveTimeline 레퍼런스를 미리 잡아두면 안 됨 —
       // SDK가 초기화 시 resetLiveTimeline()으로 갈아끼움.
       // thread.events getter는 항상 현재 타임라인을 가리킴.
@@ -46,6 +46,16 @@ export function useThreadTimeline(
         setInitialising(false);
         void backfillUntilVisible();
       }
+    };
+    // 복호화/수정 이벤트 연쇄 → 프레임당 1회 배칭 (리렌더 폭주 방지)
+    let refreshScheduled = false;
+    const refresh = () => {
+      if (refreshScheduled) return;
+      refreshScheduled = true;
+      requestAnimationFrame(() => {
+        refreshScheduled = false;
+        refreshNow();
+      });
     };
 
     const backfillUntilVisible = async () => {
@@ -72,7 +82,7 @@ export function useThreadTimeline(
       }
     };
 
-    refresh();
+    refreshNow();
 
     // SDK가 초기 fetch(리셋 + 최신 답글 로드)를 스스로 수행하고
     // 끝나면 ThreadEvent.Update / RoomEvent.TimelineReset을 emit함

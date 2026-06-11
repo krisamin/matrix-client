@@ -129,6 +129,12 @@ export function MessageBody({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const content = ev.getContent();
+  // 주의: getContent()는 매 호출 새 객체 — 객체 자체를 deps에 넣으면
+  // 매 렌더 재살균(전 메시지 DOMPurify+hljs)으로 스크롤 버벅임.
+  // 내용 변화(복호화/수정)는 body/formatted_body 문자열로 감지.
+  const { body, formatted_body: formattedBody } = content;
+  const evType = ev.getType();
+  // biome-ignore lint/correctness/useExhaustiveDependencies: content 객체 대신 문자열 키로 메모 (성능)
   const html = useMemo(() => {
     const useHtml =
       content.format === "org.matrix.custom.html" &&
@@ -149,7 +155,7 @@ export function MessageBody({
       // href는 http/https/mailto/matrix.to만
       ALLOWED_URI_REGEXP: /^(?:https?|mailto|magnet):|^#|^matrix:/i,
     });
-  }, [client, ev, content]);
+  }, [client, ev, body, formattedBody, evType]);
 
   // 코드블록 구문 강조 (렌더 후 DOM에 적용 — html 갱신마다)
   // biome-ignore lint/correctness/useExhaustiveDependencies: html은 innerHTML 갱신 후 재실행 트리거 용도
