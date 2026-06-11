@@ -1,17 +1,21 @@
-import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ClientEvent,
+  type EventTimelineSet,
   EventType,
+  type MatrixClient,
+  type MatrixEvent,
   MatrixEventEvent,
+  type Room,
   RoomEvent,
   SyncState,
   ThreadEvent,
-  type EventTimelineSet,
-  type MatrixClient,
-  type MatrixEvent,
-  type Room,
 } from "matrix-js-sdk";
-import { getReadyClient, ensureStarted, getNoThreadTimelineSet } from "../lib/matrix";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  ensureStarted,
+  getNoThreadTimelineSet,
+  getReadyClient,
+} from "../lib/matrix";
 import { attachNotifications } from "../lib/notifications";
 import { visibleEvents } from "../lib/timeline";
 

@@ -1,14 +1,14 @@
-import { useEffect, useRef, useState } from "react";
 import {
   EventType,
-  MatrixEventEvent,
-  RelationType,
-  RoomEvent,
   type MatrixClient,
   type MatrixEvent,
+  MatrixEventEvent,
+  RelationType,
   type Room,
+  RoomEvent,
 } from "matrix-js-sdk";
 import { RelationsEvent } from "matrix-js-sdk/lib/models/relations";
+import { useEffect, useRef, useState } from "react";
 
 const QUICK_REACTIONS = ["👍", "❤️", "😂", "🎉", "😮", "👀"];
 

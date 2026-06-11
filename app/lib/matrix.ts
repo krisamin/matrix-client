@@ -1,10 +1,10 @@
 import {
   createClient,
+  type EventTimelineSet,
   Filter,
   IndexedDBStore,
-  OidcTokenRefresher,
-  type EventTimelineSet,
   type MatrixClient,
+  OidcTokenRefresher,
   type Room,
 } from "matrix-js-sdk";
 import {
@@ -56,7 +56,12 @@ export function getReadyClient(): Promise<MatrixClient> | null {
   if (!session) return null;
   clientPromise = (async () => {
     // OIDC 토큰 자동 갱신: M_UNKNOWN_TOKEN 시 http-api가 이 함수를 호출
-    let tokenRefreshFunction;
+    let tokenRefreshFunction:
+      | ((refreshToken: string) => Promise<{
+          accessToken: string;
+          refreshToken?: string;
+        }>)
+      | undefined;
     if (session.refreshToken && session.redirectUri && session.idTokenClaims) {
       class PersistingRefresher extends OidcTokenRefresher {
         protected async persistTokens(tokens: {
@@ -175,7 +180,9 @@ export async function getNoThreadTimelineSet(
     // 함정 2: SDK FilterComponent.toJSON()은 아는 키만 직렬화 → toJSON 래핑으로 강제 포함
     // m.replace도 제외: 스트리밍 봇의 수정 이벤트가 페이지를 채우는 것 방지
     // (수정 내용은 bundled relations로 원본에 합쳐져 옴)
-    const NOT_REL = { "org.matrix.msc3874.not_rel_types": ["m.thread", "m.replace"] };
+    const NOT_REL = {
+      "org.matrix.msc3874.not_rel_types": ["m.thread", "m.replace"],
+    };
     const comp = filter.getRoomTimelineFilterComponent();
     if (comp) {
       const origToJSON = comp.toJSON.bind(comp);

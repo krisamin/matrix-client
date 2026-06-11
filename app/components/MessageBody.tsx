@@ -1,23 +1,68 @@
-import { useMemo } from "react";
 import DOMPurify from "dompurify";
 import type { MatrixClient, MatrixEvent } from "matrix-js-sdk";
+import { useMemo } from "react";
 import { getReplyToId } from "./ReplyQuote";
 
 /** Matrix 스펙(11.2.1.7 m.room.message msgtypes)이 허용하는 HTML 태그 —
  *  Element(HtmlUtils)와 동일 집합 기준. script/iframe/style 등은 자동 차단. */
 const ALLOWED_TAGS = [
-  "font", "del", "s", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote",
-  "p", "a", "ul", "ol", "sup", "sub", "li", "b", "i", "u", "strong", "em",
-  "strike", "code", "hr", "br", "div", "table", "thead", "tbody", "tr",
-  "th", "td", "caption", "pre", "span", "img", "details", "summary",
+  "font",
+  "del",
+  "s",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "blockquote",
+  "p",
+  "a",
+  "ul",
+  "ol",
+  "sup",
+  "sub",
+  "li",
+  "b",
+  "i",
+  "u",
+  "strong",
+  "em",
+  "strike",
+  "code",
+  "hr",
+  "br",
+  "div",
+  "table",
+  "thead",
+  "tbody",
+  "tr",
+  "th",
+  "td",
+  "caption",
+  "pre",
+  "span",
+  "img",
+  "details",
+  "summary",
 ];
 
 const ALLOWED_ATTR = [
-  "href", "name", "target", "rel", // a
-  "width", "height", "alt", "title", "src", // img
+  "href",
+  "name",
+  "target",
+  "rel", // a
+  "width",
+  "height",
+  "alt",
+  "title",
+  "src", // img
   "start", // ol
-  "colspan", "rowspan", // td/th
-  "data-mx-bg-color", "data-mx-color", "data-mx-spoiler", // matrix 확장
+  "colspan",
+  "rowspan", // td/th
+  "data-mx-bg-color",
+  "data-mx-color",
+  "data-mx-spoiler", // matrix 확장
   "class", // code language-* (구문 강조 훅)
 ];
 
@@ -58,10 +103,7 @@ function linkifyPlain(text: string): string {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
-  return escaped.replace(
-    /(https?:\/\/[^\s<]+)/g,
-    '<a href="$1">$1</a>',
-  );
+  return escaped.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1">$1</a>');
 }
 
 /** 메시지 본문 렌더러: formatted_body(HTML)가 있으면 살균 후 렌더,

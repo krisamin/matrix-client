@@ -1,5 +1,5 @@
+import { type MatrixClient, type MatrixEvent, MsgType } from "matrix-js-sdk";
 import { useEffect, useState } from "react";
-import { MsgType, type MatrixClient, type MatrixEvent } from "matrix-js-sdk";
 import { getMediaBlobUrl, type MediaSource } from "../lib/media";
 
 /** 이미지/비디오/오디오/파일 첨부 렌더 (인증 미디어 + E2EE 복호화 처리) */
@@ -16,10 +16,12 @@ export function MediaView({
   const msgtype = content.msgtype as string;
 
   useEffect(() => {
+    // content는 매 렌더 새 객체 — ev 기준으로만 재실행 (수정 시 ev 교체됨)
+    const c = ev.getContent();
     const source: MediaSource = {
-      url: content.url,
-      file: content.file,
-      mimetype: content.info?.mimetype,
+      url: c.url,
+      file: c.file,
+      mimetype: c.info?.mimetype,
     };
     const promise = getMediaBlobUrl(client, source);
     if (!promise) {
@@ -54,7 +56,11 @@ export function MediaView({
       );
     case MsgType.Video:
       return (
-        <video src={blobUrl} controls className="max-h-80 max-w-full rounded-lg" />
+        <video
+          src={blobUrl}
+          controls
+          className="max-h-80 max-w-full rounded-lg"
+        />
       );
     case MsgType.Audio:
       return <audio src={blobUrl} controls />;

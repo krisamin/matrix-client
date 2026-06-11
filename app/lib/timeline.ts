@@ -1,11 +1,11 @@
 import {
+  type EventTimelineSet,
   EventType,
-  MsgType,
-  RelationType,
   type MatrixClient,
   type MatrixEvent,
+  MsgType,
+  RelationType,
   type Room,
-  type EventTimelineSet,
 } from "matrix-js-sdk";
 
 export const MEDIA_MSGTYPES = [

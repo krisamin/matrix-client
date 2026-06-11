@@ -1,25 +1,25 @@
-import { useEffect, useState } from "react";
-import { useNavigate, Link } from "react-router";
 import {
   ClientEvent,
   EventType,
-  MatrixEventEvent,
-  NotificationCountType,
-  RoomEvent,
-  SyncState,
   type MatrixClient,
   type MatrixEvent,
+  MatrixEventEvent,
+  NotificationCountType,
   type Room,
+  RoomEvent,
+  SyncState,
 } from "matrix-js-sdk";
-import { getReadyClient, resetClient, ensureStarted } from "../lib/matrix";
-import { clearSession } from "../lib/session";
 import { KnownMembership } from "matrix-js-sdk/lib/types";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router";
+import { ConnectionBanner } from "../components/ConnectionBanner";
+import { ensureStarted, getReadyClient, resetClient } from "../lib/matrix";
 import {
   attachNotifications,
   notificationPermission,
   requestNotificationPermission,
 } from "../lib/notifications";
-import { ConnectionBanner } from "../components/ConnectionBanner";
+import { clearSession } from "../lib/session";
 
 export function meta() {
   return [{ title: "matrix-client" }];
@@ -56,7 +56,10 @@ function lastActiveLabel(room: Room): string {
   const now = new Date();
   const sameDay = d.toDateString() === now.toDateString();
   if (sameDay)
-    return d.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
+    return d.toLocaleTimeString("ko-KR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   const yesterday = new Date(now);
   yesterday.setDate(now.getDate() - 1);
   if (d.toDateString() === yesterday.toDateString()) return "어제";
@@ -80,10 +83,8 @@ export default function Home() {
       navigate("/login", { replace: true });
       return;
     }
-    let c: MatrixClient | undefined;
     let cleanup: (() => void) | undefined;
     promise.then((cl) => {
-      c = cl;
       setClient(cl);
       setUserId(cl.getUserId() ?? "");
       attachNotifications(cl);
@@ -101,8 +102,7 @@ export default function Home() {
           all
             .filter((r) => r.getMyMembership() === KnownMembership.Join)
             .sort(
-              (a, b) =>
-                b.getLastActiveTimestamp() - a.getLastActiveTimestamp(),
+              (a, b) => b.getLastActiveTimestamp() - a.getLastActiveTimestamp(),
             ),
         );
       };
@@ -216,7 +216,9 @@ export default function Home() {
           </h2>
           <ul className="flex flex-col gap-2">
             {invites.map((room) => {
-              const inviter = room.getMember(userId)?.events.member?.getSender();
+              const inviter = room
+                .getMember(userId)
+                ?.events.member?.getSender();
               return (
                 <li
                   key={room.roomId}

@@ -1,16 +1,12 @@
+import { EventType, type MatrixEvent, MsgType } from "matrix-js-sdk";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
-import {
-  EventType,
-  MsgType,
-  type MatrixEvent,
-} from "matrix-js-sdk";
-import { uploadAndSendFile } from "../lib/media";
-import { useSendTyping, useTypingMembers } from "../lib/typing";
-import { useRoomTimeline, useReadReceipt } from "../hooks/useRoomTimeline";
 import { ConnectionBanner } from "../components/ConnectionBanner";
 import { EventLine } from "../components/EventLine";
 import { ThreadPanel } from "../components/ThreadPanel";
+import { useReadReceipt, useRoomTimeline } from "../hooks/useRoomTimeline";
+import { uploadAndSendFile } from "../lib/media";
+import { useSendTyping, useTypingMembers } from "../lib/typing";
 
 export function meta() {
   return [{ title: "방 — matrix-client" }];
@@ -43,6 +39,7 @@ export default function RoomView() {
   const { notifyTyping, clearTyping } = useSendTyping(client, roomId);
 
   // 새 메시지 오면 바닥 고정 (사용자가 위를 보고 있으면 유지)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: events는 트리거 용도 (본문 미사용)
   useEffect(() => {
     if (stickToBottomRef.current) {
       bottomRef.current?.scrollIntoView({ behavior: "instant" });
@@ -59,7 +56,8 @@ export default function RoomView() {
       if (!loaded) return;
       requestAnimationFrame(() => {
         if (list) {
-          list.scrollTop = prevScrollTop + (list.scrollHeight - prevScrollHeight);
+          list.scrollTop =
+            prevScrollTop + (list.scrollHeight - prevScrollHeight);
         }
       });
     } catch (e) {

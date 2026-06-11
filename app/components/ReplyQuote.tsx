@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
 import type { MatrixClient, MatrixEvent, Room } from "matrix-js-sdk";
+import { useEffect, useState } from "react";
 
 /** 이벤트에서 답장 대상(m.in_reply_to) event_id 추출.
  *  스레드 답글은 fallback용 in_reply_to를 같이 달고 오므로

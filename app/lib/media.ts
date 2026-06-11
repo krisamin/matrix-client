@@ -1,11 +1,11 @@
-import type { MatrixClient } from "matrix-js-sdk";
-import { MsgType } from "matrix-js-sdk";
-import type { EncryptedFile } from "matrix-js-sdk/lib/@types/media";
-import type { RoomMessageEventContent } from "matrix-js-sdk/lib/@types/events";
 import {
   decryptAttachment,
   encryptAttachment,
 } from "matrix-encrypt-attachment";
+import type { MatrixClient } from "matrix-js-sdk";
+import { MsgType } from "matrix-js-sdk";
+import type { RoomMessageEventContent } from "matrix-js-sdk/lib/@types/events";
+import type { EncryptedFile } from "matrix-js-sdk/lib/@types/media";
 
 /** mxc URL → blob object URL 캐시 (세션 동안 유지) */
 const blobUrlCache = new Map<string, Promise<string>>();

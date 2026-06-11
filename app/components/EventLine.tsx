@@ -1,18 +1,18 @@
-import { useState } from "react";
 import {
   EventStatus,
   EventType,
-  MsgType,
-  RelationType,
   type MatrixClient,
   type MatrixEvent,
+  MsgType,
+  RelationType,
   type Room,
 } from "matrix-js-sdk";
+import { useState } from "react";
 import { MEDIA_MSGTYPES } from "../lib/timeline";
 import { MediaView } from "./MediaView";
 import { MessageBody } from "./MessageBody";
 import { ReactionBar } from "./ReactionBar";
-import { ReplyQuote, getReplyToId } from "./ReplyQuote";
+import { getReplyToId, ReplyQuote } from "./ReplyQuote";
 
 /** 메시지 한 줄: 발신자/시각 + 본문(텍스트/미디어) + 리액션 + 스레드 버튼 */
 export function EventLine({
@@ -276,9 +276,7 @@ export function EventLine({
           </button>
         </span>
       )}
-      {isPending && (
-        <span className="text-xs text-gray-400">전송 중...</span>
-      )}
+      {isPending && <span className="text-xs text-gray-400">전송 중...</span>}
       <ReactionBar client={client} room={room} ev={ev} myUserId={myUserId} />
       {onOpenThread && (
         <span className="flex gap-2 text-xs">

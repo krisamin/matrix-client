@@ -6,7 +6,9 @@
     "build": "react-router build",
     "dev": "react-router dev",
     "start": "react-router-serve ./build/server/index.js",
-    "typecheck": "react-router typegen && tsc"
+    "typecheck": "tsc --noEmit",
+    "check": "biome check .",
+    "check:fix": "biome check --write ."
   },
   "dependencies": {
     "@matrix-org/matrix-sdk-crypto-wasm": "^18.3.1",
@@ -21,6 +23,7 @@
     "react-router": "7.16.0"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.4.16",
     "@react-router/dev": "7.16.0",
     "@tailwindcss/vite": "^4.2.2",
     "@types/node": "^22",

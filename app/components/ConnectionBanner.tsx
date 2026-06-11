@@ -1,5 +1,5 @@
+import { ClientEvent, type MatrixClient, SyncState } from "matrix-js-sdk";
 import { useEffect, useState } from "react";
-import { ClientEvent, SyncState, type MatrixClient } from "matrix-js-sdk";
 
 /** sync 상태 추적 훅 — 오프라인/재연결 배너용 */
 export function useSyncState(client: MatrixClient | null): SyncState | null {
@@ -19,11 +19,7 @@ export function useSyncState(client: MatrixClient | null): SyncState | null {
 }
 
 /** 연결 끊김/재연결 배너. 정상(Syncing/Prepared)일 땐 안 보임 */
-export function ConnectionBanner({
-  client,
-}: {
-  client: MatrixClient | null;
-}) {
+export function ConnectionBanner({ client }: { client: MatrixClient | null }) {
   const state = useSyncState(client);
   const [reconnecting, setReconnecting] = useState(false);
 

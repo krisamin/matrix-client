@@ -1,10 +1,10 @@
 import {
   EventType,
-  MatrixEventEvent,
-  RoomEvent,
   type MatrixClient,
   type MatrixEvent,
+  MatrixEventEvent,
   type Room,
+  RoomEvent,
 } from "matrix-js-sdk";
 
 /** 데스크톱 알림: 탭이 백그라운드일 때 새 메시지를 Notification API로 표시.
@@ -12,7 +12,9 @@ import {
 
 let attached = false;
 
-export function notificationPermission(): NotificationPermission | "unsupported" {
+export function notificationPermission():
+  | NotificationPermission
+  | "unsupported" {
   if (typeof Notification === "undefined") return "unsupported";
   return Notification.permission;
 }
@@ -35,7 +37,11 @@ function preview(ev: MatrixEvent): string {
   return stripped.length > 120 ? `${stripped.slice(0, 120)}…` : stripped;
 }
 
-function shouldNotify(client: MatrixClient, ev: MatrixEvent, room: Room): boolean {
+function shouldNotify(
+  client: MatrixClient,
+  ev: MatrixEvent,
+  room: Room,
+): boolean {
   if (document.visibilityState === "visible") return false;
   if (ev.getSender() === client.getUserId()) return false;
   // push rule 평가 결과(멘션/키워드/DM 등) 또는 DM 방이면 알림
@@ -45,7 +51,7 @@ function shouldNotify(client: MatrixClient, ev: MatrixEvent, room: Room): boolea
   return room.getJoinedMemberCount() <= 2;
 }
 
-function fireNotification(client: MatrixClient, ev: MatrixEvent, room: Room) {
+function fireNotification(ev: MatrixEvent, room: Room) {
   const sender =
     room.getMember(ev.getSender() ?? "")?.name ?? ev.getSender() ?? "?";
   const isDm = room.getJoinedMemberCount() <= 2;
@@ -78,13 +84,16 @@ export function attachNotifications(client: MatrixClient): void {
     if (!shouldNotify(client, ev, room)) return;
     seen.add(id);
     if (seen.size > 200) seen.clear(); // 메모리 캡
-    fireNotification(client, ev, room);
+    fireNotification(ev, room);
   };
 
-  client.on(RoomEvent.Timeline, (ev, room, toStartOfTimeline, removed, data) => {
-    if (toStartOfTimeline || removed || !data.liveEvent) return;
-    consider(ev, room ?? undefined);
-  });
+  client.on(
+    RoomEvent.Timeline,
+    (ev, room, toStartOfTimeline, removed, data) => {
+      if (toStartOfTimeline || removed || !data.liveEvent) return;
+      consider(ev, room ?? undefined);
+    },
+  );
   // E2EE: 복호화가 끝나야 내용/푸시룰 평가 가능
   client.on(MatrixEventEvent.Decrypted, (ev: MatrixEvent) => {
     const room = client.getRoom(ev.getRoomId() ?? "") ?? undefined;

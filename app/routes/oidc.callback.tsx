@@ -1,6 +1,6 @@
+import { completeAuthorizationCodeGrant, createClient } from "matrix-js-sdk";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import { createClient, completeAuthorizationCodeGrant } from "matrix-js-sdk";
 import { saveSession } from "../lib/session";
 
 export function meta() {
@@ -28,8 +28,12 @@ export default function OidcCallback() {
     }
     (async () => {
       // 토큰 교환 (PKCE 검증 포함, state는 SDK가 sessionStorage에서 복원)
-      const { tokenResponse, homeserverUrl, oidcClientSettings, idTokenClaims } =
-        await completeAuthorizationCodeGrant(code, state);
+      const {
+        tokenResponse,
+        homeserverUrl,
+        oidcClientSettings,
+        idTokenClaims,
+      } = await completeAuthorizationCodeGrant(code, state);
 
       // whoami로 userId/deviceId 확정
       const tmp = createClient({

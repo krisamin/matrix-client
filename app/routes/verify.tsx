@@ -1,17 +1,17 @@
+import {
+  ImportRoomKeyStage,
+  type ShowSasCallbacks,
+  VerificationPhase,
+  type VerificationRequest,
+  VerificationRequestEvent,
+  VerifierEvent,
+} from "matrix-js-sdk/lib/crypto-api";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import {
-  ImportRoomKeyStage,
-  VerificationPhase,
-  VerificationRequestEvent,
-  VerifierEvent,
-  type ShowSasCallbacks,
-  type VerificationRequest,
-} from "matrix-js-sdk/lib/crypto-api";
-import {
+  ensureStarted,
   getReadyClient,
   setSecretInputProvider,
-  ensureStarted,
 } from "../lib/matrix";
 
 export function meta() {
@@ -39,7 +39,10 @@ export default function Verify() {
   }, []);
 
   async function start() {
-    setStep({ kind: "waiting", note: "다른 기기(Element)에 인증 요청 보내는 중..." });
+    setStep({
+      kind: "waiting",
+      note: "다른 기기(Element)에 인증 요청 보내는 중...",
+    });
     try {
       const client = await getReadyClient()!;
       if (!client.clientRunning) ensureStarted(client);
@@ -187,8 +190,8 @@ export default function Verify() {
         <div className="flex flex-col gap-4">
           <p>Element에 뜬 이모지와 같은지 확인해:</p>
           <div className="flex flex-wrap gap-3 text-center">
-            {step.emojis.map(([emoji, name], i) => (
-              <div key={i} className="flex w-16 flex-col items-center">
+            {step.emojis.map(([emoji, name]) => (
+              <div key={name} className="flex w-16 flex-col items-center">
                 <span className="text-3xl">{emoji}</span>
                 <span className="text-xs text-gray-500">{name}</span>
               </div>

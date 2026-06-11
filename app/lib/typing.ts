@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from "react";
 import {
-  RoomMemberEvent,
   type MatrixClient,
   type Room,
   type RoomMember,
+  RoomMemberEvent,
 } from "matrix-js-sdk";
+import { useEffect, useRef, useState } from "react";
 
 /** 상대 타이핑 수신 훅 — 나를 제외한 타이핑 중인 멤버 표시이름 목록 */
 export function useTypingMembers(

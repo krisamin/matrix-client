@@ -1,14 +1,14 @@
-import { useEffect, useRef, useState } from "react";
 import {
-  MatrixEventEvent,
-  RoomEvent,
-  ThreadEvent,
   type MatrixClient,
   type MatrixEvent,
+  MatrixEventEvent,
   type Room,
+  RoomEvent,
+  ThreadEvent,
 } from "matrix-js-sdk";
-import { visibleThreadEvents } from "../lib/timeline";
+import { useEffect, useRef, useState } from "react";
 import { useReadReceipt } from "../hooks/useRoomTimeline";
+import { visibleThreadEvents } from "../lib/timeline";
 import { EventLine } from "./EventLine";
 
 /** 스레드 패널: 루트 이벤트 + 답글 타임라인 + 입력창 */
@@ -112,6 +112,7 @@ export function ThreadPanel({
   }, [client, room, rootId]);
 
   // 새 답글 오면 바닥 고정 (사용자가 위를 보고 있으면 유지)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: events는 트리거 용도 (본문 미사용)
   useEffect(() => {
     if (stickToBottomRef.current) {
       bottomRef.current?.scrollIntoView({ behavior: "instant" });
@@ -171,10 +172,16 @@ export function ThreadPanel({
           ✕
         </button>
       </header>
-      <ul ref={listRef} onScroll={onScroll} className="flex-1 overflow-y-auto py-2">
+      <ul
+        ref={listRef}
+        onScroll={onScroll}
+        className="flex-1 overflow-y-auto py-2"
+      >
         {(initialising || loadingOlder) && (
           <li className="py-2 text-center text-xs text-gray-500">
-            {initialising ? "스레드 불러오는 중..." : "과거 답글 불러오는 중..."}
+            {initialising
+              ? "스레드 불러오는 중..."
+              : "과거 답글 불러오는 중..."}
           </li>
         )}
         {events.map((ev) => (
