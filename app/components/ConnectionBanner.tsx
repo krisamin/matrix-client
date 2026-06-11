@@ -37,15 +37,16 @@ export function ConnectionBanner({ client }: { client: MatrixClient | null }) {
 
   return (
     <div
-      className={`flex items-center justify-center gap-2 rounded px-3 py-1.5 text-xs text-white ${
-        isError ? "bg-red-500" : "bg-amber-500"
+      className={`flex h-8 shrink-0 items-center justify-center gap-2 border-b border-line text-[11px] ${
+        isError ? "bg-red-950/60 text-red-300" : "bg-bg-2 text-amber-300"
       }`}
     >
       <span className="animate-pulse">●</span>
       {label}
       {isError && (
         <button
-          className="rounded bg-white/20 px-2 py-0.5 font-medium hover:bg-white/30 disabled:opacity-50"
+          type="button"
+          className="rounded bg-bg-3 px-2 py-0.5 font-medium text-fg-0 hover:bg-line-strong disabled:opacity-50"
           disabled={reconnecting}
           onClick={async () => {
             setReconnecting(true);

@@ -10,7 +10,7 @@ import {
 import { RelationsEvent } from "matrix-js-sdk/lib/models/relations";
 import { useEffect, useRef, useState } from "react";
 
-const QUICK_REACTIONS = ["👍", "❤️", "😂", "🎉", "😮", "👀"];
+export const QUICK_REACTIONS = ["👍", "❤️", "😂", "🎉", "😮", "👀"];
 
 /** 리액션 칩 + 추가 버튼. 메인/스레드 공용 (relations 컨테이너는 room 단위 공유) */
 export function ReactionBar({
@@ -25,7 +25,6 @@ export function ReactionBar({
   myUserId: string;
 }) {
   const [, force] = useState(0);
-  const [showPicker, setShowPicker] = useState(false);
   // 낙관적 취소: redact 직후 SDK aggregation 갱신을 기다리지 않고 즉시 칩에서 제외
   // (SDK Relations의 redaction 반영은 local echo 인스턴스 불일치로 누락될 수 있음)
   const hiddenRef = useRef<Set<string>>(new Set());
@@ -121,7 +120,6 @@ export function ReactionBar({
     .filter((a) => a.count > 0);
 
   async function toggle(key: string) {
-    setShowPicker(false);
     const existing = findMine(key);
     try {
       if (existing) {
@@ -151,42 +149,25 @@ export function ReactionBar({
     }
   }
 
+  if (annotations.length === 0) return null;
+
   return (
-    <span className="relative flex flex-wrap items-center gap-1">
+    <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
       {annotations.map((a) => (
         <button
           key={a.key}
+          type="button"
           onClick={() => toggle(a.key)}
-          className={`rounded-full border px-1.5 py-0.5 text-xs ${
+          className={`flex h-[22px] items-center gap-1 rounded-md border px-2 font-mono text-[11px] ${
             a.mine
-              ? "border-blue-400 bg-blue-100 dark:bg-blue-950"
-              : "border-gray-300 bg-gray-100 dark:border-gray-700 dark:bg-gray-900"
+              ? "border-line-strong bg-bg-3 text-fg-0"
+              : "border-line text-fg-2 hover:bg-bg-2"
           }`}
           title={a.mine ? "리액션 취소" : "리액션"}
         >
           {a.key} {a.count}
         </button>
       ))}
-      <button
-        onClick={() => setShowPicker((v) => !v)}
-        className="rounded-full px-1 text-xs text-gray-400 opacity-0 hover:text-gray-600 group-hover:opacity-100"
-        title="리액션 추가"
-      >
-        ＋😊
-      </button>
-      {showPicker && (
-        <span className="absolute bottom-full z-10 mb-1 flex gap-1 rounded-lg border border-gray-300 bg-white p-1.5 shadow dark:border-gray-700 dark:bg-gray-900">
-          {QUICK_REACTIONS.map((key) => (
-            <button
-              key={key}
-              onClick={() => toggle(key)}
-              className="rounded px-1 text-base hover:bg-gray-100 dark:hover:bg-gray-800"
-            >
-              {key}
-            </button>
-          ))}
-        </span>
-      )}
     </span>
   );
 }

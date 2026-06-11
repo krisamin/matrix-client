@@ -1,7 +1,7 @@
 import DOMPurify from "dompurify";
 import type { MatrixClient, MatrixEvent } from "matrix-js-sdk";
 import { useMemo } from "react";
-import { getReplyToId } from "./ReplyQuote";
+import { getReplyToId } from "../lib/reply";
 
 /** Matrix 스펙(11.2.1.7 m.room.message msgtypes)이 허용하는 HTML 태그 —
  *  Element(HtmlUtils)와 동일 집합 기준. script/iframe/style 등은 자동 차단. */
@@ -107,16 +107,15 @@ function linkifyPlain(text: string): string {
 }
 
 /** 메시지 본문 렌더러: formatted_body(HTML)가 있으면 살균 후 렌더,
- *  없으면 평문 + URL 링크화. 수정(m.replace)된 이벤트는 SDK가
- *  getContent()에서 최신 내용을 돌려주므로 추가 처리 불필요. */
+ *  없으면 평문 + URL 링크화. 플랫 로그 스타일(버블 없음).
+ *  수정(m.replace)된 이벤트는 SDK가 getContent()에서 최신 내용을
+ *  돌려주므로 추가 처리 불필요. */
 export function MessageBody({
   client,
   ev,
-  mine,
 }: {
   client: MatrixClient;
   ev: MatrixEvent;
-  mine: boolean;
 }) {
   const content = ev.getContent();
   const html = useMemo(() => {
@@ -140,11 +139,9 @@ export function MessageBody({
   }, [client, ev, content]);
 
   return (
-    <span
-      className={`message-body max-w-[80%] break-words rounded-lg px-3 py-1.5 ${
-        mine ? "bg-blue-600 text-white" : "bg-gray-200 dark:bg-gray-800"
-      }`}
-      // eslint-disable-next-line react/no-danger -- DOMPurify 살균 완료
+    <div
+      className="message-body min-w-0 whitespace-pre-wrap break-words"
+      // DOMPurify 살균 완료
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );
