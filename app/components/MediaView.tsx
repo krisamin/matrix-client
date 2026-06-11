@@ -1,6 +1,7 @@
 import { type MatrixClient, type MatrixEvent, MsgType } from "matrix-js-sdk";
 import { useEffect, useState } from "react";
 import { getMediaBlobUrl, type MediaSource } from "../lib/media";
+import { openLightbox } from "./Lightbox";
 
 /** 이미지/비디오/오디오/파일 첨부 렌더 (인증 미디어 + E2EE 복호화 처리) */
 export function MediaView({
@@ -46,20 +47,25 @@ export function MediaView({
   switch (msgtype) {
     case MsgType.Image:
       return (
-        <a href={blobUrl} target="_blank" rel="noreferrer">
+        <button
+          type="button"
+          className="block cursor-zoom-in"
+          onClick={() => openLightbox(blobUrl, content.body ?? "이미지")}
+          title="크게 보기"
+        >
           <img
             src={blobUrl}
             alt={content.body ?? "이미지"}
-            className="max-h-80 max-w-full rounded-lg object-contain"
+            className="max-h-80 max-w-full rounded-lg border border-line object-contain"
           />
-        </a>
+        </button>
       );
     case MsgType.Video:
       return (
         <video
           src={blobUrl}
           controls
-          className="max-h-80 max-w-full rounded-lg"
+          className="max-h-80 max-w-full rounded-lg border border-line"
         />
       );
     case MsgType.Audio:
@@ -69,7 +75,7 @@ export function MediaView({
         <a
           href={blobUrl}
           download={content.body ?? "file"}
-          className="text-blue-500 underline"
+          className="text-fg-0 underline underline-offset-2"
         >
           📎 {content.body ?? "파일 다운로드"}
         </a>

@@ -2,6 +2,7 @@ import type { MatrixClient } from "matrix-js-sdk";
 import { useEffect, useState } from "react";
 import { Link, Outlet, useNavigate, useOutletContext } from "react-router";
 import { ConnectionBanner } from "../components/ConnectionBanner";
+import { Lightbox } from "../components/Lightbox";
 import { Sidebar } from "../components/Sidebar";
 import { ensureStarted, getReadyClient } from "../lib/matrix";
 import {
@@ -85,6 +86,7 @@ export default function AppLayout() {
         )}
         <Outlet context={{ client } satisfies AppContext} />
       </main>
+      <Lightbox />
     </div>
   );
 }
