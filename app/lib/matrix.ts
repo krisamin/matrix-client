@@ -1,6 +1,7 @@
 import {
   createClient,
   Filter,
+  IndexedDBStore,
   OidcTokenRefresher,
   type EventTimelineSet,
   type MatrixClient,
@@ -76,6 +77,23 @@ export function getReadyClient(): Promise<MatrixClient> | null {
         refresher.doRefreshAccessToken(refreshToken);
     }
 
+    // sync 영속화: 새로고침 시 마지막 sync 지점부터 이어받음
+    // (없으면 매번 initial sync — 방 많아질수록 첫 화면 느려짐)
+    // startup 실패(시크릿 모드, 손상된 DB 등) 시 메모리 스토어로 폴백
+    let store: IndexedDBStore | undefined;
+    try {
+      store = new IndexedDBStore({
+        indexedDB: window.indexedDB,
+        localStorage: window.localStorage,
+        dbName: `matrix-client-sync-${session.deviceId}`,
+      });
+      // 주의: createClient 전에 반드시 startup() — 안 하면 조용히 깨짐
+      await store.startup();
+    } catch (e) {
+      console.warn("IndexedDBStore startup 실패 — 메모리 스토어로 폴백:", e);
+      store = undefined;
+    }
+
     const client = createClient({
       baseUrl: session.homeserverUrl,
       accessToken: session.accessToken,
@@ -83,6 +101,7 @@ export function getReadyClient(): Promise<MatrixClient> | null {
       tokenRefreshFunction,
       userId: session.userId,
       deviceId: session.deviceId,
+      store,
       cryptoCallbacks: {
         getSecretStorageKey: async ({ keys }) => {
           if (!secretInputProvider) return null;
@@ -112,7 +131,13 @@ export function getReadyClient(): Promise<MatrixClient> | null {
 }
 
 export function resetClient(): void {
-  clientPromise?.then((c) => c.stopClient()).catch(() => {});
+  // 로그아웃: sync 스토어도 비움 (다음 로그인 계정에 이전 데이터 잔류 방지)
+  clientPromise
+    ?.then(async (c) => {
+      c.stopClient();
+      await c.store.deleteAllData().catch(() => {});
+    })
+    .catch(() => {});
   clientPromise = null;
 }
 
