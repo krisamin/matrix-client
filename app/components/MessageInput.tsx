@@ -68,7 +68,7 @@ export function MessageInput({
   return (
     <div className="shrink-0 px-5 pb-4">
       {/* 상태 줄: 높이 24px 고정 (타이핑/업로드/에러) */}
-      <p className="flex h-6 items-center gap-1.5 text-[11px] text-fg-3">
+      <p className="flex h-6 items-center gap-1.5 text-[12px] text-fg-3">
         {error ? (
           <span className="text-red-400">⚠ {error}</span>
         ) : uploading ? (
@@ -82,7 +82,7 @@ export function MessageInput({
 
       {/* 답장 인용 바 */}
       {replyTo && (
-        <div className="mb-1 flex h-[22px] items-center gap-1.5 rounded-md border-l-2 border-line-strong bg-bg-2 pl-2 pr-1 text-[11px] text-fg-2">
+        <div className="mb-1 flex h-[22px] items-center gap-1.5 rounded-md border-l-2 border-line-strong bg-bg-2 pl-2 pr-1 text-[12px] text-fg-2">
           <span className="shrink-0 font-medium text-fg-1">
             {replyTo.sender?.name ?? replyTo.getSender()}
           </span>

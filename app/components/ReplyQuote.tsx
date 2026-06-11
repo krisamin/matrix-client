@@ -45,7 +45,7 @@ export function ReplyQuote({
     <button
       type="button"
       onClick={onClick}
-      className="mb-1 flex h-[22px] max-w-full items-center gap-1.5 rounded-md border-l-2 border-line-strong bg-bg-2 pl-2 pr-2.5 text-[11px] text-fg-2"
+      className="mb-1 flex h-[22px] max-w-full items-center gap-1.5 rounded-md border-l-2 border-line-strong bg-bg-2 pl-2 pr-2.5 text-[12px] text-fg-2"
       title="원문으로 이동"
     >
       <Reply className="h-3 w-3 shrink-0" />
@@ -58,7 +58,7 @@ export function ReplyQuote({
         </>
       ) : (
         <span className="truncate">
-          {failed ? "(원문을 불러올 수 없음)" : "원문 불러오는 중..."}
+          {failed ? "원문을 불러올 수 없습니다" : "원문 불러오는 중..."}
         </span>
       )}
     </button>

@@ -158,7 +158,7 @@ export function ReactionBar({
           key={a.key}
           type="button"
           onClick={() => toggle(a.key)}
-          className={`flex h-[22px] items-center gap-1 rounded-md border px-2 font-mono text-[11px] ${
+          className={`flex h-[22px] items-center gap-1 rounded-md border px-2 font-mono text-[12px] ${
             a.mine
               ? "border-line-strong bg-bg-3 text-fg-0"
               : "border-line text-fg-2 hover:bg-bg-2"

@@ -168,7 +168,7 @@ function SpaceTreeNode({
 function SectionLabel({ children }: { children: string }) {
   return (
     <div className="mt-3 flex h-6 items-center px-2 first:mt-0">
-      <span className="text-[10px] font-semibold uppercase tracking-widest text-fg-3">
+      <span className="text-[11px] font-semibold uppercase tracking-widest text-fg-3">
         {children}
       </span>
     </div>
@@ -304,14 +304,12 @@ export function Sidebar({ client }: { client: MatrixClient }) {
           </>
         )}
         {rooms.length === 0 && invites.length === 0 && (
-          <p className="px-2 py-3 text-[11px] text-fg-3">
-            동기화 중이거나 방이 없어...
-          </p>
+          <p className="px-2 py-3 text-[12px] text-fg-3">대화가 없습니다</p>
         )}
       </nav>
 
       {/* 푸터: 36px */}
-      <div className="flex h-9 shrink-0 items-center gap-2 border-t border-line px-4 text-[11px] text-fg-3">
+      <div className="flex h-9 shrink-0 items-center gap-2 border-t border-line px-4 text-[12px] text-fg-3">
         <span
           className={`h-1.5 w-1.5 rounded-full ${
             syncState === "SYNCING" || syncState === "PREPARED"

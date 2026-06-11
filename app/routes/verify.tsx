@@ -41,19 +41,19 @@ export default function Verify() {
   async function start() {
     setStep({
       kind: "waiting",
-      note: "다른 기기(Element)에 인증 요청 보내는 중...",
+      note: "다른 기기로 인증 요청을 보내는 중...",
     });
     try {
       const client = await getReadyClient()!;
       if (!client.clientRunning) ensureStarted(client);
       const crypto = client.getCrypto();
-      if (!crypto) throw new Error("crypto 미초기화");
+      if (!crypto) throw new Error("암호화 모듈이 초기화되지 않았습니다");
 
       const request = await crypto.requestOwnUserVerification();
       requestRef.current = request;
       setStep({
         kind: "waiting",
-        note: "Element에서 인증 요청을 수락해줘 (설정 → 세션 또는 알림 배너)",
+        note: "다른 기기에서 인증 요청을 수락해 주세요 (설정 → 세션 또는 알림 배너)",
       });
 
       const attachVerifier = () => {
@@ -77,7 +77,7 @@ export default function Verify() {
         if (request.phase === VerificationPhase.Cancelled) {
           setStep({
             kind: "error",
-            message: `상대방이 취소함 (${request.cancellationCode ?? "?"})`,
+            message: `상대 기기에서 인증이 취소되었습니다 (${request.cancellationCode ?? "?"})`,
           });
         } else if (request.phase === VerificationPhase.Started) {
           // 상대가 SAS를 시작한 경우
@@ -99,14 +99,14 @@ export default function Verify() {
     // secret storage 접근 시 보안 키(또는 passphrase)를 prompt로 입력받음
     setSecretInputProvider(async () => {
       const input = window.prompt(
-        "Element에서 받은 보안 키(EsTx ...) 또는 보안 문구를 입력해:",
+        "보안 키(EsTx ...) 또는 보안 문구를 입력하세요:",
       );
       return input;
     });
     try {
       const client = await getReadyClient()!;
       const crypto = client.getCrypto();
-      if (!crypto) throw new Error("crypto 미초기화");
+      if (!crypto) throw new Error("암호화 모듈이 초기화되지 않았습니다");
 
       // SAS 인증 시 gossip으로 백업 키가 와있을 수 있음. 없으면 4S에서 로드.
       const key = await crypto.getSessionBackupPrivateKey();
@@ -114,7 +114,7 @@ export default function Verify() {
         setStep({
           kind: "restoring",
           progress:
-            "secret storage에서 백업 키 가져오는 중... (Element 쪽에서 키 공유 승인이 필요할 수 있어)",
+            "백업 키를 가져오는 중... (다른 기기에서 키 공유 승인이 필요할 수 있습니다)",
         });
         await crypto.loadSessionBackupPrivateKeyFromSecretStorage();
       }
@@ -164,8 +164,8 @@ export default function Verify() {
       {step.kind === "idle" && (
         <>
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            이미 로그인된 다른 기기(Element)와 이모지 비교로 이 브라우저를
-            인증해. 인증되면 키 공유를 받아서 암호화 메시지를 읽을 수 있어.
+            이미 로그인된 다른 기기와 이모지 비교로 이 브라우저를 인증합니다.
+            인증이 완료되면 암호화된 메시지를 읽을 수 있습니다.
           </p>
           <div className="flex gap-2">
             <button
@@ -188,7 +188,7 @@ export default function Verify() {
 
       {step.kind === "sas" && (
         <div className="flex flex-col gap-4">
-          <p>Element에 뜬 이모지와 같은지 확인해:</p>
+          <p>다른 기기에 표시된 이모지와 같은지 확인하세요</p>
           <div className="flex flex-wrap gap-3 text-center">
             {step.emojis.map(([emoji, name]) => (
               <div key={name} className="flex w-16 flex-col items-center">
@@ -216,9 +216,9 @@ export default function Verify() {
 
       {step.kind === "done" && (
         <div className="flex flex-col gap-3">
-          <p className="text-green-600">✅ 인증 완료!</p>
+          <p className="text-green-600">인증이 완료되었습니다</p>
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            과거 암호화 메시지도 읽으려면 키 백업에서 복구해야 해.
+            이전 암호화 메시지를 읽으려면 키 백업 복구가 필요합니다.
           </p>
           <div className="flex gap-2">
             <button
@@ -231,7 +231,7 @@ export default function Verify() {
               className="rounded border border-gray-300 px-4 py-2 dark:border-gray-700"
               onClick={() => navigate("/")}
             >
-              건너뛰고 방 목록으로
+              건너뛰기
             </button>
           </div>
         </div>
@@ -242,13 +242,13 @@ export default function Verify() {
       {step.kind === "restored" && (
         <div className="flex flex-col gap-3">
           <p className="text-green-600">
-            ✅ 키 복구 완료! ({step.imported}/{step.total}개 가져옴)
+            키 복구가 완료되었습니다 ({step.imported}/{step.total})
           </p>
           <button
             className="self-start rounded bg-blue-600 px-4 py-2 text-white"
             onClick={() => navigate("/")}
           >
-            방 목록으로
+            홈으로
           </button>
         </div>
       )}

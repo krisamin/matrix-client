@@ -78,11 +78,12 @@ export function EventLine({
   // 그 외 상태(복호화중/실패/삭제)는 평문 placeholder
   let placeholder: string | null = null;
   if (ev.isDecryptionFailure()) {
-    placeholder = "🔒 복호화 실패 (키 없음 — 기기 인증/키 백업 확인)";
+    placeholder =
+      "🔒 복호화할 수 없는 메시지입니다 (기기 인증 또는 키 백업 확인)";
   } else if (ev.getType() === EventType.RoomMessageEncrypted) {
     placeholder = "🔒 복호화 중...";
   } else if (ev.isRedacted()) {
-    placeholder = "(삭제된 메시지)";
+    placeholder = "삭제된 메시지입니다";
   } else if (!isMedia && content.body == null) {
     placeholder = `(${content.msgtype ?? ev.getType()})`;
   }
@@ -126,7 +127,7 @@ export function EventLine({
   }
 
   async function remove() {
-    if (busy || !window.confirm("이 메시지를 삭제할까?")) return;
+    if (busy || !window.confirm("이 메시지를 삭제할까요?")) return;
     setBusy(true);
     try {
       await client.redactEvent(room.roomId, ev.getId()!);
@@ -194,11 +195,11 @@ export function EventLine({
       {showHeader && (
         <div className="flex items-baseline gap-2">
           <span className="font-semibold text-fg-0">{senderName}</span>
-          <span className="font-mono text-[10px] text-fg-3">
+          <span className="font-mono text-[11px] text-fg-3">
             {formatTime(ev.getTs())}
           </span>
           {ev.replacingEvent() && (
-            <span className="text-[10px] text-fg-3" title="수정됨">
+            <span className="text-[11px] text-fg-3" title="수정됨">
               수정됨
             </span>
           )}
@@ -310,7 +311,7 @@ export function EventLine({
               if (e.key === "Escape") setEditing(false);
             }}
           />
-          <span className="flex gap-2 text-[11px] text-fg-2">
+          <span className="flex gap-2 text-[12px] text-fg-2">
             <button
               type="submit"
               className="font-medium text-fg-0 hover:underline"
@@ -345,7 +346,7 @@ export function EventLine({
 
       {/* 전송 상태 */}
       {isFailed && (
-        <span className="flex items-center gap-2 text-[11px] text-red-400">
+        <span className="flex items-center gap-2 text-[12px] text-red-400">
           ⚠ 전송 실패
           <button
             type="button"
@@ -365,7 +366,7 @@ export function EventLine({
         </span>
       )}
       {isPending && (
-        <span className="font-mono text-[10px] text-fg-3">전송 중...</span>
+        <span className="font-mono text-[11px] text-fg-3">전송 중...</span>
       )}
 
       {/* 리액션 칩 */}
@@ -375,13 +376,13 @@ export function EventLine({
       {onOpenThread && threadLength > 0 && (
         <button
           type="button"
-          className="mt-1.5 flex h-[22px] items-center gap-1.5 text-[11px] text-fg-2 hover:text-fg-0"
+          className="mt-1.5 flex h-[22px] items-center gap-1.5 text-[12px] text-fg-2 hover:text-fg-0"
           onClick={() => onOpenThread(ev.getId()!)}
         >
           <MessageSquareText className="h-3.5 w-3.5" />
           <span className="font-medium">답글 {threadLength}</span>
           {thread?.replyToEvent && (
-            <span className="font-mono text-[10px] text-fg-3">
+            <span className="font-mono text-[11px] text-fg-3">
               {formatTime(thread.replyToEvent.getTs())}
             </span>
           )}

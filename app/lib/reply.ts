@@ -13,7 +13,7 @@ export function getReplyToId(ev: MatrixEvent): string | null {
 
 /** 인용/미리보기 텍스트 (한 줄 요약) */
 export function quotePreview(ev: MatrixEvent): string {
-  if (ev.isRedacted()) return "(삭제된 메시지)";
+  if (ev.isRedacted()) return "삭제된 메시지";
   const content = ev.getContent();
   const msgtype = content.msgtype as string;
   if (msgtype === "m.image") return "📷 사진";

@@ -83,7 +83,7 @@ export function Timeline({
     >
       {topSlot}
       {loadingOlder && (
-        <li className="py-2 text-center font-mono text-[10px] text-fg-3">
+        <li className="py-2 text-center font-mono text-[11px] text-fg-3">
           과거 메시지 불러오는 중...
         </li>
       )}

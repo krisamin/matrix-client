@@ -39,9 +39,9 @@ export function MediaView({
     };
   }, [client, ev]);
 
-  if (error) return <span className="text-sm text-red-400">⚠ {error}</span>;
+  if (error) return <span className="text-[12px] text-red-400">⚠ {error}</span>;
   if (!blobUrl)
-    return <span className="text-sm text-gray-400">미디어 로딩 중...</span>;
+    return <span className="text-[12px] text-fg-3">미디어 불러오는 중...</span>;
 
   switch (msgtype) {
     case MsgType.Image:

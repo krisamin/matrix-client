@@ -74,7 +74,7 @@ export default function ThreadView() {
         <MessageSquareText className="h-[15px] w-[15px] shrink-0 text-fg-2" />
         <h1 className="truncate font-semibold text-fg-0">{title}</h1>
         {replyCount > 0 && (
-          <span className="shrink-0 font-mono text-[10px] text-fg-3">
+          <span className="shrink-0 font-mono text-[11px] text-fg-3">
             답글 {replyCount}
           </span>
         )}
@@ -82,7 +82,7 @@ export default function ThreadView() {
 
       {initialising ? (
         <div className="flex flex-1 items-center justify-center">
-          <span className="animate-pulse font-mono text-[11px] text-fg-3">
+          <span className="animate-pulse font-mono text-[12px] text-fg-3">
             스레드 불러오는 중…
           </span>
         </div>

@@ -62,7 +62,7 @@ export default function RoomView() {
   if (!room) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <span className="animate-pulse font-mono text-[11px] text-fg-3">
+        <span className="animate-pulse font-mono text-[12px] text-fg-3">
           loading…
         </span>
       </div>

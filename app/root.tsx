@@ -42,7 +42,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Meta />
         <Links />
       </head>
-      <body className="font-sans text-[13px] leading-[1.5] antialiased">
+      <body className="font-sans text-[14px] leading-[1.5] antialiased">
         {children}
         <ScrollRestoration />
         <Scripts />
@@ -76,7 +76,7 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
       <h1 className="text-xl font-bold text-fg-0">{message}</h1>
       <p className="text-fg-1">{details}</p>
       {stack && (
-        <pre className="mt-4 w-full overflow-x-auto rounded-lg border border-line bg-bg-2 p-4 font-mono text-[11.5px]">
+        <pre className="mt-4 w-full overflow-x-auto rounded-lg border border-line bg-bg-2 p-4 font-mono text-[12.5px]">
           <code>{stack}</code>
         </pre>
       )}

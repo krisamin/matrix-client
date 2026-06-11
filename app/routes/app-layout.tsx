@@ -47,7 +47,7 @@ export default function AppLayout() {
   if (!client) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <span className="animate-pulse font-mono text-[11px] text-fg-3">
+        <span className="animate-pulse font-mono text-[12px] text-fg-3">
           loading…
         </span>
       </div>
@@ -60,16 +60,17 @@ export default function AppLayout() {
       <main className="flex min-w-0 flex-1 flex-col">
         <ConnectionBanner client={client} />
         {verified === false && (
-          <div className="flex h-8 shrink-0 items-center justify-center gap-2 border-b border-line bg-bg-2 text-[11px] text-fg-1">
-            이 기기는 아직 인증되지 않았어 — E2EE 메시지를 읽으려면 인증 필요
+          <div className="flex h-8 shrink-0 items-center justify-center gap-2 border-b border-line bg-bg-2 text-[12px] text-fg-1">
+            이 기기가 아직 인증되지 않았습니다. 암호화된 메시지를 읽으려면 기기
+            인증이 필요합니다.
             <Link to="/verify" className="font-medium text-fg-0 underline">
               기기 인증
             </Link>
           </div>
         )}
         {notifPerm === "default" && (
-          <div className="flex h-8 shrink-0 items-center justify-center gap-2 border-b border-line bg-bg-2 text-[11px] text-fg-1">
-            새 메시지 데스크톱 알림이 꺼져 있어
+          <div className="flex h-8 shrink-0 items-center justify-center gap-2 border-b border-line bg-bg-2 text-[12px] text-fg-1">
+            데스크톱 알림이 꺼져 있습니다.
             <button
               type="button"
               className="font-medium text-fg-0 underline"

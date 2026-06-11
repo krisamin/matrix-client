@@ -37,7 +37,7 @@ export function ConnectionBanner({ client }: { client: MatrixClient | null }) {
 
   return (
     <div
-      className={`flex h-8 shrink-0 items-center justify-center gap-2 border-b border-line text-[11px] ${
+      className={`flex h-8 shrink-0 items-center justify-center gap-2 border-b border-line text-[12px] ${
         isError ? "bg-red-950/60 text-red-300" : "bg-bg-2 text-amber-300"
       }`}
     >

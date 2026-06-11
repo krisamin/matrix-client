@@ -38,7 +38,7 @@ async function inputToKey(
   try {
     return decodeRecoveryKey(trimmed);
   } catch {
-    if (!keyInfo.passphrase) throw new Error("보안 키 형식이 아니야");
+    if (!keyInfo.passphrase) throw new Error("올바른 보안 키 형식이 아닙니다");
     return deriveRecoveryKeyFromPassphrase(
       trimmed,
       keyInfo.passphrase.salt,
@@ -123,7 +123,7 @@ export function getReadyClient(): Promise<MatrixClient> | null {
               lastError = e;
             }
           }
-          throw lastError ?? new Error("일치하는 secret storage 키 없음");
+          throw lastError ?? new Error("일치하는 보안 키가 없습니다");
         },
       },
     });
