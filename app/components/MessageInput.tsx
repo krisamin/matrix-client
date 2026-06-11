@@ -66,20 +66,27 @@ export function MessageInput({
   }
 
   return (
-    <div className="shrink-0">
-      {/* 상태 줄: 타이핑/업로드/에러 — 있을 때만 표시 (메시지 영역 위에 겹치지 않게) */}
+    <div className="relative shrink-0">
+      {/* 상태 줄: 타이핑/업로드/에러 — 입력 바 위 오버레이 (레이아웃 영향 없음) */}
       {(error || uploading || typingNames.length > 0) && (
-        <p className="flex h-6 items-center gap-1.5 px-5 text-[12px] text-fg-3">
-          {error ? (
-            <span className="text-red-400">⚠ {error}</span>
-          ) : uploading ? (
-            <span className="animate-pulse">{uploading}</span>
-          ) : (
-            <span className="animate-pulse">
-              {typingNames.join(", ")} 입력 중…
-            </span>
-          )}
-        </p>
+        <div className="pointer-events-none absolute inset-x-0 bottom-full z-10 flex justify-start px-4 pb-1">
+          <span className="msg-in flex items-center gap-1.5 rounded-full border border-line bg-bg-2/95 px-2.5 py-0.5 text-[11px] text-fg-2 shadow-lg backdrop-blur">
+            {error ? (
+              <span className="text-red-400">⚠ {error}</span>
+            ) : uploading ? (
+              <span className="animate-pulse">{uploading}</span>
+            ) : (
+              <>
+                <span className="flex gap-0.5">
+                  <span className="typing-dot h-1 w-1 rounded-full bg-fg-2" />
+                  <span className="typing-dot h-1 w-1 rounded-full bg-fg-2" />
+                  <span className="typing-dot h-1 w-1 rounded-full bg-fg-2" />
+                </span>
+                {typingNames.join(", ")} 입력 중
+              </>
+            )}
+          </span>
+        </div>
       )}
 
       {/* 답장 인용 바 */}

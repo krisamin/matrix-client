@@ -228,6 +228,29 @@ body {
   animation: msg-in 0.32s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* ── 타이핑 인디케이터 점 3개 ── */
+@keyframes typing-dot {
+  0%,
+  60%,
+  100% {
+    opacity: 0.3;
+    transform: none;
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+}
+.typing-dot {
+  animation: typing-dot 1.2s ease-in-out infinite;
+}
+.typing-dot:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.typing-dot:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
 /* ── 코드 구문 강조 (highlight.js) — 토큰 팔레트 기반 커스텀 다크 테마 ── */
 .message-body .hljs-comment,
 .message-body .hljs-quote {
