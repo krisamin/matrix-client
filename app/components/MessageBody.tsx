@@ -1,6 +1,7 @@
 import DOMPurify from "dompurify";
+import hljs from "highlight.js/lib/common";
 import type { MatrixClient, MatrixEvent } from "matrix-js-sdk";
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { getReplyToId } from "../lib/reply";
 
 /** Matrix 스펙(11.2.1.7 m.room.message msgtypes)이 허용하는 HTML 태그 —
@@ -97,17 +98,26 @@ function convertMxcUrls(client: MatrixClient, html: string): string {
   });
 }
 
-/** 평문에서 URL 자동 링크화 + 줄바꿈 유지 (formatted_body 없는 메시지용) */
+/** 블록 태그 사이의 장식용 개행 제거 — HTML은 white-space: normal로
+ *  렌더하므로 원래 무해하지만, <pre> 밖 개행이 <br>로 보존되는 클라이언트
+ *  대비 + DOM 노드 수 감소용으로 정리 */
+function stripInterTagNewlines(html: string): string {
+  return html.replace(/>\n+</g, "><");
+}
+
+/** 평문에서 URL 자동 링크화 + 줄바꿈 <br> 변환 (formatted_body 없는 메시지용) */
 function linkifyPlain(text: string): string {
   const escaped = text
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
-  return escaped.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1">$1</a>');
+  return escaped
+    .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1">$1</a>')
+    .replace(/\n/g, "<br/>");
 }
 
 /** 메시지 본문 렌더러: formatted_body(HTML)가 있으면 살균 후 렌더,
- *  없으면 평문 + URL 링크화. 플랫 로그 스타일(버블 없음).
+ *  없으면 평문 + URL 링크화 + <br> 변환. 코드블록은 highlight.js로 구문 강조.
  *  수정(m.replace)된 이벤트는 SDK가 getContent()에서 최신 내용을
  *  돌려주므로 추가 처리 불필요. */
 export function MessageBody({
@@ -117,6 +127,7 @@ export function MessageBody({
   client: MatrixClient;
   ev: MatrixEvent;
 }) {
+  const ref = useRef<HTMLDivElement>(null);
   const content = ev.getContent();
   const html = useMemo(() => {
     const useHtml =
@@ -128,7 +139,9 @@ export function MessageBody({
       ? stripPlainReplyFallback(content.body ?? "")
       : (content.body ?? "");
     const raw = useHtml
-      ? convertMxcUrls(client, stripMxReply(content.formatted_body))
+      ? stripInterTagNewlines(
+          convertMxcUrls(client, stripMxReply(content.formatted_body)),
+        )
       : linkifyPlain(plainBody);
     return DOMPurify.sanitize(raw, {
       ALLOWED_TAGS,
@@ -138,9 +151,22 @@ export function MessageBody({
     });
   }, [client, ev, content]);
 
+  // 코드블록 구문 강조 (렌더 후 DOM에 적용 — html 갱신마다)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: html은 innerHTML 갱신 후 재실행 트리거 용도
+  useEffect(() => {
+    const root = ref.current;
+    if (!root) return;
+    for (const block of root.querySelectorAll("pre code")) {
+      // 재렌더 시 dataset 마커가 남아 hljs가 경고만 내고 스킵하는 것 방지
+      delete (block as HTMLElement).dataset.highlighted;
+      hljs.highlightElement(block as HTMLElement);
+    }
+  }, [html]);
+
   return (
     <div
-      className="message-body min-w-0 whitespace-pre-wrap break-words"
+      ref={ref}
+      className="message-body min-w-0 break-words"
       // DOMPurify 살균 완료
       dangerouslySetInnerHTML={{ __html: html }}
     />

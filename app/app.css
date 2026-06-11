@@ -132,6 +132,8 @@ body {
   border-radius: 8px;
   overflow-x: auto;
   margin: 0.4em 0;
+  /* 본문은 normal whitespace — 코드 안에서만 개행/공백 보존 */
+  white-space: pre;
 }
 .message-body pre code {
   background: none;
@@ -155,6 +157,12 @@ body {
 }
 .message-body ol {
   list-style: decimal;
+}
+.message-body li {
+  margin: 0.125em 0;
+}
+.message-body li::marker {
+  color: var(--color-fg-3);
 }
 .message-body h1,
 .message-body h2,
@@ -200,4 +208,59 @@ body {
 }
 .message-body span[data-mx-spoiler]:hover {
   background: transparent;
+}
+
+/* ── 코드 구문 강조 (highlight.js) — 토큰 팔레트 기반 커스텀 다크 테마 ── */
+.message-body .hljs-comment,
+.message-body .hljs-quote {
+  color: var(--color-fg-3);
+  font-style: italic;
+}
+.message-body .hljs-keyword,
+.message-body .hljs-selector-tag,
+.message-body .hljs-tag,
+.message-body .hljs-name {
+  color: #c792ea;
+}
+.message-body .hljs-string,
+.message-body .hljs-regexp,
+.message-body .hljs-addition {
+  color: #a3be8c;
+}
+.message-body .hljs-number,
+.message-body .hljs-literal,
+.message-body .hljs-symbol,
+.message-body .hljs-bullet {
+  color: #d08770;
+}
+.message-body .hljs-title,
+.message-body .hljs-section,
+.message-body .hljs-function .hljs-title,
+.message-body .hljs-title.function_ {
+  color: #82aaff;
+}
+.message-body .hljs-attr,
+.message-body .hljs-attribute,
+.message-body .hljs-variable,
+.message-body .hljs-template-variable,
+.message-body .hljs-type,
+.message-body .hljs-selector-class,
+.message-body .hljs-selector-attr,
+.message-body .hljs-selector-pseudo {
+  color: #ebcb8b;
+}
+.message-body .hljs-built_in,
+.message-body .hljs-builtin-name,
+.message-body .hljs-meta,
+.message-body .hljs-link {
+  color: #88c0d0;
+}
+.message-body .hljs-deletion {
+  color: #bf616a;
+}
+.message-body .hljs-emphasis {
+  font-style: italic;
+}
+.message-body .hljs-strong {
+  font-weight: 700;
 }
