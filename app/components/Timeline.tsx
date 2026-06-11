@@ -40,36 +40,41 @@ export function Timeline({
   const listRef = useRef<HTMLUListElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const stickToBottomRef = useRef(true);
-  // 과거 로드 직전의 스크롤 상태 — 커밋 직후(페인트 전) 위치 보정용
-  const pendingAdjustRef = useRef<{ height: number; top: number } | null>(null);
+  // 스크롤 앵커: 현재 보고 있는 첫 메시지(id + offsetTop).
+  // 커밋마다 앵커 요소의 이동량만큼 scrollTop을 따라 옮기면
+  // 커밋 횟수/순서와 무관하게 보던 위치가 고정됨 (높이차 방식은
+  // 복호화 등 중간 커밋에서 보정값이 엉뚱하게 소진되는 버그가 있었음)
+  const anchorRef = useRef<{ id: string; top: number } | null>(null);
+
+  /** 뷰포트 상단에 걸친 첫 메시지 요소를 앵커로 측정 */
+  function measureAnchor(list: HTMLUListElement) {
+    for (const li of list.querySelectorAll<HTMLElement>('li[id^="ev-"]')) {
+      if (li.offsetTop + li.offsetHeight > list.scrollTop) {
+        return { id: li.id, top: li.offsetTop };
+      }
+    }
+    return null;
+  }
 
   // 페인트 전에 스크롤 위치 보정 (rAF 방식은 한 프레임 늦어 점프가 보임)
   // biome-ignore lint/correctness/useExhaustiveDependencies: events 커밋 직후 위치 보정 트리거
   useLayoutEffect(() => {
     const list = listRef.current;
-    const pending = pendingAdjustRef.current;
-    if (list && pending) {
-      pendingAdjustRef.current = null;
-      list.scrollTop = pending.top + (list.scrollHeight - pending.height);
-      return;
-    }
+    if (!list) return;
     if (stickToBottomRef.current) {
       bottomRef.current?.scrollIntoView({ behavior: "instant" });
+    } else {
+      const anchor = anchorRef.current;
+      if (anchor) {
+        const el = list.querySelector<HTMLElement>(
+          `#${CSS.escape(anchor.id)}`,
+        );
+        // 앵커 요소가 이동한 만큼 scrollTop도 이동 → 화면상 위치 불변
+        if (el) list.scrollTop += el.offsetTop - anchor.top;
+      }
     }
+    anchorRef.current = measureAnchor(list);
   }, [events]);
-
-  /** 과거 로드 + 스크롤 위치 보존 (보던 메시지 유지) */
-  async function loadOlderKeepScroll() {
-    const list = listRef.current;
-    if (!list) return;
-    // 로드 직전 상태 저장 → setEvents 커밋 직후 useLayoutEffect가 보정
-    pendingAdjustRef.current = {
-      height: list.scrollHeight,
-      top: list.scrollTop,
-    };
-    const loaded = await loadOlder();
-    if (!loaded) pendingAdjustRef.current = null;
-  }
 
   function onScroll() {
     const list = listRef.current;
@@ -77,8 +82,10 @@ export function Timeline({
     // 바닥 근처(80px)에 있을 때만 새 메시지 오면 자동 스크롤
     stickToBottomRef.current =
       list.scrollHeight - list.scrollTop - list.clientHeight < 80;
+    // 사용자가 스크롤할 때마다 앵커 갱신 (지금 보는 메시지 기준)
+    anchorRef.current = measureAnchor(list);
     // 위쪽 400px 안으로 올라오면 과거 로드 (여유 있게 미리)
-    if (list.scrollTop < 400 && !loadingOlder) loadOlderKeepScroll();
+    if (list.scrollTop < 400 && !loadingOlder) loadOlder();
   }
 
   const items = groupTimeline(events);
