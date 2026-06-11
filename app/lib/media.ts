@@ -67,6 +67,44 @@ export function getMediaBlobUrl(
   return promise;
 }
 
+/** 아바타 등 작은 썸네일용 blob URL (인증 미디어 — fetch + Authorization).
+ *  원본 다운로드를 피하고 서버 썸네일 API 사용. 평문 미디어 전용 (아바타는 비암호화) */
+const thumbCache = new Map<string, Promise<string>>();
+
+export function getThumbnailBlobUrl(
+  client: MatrixClient,
+  mxcUrl: string,
+  size = 32,
+): Promise<string> | null {
+  if (!mxcUrl.startsWith("mxc://")) return null;
+  const key = `${mxcUrl}@${size}`;
+  const cached = thumbCache.get(key);
+  if (cached) return cached;
+
+  const promise = (async () => {
+    const httpUrl = client.mxcUrlToHttp(
+      mxcUrl,
+      size,
+      size,
+      "crop",
+      false,
+      true,
+      true, // useAuthentication
+    );
+    if (!httpUrl) throw new Error("mxc URL 변환 실패");
+    const res = await fetch(httpUrl, {
+      headers: { Authorization: `Bearer ${client.getAccessToken()}` },
+    });
+    if (!res.ok) throw new Error(`썸네일 다운로드 실패 (${res.status})`);
+    const blob = await res.blob();
+    return URL.createObjectURL(blob);
+  })();
+
+  thumbCache.set(key, promise);
+  promise.catch(() => thumbCache.delete(key));
+  return promise;
+}
+
 function msgTypeForFile(file: File): MsgType {
   if (file.type.startsWith("image/")) return MsgType.Image;
   if (file.type.startsWith("video/")) return MsgType.Video;

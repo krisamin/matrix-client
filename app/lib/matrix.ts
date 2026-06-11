@@ -1,6 +1,7 @@
 import {
   createClient,
   type EventTimelineSet,
+  EventType,
   Filter,
   IndexedDBStore,
   type MatrixClient,
@@ -144,6 +145,18 @@ export function resetClient(): void {
     })
     .catch(() => {});
   clientPromise = null;
+}
+
+/** DM 방이면 상대 userId, 아니면 null (m.direct account data 기준) */
+export function getDmUserId(client: MatrixClient, room: Room): string | null {
+  const dm = client.getAccountData(EventType.Direct)?.getContent() as
+    | Record<string, string[]>
+    | undefined;
+  if (!dm) return null;
+  for (const [userId, roomIds] of Object.entries(dm)) {
+    if (Array.isArray(roomIds) && roomIds.includes(room.roomId)) return userId;
+  }
+  return null;
 }
 
 /** 모든 라우트에서 같은 옵션으로 startClient 하도록 통일 (threadSupport 포함) */
