@@ -153,7 +153,7 @@ export default function Verify() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-xl flex-col gap-4 p-6">
+    <main className="mx-auto flex h-screen max-w-xl flex-col gap-4 overflow-y-auto p-6">
       <header className="flex items-center gap-3">
         <Link to="/" className="text-blue-500">
           ←

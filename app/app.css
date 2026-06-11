@@ -24,6 +24,15 @@ html,
 body {
   @apply bg-bg-0 text-fg-1;
   color-scheme: dark;
+  /* 앱 셸: body 스크롤/바운스 차단 (내부 페인만 스크롤) */
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+/* 내부 스크롤 영역도 끝에서 body로 체이닝 안 되게 */
+.overflow-y-auto {
+  overscroll-behavior: contain;
 }
 
 /* ── 스크롤바 ── */
