@@ -66,23 +66,25 @@ export function MessageInput({
   }
 
   return (
-    <div className="shrink-0 px-5 pb-4">
-      {/* 상태 줄: 높이 24px 고정 (타이핑/업로드/에러) */}
-      <p className="flex h-6 items-center gap-1.5 text-[12px] text-fg-3">
-        {error ? (
-          <span className="text-red-400">⚠ {error}</span>
-        ) : uploading ? (
-          <span className="animate-pulse">{uploading}</span>
-        ) : typingNames.length > 0 ? (
-          <span className="animate-pulse">
-            {typingNames.join(", ")} 입력 중…
-          </span>
-        ) : null}
-      </p>
+    <div className="shrink-0">
+      {/* 상태 줄: 타이핑/업로드/에러 — 있을 때만 표시 (메시지 영역 위에 겹치지 않게) */}
+      {(error || uploading || typingNames.length > 0) && (
+        <p className="flex h-6 items-center gap-1.5 px-5 text-[12px] text-fg-3">
+          {error ? (
+            <span className="text-red-400">⚠ {error}</span>
+          ) : uploading ? (
+            <span className="animate-pulse">{uploading}</span>
+          ) : (
+            <span className="animate-pulse">
+              {typingNames.join(", ")} 입력 중…
+            </span>
+          )}
+        </p>
+      )}
 
       {/* 답장 인용 바 */}
       {replyTo && (
-        <div className="mb-1 flex h-[22px] items-center gap-1.5 rounded-md border-l-2 border-line-strong bg-bg-2 pl-2 pr-1 text-[12px] text-fg-2">
+        <div className="flex h-8 items-center gap-1.5 border-t border-line bg-bg-1 px-5 text-[12px] text-fg-2">
           <span className="shrink-0 font-medium text-fg-1">
             {replyTo.sender?.name ?? replyTo.getSender()}
           </span>
@@ -100,8 +102,9 @@ export function MessageInput({
         </div>
       )}
 
+      {/* 입력 바: 헤더와 대칭 — 보더탑 + 좌우 꽉 참, 높이 48px */}
       <form
-        className="flex items-end gap-1 rounded-lg border border-line bg-bg-2 px-2 py-1.5 transition-colors focus-within:border-line-strong"
+        className="flex min-h-12 items-center gap-1 border-t border-line bg-bg-1 px-3 transition-colors focus-within:bg-bg-2"
         onSubmit={(e) => {
           e.preventDefault();
           send();
@@ -119,7 +122,7 @@ export function MessageInput({
         />
         <button
           type="button"
-          className="rounded-md p-1.5 text-fg-2 hover:text-fg-0 disabled:opacity-50"
+          className="rounded-md p-2 text-fg-2 hover:bg-bg-2 hover:text-fg-0 disabled:opacity-50"
           disabled={!!uploading}
           onClick={() => fileInputRef.current?.click()}
           title="파일 첨부"
@@ -127,7 +130,7 @@ export function MessageInput({
           <Paperclip className="h-[15px] w-[15px]" />
         </button>
         <input
-          className="min-w-0 flex-1 bg-transparent py-1 text-fg-0 outline-none placeholder:text-fg-3"
+          className="min-w-0 flex-1 bg-transparent px-1 py-2 text-fg-0 outline-none placeholder:text-fg-3"
           value={draft}
           onChange={(e) => {
             setDraft(e.target.value);
@@ -144,7 +147,7 @@ export function MessageInput({
         />
         <button
           type="submit"
-          className="rounded-md p-1.5 text-fg-2 hover:text-fg-0 disabled:opacity-50"
+          className="rounded-md p-2 text-fg-2 hover:bg-bg-2 hover:text-fg-0 disabled:opacity-50"
           disabled={sending || !draft.trim()}
           title="전송"
         >
