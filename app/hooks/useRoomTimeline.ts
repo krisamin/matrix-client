@@ -216,3 +216,21 @@ export function useReadReceipt(
     };
   }, [client, events]);
 }
+
+/** 안읽음 마커 훅: 방 진입 시점의 "여기까지 읽음" 이벤트 id를 1회 캡처.
+ *  이후 receipt가 갱신돼도 마커는 고정 — 방을 나갔다 들어오면 재캡처.
+ *  주의: useReadReceipt보다 먼저 호출해야 함 (effect 실행 순서 —
+ *  receipt 전송으로 로컬 읽음 위치가 끝으로 가버리기 전에 캡처) */
+export function useUnreadMarker(
+  room: Room | null,
+  myUserId: string,
+): string | null {
+  const [marker, setMarker] = useState<string | null>(null);
+  const capturedForRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!room || capturedForRef.current === room.roomId) return;
+    capturedForRef.current = room.roomId;
+    setMarker(room.getEventReadUpTo(myUserId));
+  }, [room, myUserId]);
+  return marker;
+}

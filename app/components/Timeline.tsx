@@ -1,7 +1,7 @@
 import type { MatrixClient, MatrixEvent, Room } from "matrix-js-sdk";
 import { Fragment, useLayoutEffect, useRef } from "react";
 import { groupTimeline } from "../lib/group";
-import { DateDivider } from "./DateDivider";
+import { DateDivider, UnreadDivider } from "./DateDivider";
 import { EventLine } from "./EventLine";
 
 /** 타임라인 스크롤 영역 — 룸/스레드 100% 동일.
@@ -20,6 +20,7 @@ export function Timeline({
   highlightId,
   onJumpTo,
   topSlot,
+  unreadMarkerId,
 }: {
   client: MatrixClient;
   room: Room;
@@ -36,6 +37,8 @@ export function Timeline({
   onJumpTo?: (eventId: string) => void;
   /** 리스트 최상단 고정 콘텐츠 (스레드: 루트 메시지 + REPLIES 구분선) */
   topSlot?: React.ReactNode;
+  /** 이 이벤트 "다음"에 NEW 경계선 표시 (방 진입 시점 읽음 위치) */
+  unreadMarkerId?: string | null;
 }) {
   const listRef = useRef<HTMLUListElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -99,6 +102,13 @@ export function Timeline({
   }
 
   const items = groupTimeline(events);
+  // NEW 경계선: 마커 이벤트가 로드 범위에 있고, 그 뒤에 메시지가 있을 때만
+  const markerIndex =
+    unreadMarkerId != null
+      ? items.findIndex(({ ev }) => ev.getId() === unreadMarkerId)
+      : -1;
+  const showUnreadAfter =
+    markerIndex >= 0 && markerIndex < items.length - 1 ? markerIndex : -1;
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
@@ -122,7 +132,7 @@ export function Timeline({
             <DateDivider label="대화의 시작" />
           </li>
         )}
-        {items.map(({ ev, showHeader, dateDivider }) => (
+        {items.map(({ ev, showHeader, dateDivider }, i) => (
           <Fragment key={ev.getId()}>
             {dateDivider && (
               <li>
@@ -140,6 +150,11 @@ export function Timeline({
               onJumpTo={onJumpTo}
               highlighted={highlightId === ev.getId()}
             />
+            {i === showUnreadAfter && (
+              <li>
+                <UnreadDivider />
+              </li>
+            )}
           </Fragment>
         ))}
         <div ref={bottomRef} />

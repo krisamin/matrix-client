@@ -18,7 +18,11 @@ import { RoomAvatar } from "../components/Avatar";
 import { MessageInput } from "../components/MessageInput";
 import { PaneHeader } from "../components/PaneHeader";
 import { Timeline } from "../components/Timeline";
-import { useReadReceipt, useRoomTimeline } from "../hooks/useRoomTimeline";
+import {
+  useReadReceipt,
+  useRoomTimeline,
+  useUnreadMarker,
+} from "../hooks/useRoomTimeline";
 import { useAppContext } from "./app-layout";
 
 export function meta() {
@@ -51,11 +55,13 @@ export default function RoomView() {
     client,
     roomId!,
   );
+  const myUserId = client.getUserId() ?? "";
+  // 진입 시점 읽음 위치 캡처 — useReadReceipt가 receipt를 밀어버리기 전에
+  const unreadMarkerId = useUnreadMarker(room, myUserId);
   useReadReceipt(client, events);
 
   const [replyTo, setReplyTo] = useState<MatrixEvent | null>(null);
   const [highlightId, setHighlightId] = useState<string | null>(null);
-  const myUserId = client.getUserId() ?? "";
 
   const threadFull = threadId != null && searchParams.get("full") === "1";
 
@@ -147,6 +153,7 @@ export default function RoomView() {
             onReply={setReplyTo}
             highlightId={highlightId}
             onJumpTo={jumpTo}
+            unreadMarkerId={unreadMarkerId}
           />
           <MessageInput
             client={client}
