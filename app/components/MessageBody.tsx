@@ -139,14 +139,16 @@ function revealTyping(root: HTMLElement, fromOffset: number): () => void {
     (sum, h) => sum + (h.full.length - h.node.data.length),
     0,
   );
-  // 길이에 비례하되 0.25~0.8s로 캡 (너무 길면 답답, 짧으면 안 보임)
-  const duration = Math.min(800, Math.max(250, totalChars * 12));
+  // 길이에 비례하되 0.35~1.1s로 캡 (너무 길면 답답, 짧으면 안 보임)
+  const duration = Math.min(1100, Math.max(350, totalChars * 18));
   let cancelled = false;
   const startTime = performance.now();
+  // ease-out: 처음 빠르게 치고 끝에서 살짝 감속 — 등속보다 자연스러움
+  const ease = (t: number) => 1 - (1 - t) ** 2.4;
 
   const tick = (now: number) => {
     if (cancelled) return;
-    const progress = Math.min(1, (now - startTime) / duration);
+    const progress = ease(Math.min(1, (now - startTime) / duration));
     let budget = Math.floor(totalChars * progress);
     for (const h of hidden) {
       const revealed = Math.min(

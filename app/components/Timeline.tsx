@@ -45,6 +45,8 @@ export function Timeline({
   // 커밋 횟수/순서와 무관하게 보던 위치가 고정됨 (높이차 방식은
   // 복호화 등 중간 커밋에서 보정값이 엉뚱하게 소진되는 버그가 있었음)
   const anchorRef = useRef<{ id: string; top: number } | null>(null);
+  // 직전 커밋의 마지막 이벤트 id — "새 메시지 도착" 판별용
+  const prevLastIdRef = useRef<string | null>(null);
 
   /** 뷰포트 상단에 걸친 첫 메시지 요소를 앵커로 측정 */
   function measureAnchor(list: HTMLUListElement) {
@@ -61,8 +63,18 @@ export function Timeline({
   useLayoutEffect(() => {
     const list = listRef.current;
     if (!list) return;
+    const last = events[events.length - 1];
+    const lastId = last?.getId() ?? null;
+    const prevLastId = prevLastIdRef.current;
+    prevLastIdRef.current = lastId;
     if (stickToBottomRef.current) {
-      bottomRef.current?.scrollIntoView({ behavior: "instant" });
+      // 새 메시지가 끝에 붙은 커밋만 smooth — 기존 내용이 부드럽게 밀려 올라감.
+      // 초기 로드/방 전환/과거 로드(끝 불변)는 instant (출렁임 방지)
+      const isNewArrival =
+        prevLastId != null && lastId != null && lastId !== prevLastId;
+      bottomRef.current?.scrollIntoView({
+        behavior: isNewArrival ? "smooth" : "instant",
+      });
     } else {
       const anchor = anchorRef.current;
       if (anchor) {

@@ -210,11 +210,14 @@ body {
   background: transparent;
 }
 
-/* ── 새 메시지 등장 애니메이션 ── */
+/* ── 새 메시지 등장 애니메이션 — 살짝 떠오르며 페이드인 ── */
 @keyframes msg-in {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(10px);
+  }
+  60% {
+    opacity: 1;
   }
   to {
     opacity: 1;
@@ -222,7 +225,7 @@ body {
   }
 }
 .msg-in {
-  animation: msg-in 0.22s ease-out;
+  animation: msg-in 0.32s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* ── 코드 구문 강조 (highlight.js) — 토큰 팔레트 기반 커스텀 다크 테마 ── */
