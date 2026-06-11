@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="ko" class="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>matrix-client — dense dark</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/wanteddev/wanted-sans@v1.0.3/packages/wanted-sans/fonts/webfonts/variable/split/WantedSansVariable.min.css" />
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  :root { color-scheme: dark; }
+  body { font-family: "Wanted Sans Variable", "Wanted Sans", -apple-system, sans-serif; }
+  .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: #3f3f46; border: 3px solid transparent; border-radius: 6px; background-clip: content-box; }
+  ::-webkit-scrollbar-thumb:hover { background: #52525b; background-clip: content-box; border: 3px solid transparent; }
+  .lucide { width: 15px; height: 15px; stroke-width: 1.75; }
+  .tree-row:hover .row-actions { opacity: 1; }
+  .msg-row:hover { background: #ffffff08; }
+  .msg-row:hover .msg-actions { opacity: 1; }
+</style>
+</head>
+<body class="h-screen overflow-hidden bg-[#18181b] text-[13px] leading-[1.45] text-zinc-300">
+<div class="flex h-full">
+
+  <!-- ──────────── 사이드바: VSCode 스타일 트리 ──────────── -->
+  <aside class="flex w-60 shrink-0 flex-col border-r border-zinc-800 bg-[#1f1f23]">
+    <!-- 계정 헤더 -->
+    <div class="flex items-center justify-between border-b border-zinc-800 px-3 py-2">
+      <div class="flex items-center gap-2 min-w-0">
+        <i data-lucide="terminal" class="lucide shrink-0 text-zinc-500"></i>
+        <span class="truncate font-medium text-zinc-200">krisamin</span>
+        <span class="mono truncate text-[11px] text-zinc-600">@krisam.in</span>
+      </div>
+      <button class="rounded p-1 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300" title="설정">
+        <i data-lucide="settings-2" class="lucide"></i>
+      </button>
+    </div>
+
+    <!-- 섹션 라벨 -->
+    <div class="flex items-center justify-between px-3 pt-3 pb-1">
+      <span class="text-[10px] font-semibold uppercase tracking-wider text-zinc-600">Rooms</span>
+      <button class="rounded p-0.5 text-zinc-600 hover:text-zinc-300" title="방 만들기">
+        <i data-lucide="plus" class="lucide !w-3.5 !h-3.5"></i>
+      </button>
+    </div>
+
+    <!-- 트리 -->
+    <nav class="flex-1 overflow-y-auto px-1.5 pb-3 select-none">
+      <!-- Space: popstar -->
+      <div>
+        <button onclick="toggle(this)" class="tree-row flex w-full items-center gap-1.5 rounded px-1.5 py-[3px] text-zinc-400 hover:bg-zinc-800/70">
+          <i data-lucide="chevron-down" class="lucide !w-3.5 !h-3.5 shrink-0 transition-transform"></i>
+          <i data-lucide="folder-open" class="lucide shrink-0 text-zinc-500"></i>
+          <span class="truncate font-medium">popstar</span>
+        </button>
+        <div class="ml-[18px] border-l border-zinc-800 pl-1">
+          <!-- 하위 Space -->
+          <button onclick="toggle(this)" class="tree-row flex w-full items-center gap-1.5 rounded px-1.5 py-[3px] text-zinc-400 hover:bg-zinc-800/70">
+            <i data-lucide="chevron-down" class="lucide !w-3.5 !h-3.5 shrink-0 transition-transform"></i>
+            <i data-lucide="folder-open" class="lucide shrink-0 text-zinc-500"></i>
+            <span class="truncate">infra</span>
+          </button>
+          <div class="ml-[18px] border-l border-zinc-800 pl-1">
+            <a href="#" class="tree-row flex items-center gap-1.5 rounded px-1.5 py-[3px] text-zinc-400 hover:bg-zinc-800/70">
+              <i data-lucide="hash" class="lucide shrink-0 text-zinc-600"></i>
+              <span class="truncate">talos</span>
+            </a>
+            <a href="#" class="tree-row flex items-center gap-1.5 rounded px-1.5 py-[3px] text-zinc-400 hover:bg-zinc-800/70">
+              <i data-lucide="hash" class="lucide shrink-0 text-zinc-600"></i>
+              <span class="truncate flex-1">argocd</span>
+              <span class="mono rounded bg-zinc-700 px-1 text-[10px] font-medium text-zinc-300">3</span>
+            </a>
+          </div>
+          <a href="#" class="tree-row flex items-center gap-1.5 rounded px-1.5 py-[3px] text-zinc-400 hover:bg-zinc-800/70">
+            <i data-lucide="hash" class="lucide shrink-0 text-zinc-600"></i>
+            <span class="truncate">general</span>
+          </a>
+          <a href="#" class="tree-row flex items-center gap-1.5 rounded px-1.5 py-[3px] text-zinc-400 hover:bg-zinc-800/70">
+            <i data-lucide="megaphone" class="lucide shrink-0 text-zinc-600"></i>
+            <span class="truncate">announce</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Space: pfct (접힌 상태) -->
+      <div>
+        <button onclick="toggle(this)" class="tree-row flex w-full items-center gap-1.5 rounded px-1.5 py-[3px] text-zinc-400 hover:bg-zinc-800/70">
+          <i data-lucide="chevron-down" class="lucide !w-3.5 !h-3.5 shrink-0 -rotate-90 transition-transform"></i>
+          <i data-lucide="folder" class="lucide shrink-0 text-zinc-500"></i>
+          <span class="truncate flex-1 font-medium">pfct</span>
+          <span class="mono rounded bg-zinc-100 px-1 text-[10px] font-bold text-zinc-900">@1</span>
+        </button>
+        <div class="ml-[18px] hidden border-l border-zinc-800 pl-1"></div>
+      </div>
+
+      <!-- 섹션: DM -->
+      <div class="flex items-center justify-between px-1.5 pt-4 pb-1">
+        <span class="text-[10px] font-semibold uppercase tracking-wider text-zinc-600">Direct</span>
+      </div>
+      <a href="#" class="tree-row flex items-center gap-1.5 rounded bg-zinc-800 px-1.5 py-[3px] text-zinc-100">
+        <i data-lucide="lock" class="lucide !w-3.5 !h-3.5 shrink-0 text-zinc-500"></i>
+        <span class="truncate flex-1 font-medium">시로</span>
+        <i data-lucide="pencil-line" class="lucide !w-3 !h-3 shrink-0 animate-pulse text-zinc-500"></i>
+      </a>
+      <a href="#" class="tree-row flex items-center gap-1.5 rounded px-1.5 py-[3px] text-zinc-400 hover:bg-zinc-800/70">
+        <i data-lucide="lock" class="lucide !w-3.5 !h-3.5 shrink-0 text-zinc-600"></i>
+        <span class="truncate">hermes-bot</span>
+      </a>
+    </nav>
+
+    <!-- 하단 상태바 -->
+    <div class="flex items-center gap-2 border-t border-zinc-800 px-3 py-1.5 text-[11px] text-zinc-600">
+      <span class="flex items-center gap-1"><span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>synced</span>
+      <span class="mono ml-auto">E2EE ✓</span>
+    </div>
+  </aside>
+
+  <!-- ──────────── 메인: 채팅 ──────────── -->
+  <main class="flex min-w-0 flex-1 flex-col bg-[#18181b]">
+    <!-- 방 헤더 -->
+    <header class="flex h-10 shrink-0 items-center gap-2 border-b border-zinc-800 px-4">
+      <i data-lucide="lock" class="lucide text-zinc-500"></i>
+      <h1 class="font-semibold text-zinc-100">시로</h1>
+      <span class="mono text-[11px] text-zinc-600">!xomvnzz…:krisam.in</span>
+      <div class="ml-auto flex items-center gap-1 text-zinc-500">
+        <button class="rounded p-1.5 hover:bg-zinc-800 hover:text-zinc-300" title="검색"><i data-lucide="search" class="lucide"></i></button>
+        <button class="rounded p-1.5 hover:bg-zinc-800 hover:text-zinc-300" title="멤버"><i data-lucide="users" class="lucide"></i></button>
+        <button onclick="document.getElementById('thread').classList.toggle('hidden')" class="rounded p-1.5 hover:bg-zinc-800 hover:text-zinc-300" title="스레드"><i data-lucide="message-square-text" class="lucide"></i></button>
+      </div>
+    </header>
+
+    <div class="flex min-h-0 flex-1">
+      <!-- 타임라인 -->
+      <section class="flex min-w-0 flex-1 flex-col">
+        <div class="flex-1 overflow-y-auto py-2">
+
+          <!-- 날짜 구분선 -->
+          <div class="flex items-center gap-3 px-4 py-2 text-[11px] text-zinc-600">
+            <div class="h-px flex-1 bg-zinc-800"></div>
+            <span class="mono">2026-06-10 수요일</span>
+            <div class="h-px flex-1 bg-zinc-800"></div>
+          </div>
+
+          <!-- 메시지: 그룹 첫 줄 (sender 표시) -->
+          <div class="msg-row group relative mt-1.5 px-4 py-0.5">
+            <div class="flex items-baseline gap-2">
+              <span class="font-semibold text-zinc-100">마로</span>
+              <span class="mono text-[10px] text-zinc-600">14:02</span>
+            </div>
+            <p class="text-zinc-300">시로야 지금 matrix 클라이언트로 element 사용하는데 element 같은거 직접 만들 수 있음?</p>
+            <!-- hover 액션 -->
+            <div class="msg-actions absolute -top-3 right-4 flex items-center rounded border border-zinc-700 bg-zinc-900 opacity-0 shadow-lg transition-opacity">
+              <button class="p-1.5 text-zinc-400 hover:text-zinc-100" title="리액션"><i data-lucide="smile-plus" class="lucide !w-3.5 !h-3.5"></i></button>
+              <button class="p-1.5 text-zinc-400 hover:text-zinc-100" title="답장"><i data-lucide="reply" class="lucide !w-3.5 !h-3.5"></i></button>
+              <button class="p-1.5 text-zinc-400 hover:text-zinc-100" title="스레드"><i data-lucide="message-square-plus" class="lucide !w-3.5 !h-3.5"></i></button>
+              <button class="p-1.5 text-zinc-400 hover:text-zinc-100" title="더보기"><i data-lucide="ellipsis" class="lucide !w-3.5 !h-3.5"></i></button>
+            </div>
+          </div>
+
+          <!-- 메시지: 같은 sender 연속 (sender 생략) -->
+          <div class="msg-row group relative px-4 py-0.5 pl-4">
+            <p class="text-zinc-300">UI 새로 만들고 싶은건데 그것만 하면 좀 쉬우려나?</p>
+          </div>
+
+          <!-- 메시지: 다른 sender + 마크다운/코드 -->
+          <div class="msg-row group relative mt-1.5 px-4 py-0.5">
+            <div class="flex items-baseline gap-2">
+              <span class="font-semibold text-zinc-100">시로</span>
+              <span class="mono text-[10px] text-zinc-600">14:05</span>
+              <span class="text-[10px] text-zinc-600">(수정됨)</span>
+            </div>
+            <div class="text-zinc-300">
+              <p>응 가능해! <strong class="text-zinc-100">matrix-js-sdk</strong>가 sync/E2EE 다 처리해줘서 UI만 갈아끼우면 돼. 핵심은 이거야:</p>
+              <pre class="mono my-1.5 overflow-x-auto rounded border border-zinc-800 bg-[#141417] px-3 py-2 text-[12px] text-zinc-300"><code><span class="text-zinc-500">// MSC3874: 스레드 답글 제외 필터</span>
+const tlSet = await getNoThreadTimelineSet(cl, room);</code></pre>
+              <p>이러면 메인 타임라인 빈 화면 데드락이 원천 차단돼.</p>
+            </div>
+            <!-- 리액션 칩 -->
+            <div class="mt-1 flex items-center gap-1">
+              <button class="mono flex items-center gap-1 rounded border border-zinc-600 bg-zinc-800 px-1.5 py-px text-[11px] text-zinc-200">👍 2</button>
+              <button class="mono flex items-center gap-1 rounded border border-zinc-800 px-1.5 py-px text-[11px] text-zinc-400 hover:border-zinc-600">🎉 1</button>
+            </div>
+            <!-- 스레드 표시 -->
+            <button onclick="document.getElementById('thread').classList.remove('hidden')" class="mt-1 flex items-center gap-1.5 text-[11px] text-zinc-500 hover:text-zinc-200">
+              <i data-lucide="corner-down-right" class="lucide !w-3.5 !h-3.5"></i>
+              답글 12개 <span class="text-zinc-600">· 마지막 14:21</span>
+            </button>
+          </div>
+
+          <!-- 답장 메시지 -->
+          <div class="msg-row group relative mt-1.5 px-4 py-0.5">
+            <div class="flex items-baseline gap-2">
+              <span class="font-semibold text-zinc-100">마로</span>
+              <span class="mono text-[10px] text-zinc-600">14:09</span>
+            </div>
+            <button class="mb-0.5 flex items-center gap-1.5 border-l-2 border-zinc-600 pl-2 text-[11px] text-zinc-500 hover:text-zinc-300">
+              <i data-lucide="reply" class="lucide !w-3 !h-3"></i>
+              <span class="font-medium">시로</span>
+              <span class="truncate">응 가능해! matrix-js-sdk가 sync/E2EE 다 처리…</span>
+            </button>
+            <p class="text-zinc-300">오 그럼 바로 시작하자 ㅋㅋㅋㅋㅋ</p>
+          </div>
+
+          <!-- 미디어 메시지 -->
+          <div class="msg-row group relative mt-1.5 px-4 py-0.5">
+            <div class="flex items-baseline gap-2">
+              <span class="font-semibold text-zinc-100">시로</span>
+              <span class="mono text-[10px] text-zinc-600">14:12</span>
+            </div>
+            <div class="mt-0.5 inline-flex items-center gap-2 rounded border border-zinc-800 bg-[#141417] px-3 py-2">
+              <i data-lucide="file-archive" class="lucide text-zinc-500"></i>
+              <div>
+                <p class="text-zinc-200">design-tokens.zip</p>
+                <p class="mono text-[10px] text-zinc-600">24.1 KB</p>
+              </div>
+              <button class="ml-3 rounded p-1 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200"><i data-lucide="download" class="lucide"></i></button>
+            </div>
+          </div>
+
+          <!-- 전송 실패 -->
+          <div class="msg-row group relative mt-1.5 px-4 py-0.5 opacity-70">
+            <div class="flex items-baseline gap-2">
+              <span class="font-semibold text-zinc-100">마로</span>
+              <span class="mono text-[10px] text-zinc-600">14:30</span>
+            </div>
+            <p class="text-zinc-300">이건 전송이 실패한 메시지</p>
+            <div class="mt-0.5 flex items-center gap-2 text-[11px] text-red-400">
+              <i data-lucide="circle-alert" class="lucide !w-3.5 !h-3.5"></i>
+              전송 실패
+              <button class="underline hover:text-red-300">재전송</button>
+              <button class="text-zinc-500 underline hover:text-zinc-300">삭제</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 타이핑 + 입력 -->
+        <div class="shrink-0 border-t border-zinc-800 px-4 pb-3 pt-1.5">
+          <p class="flex h-5 items-center gap-1.5 text-[11px] text-zinc-500">
+            <i data-lucide="pencil-line" class="lucide !w-3 !h-3 animate-pulse"></i>시로 입력 중…
+          </p>
+          <div class="flex items-end gap-2 rounded border border-zinc-700 bg-[#1f1f23] px-2 py-1.5 focus-within:border-zinc-500">
+            <button class="rounded p-1 text-zinc-500 hover:text-zinc-200" title="첨부"><i data-lucide="paperclip" class="lucide"></i></button>
+            <input class="min-w-0 flex-1 bg-transparent py-0.5 text-zinc-100 placeholder-zinc-600 outline-none" placeholder="시로에게 메시지 보내기… (마크다운 지원)" />
+            <button class="rounded p-1 text-zinc-500 hover:text-zinc-200" title="전송"><i data-lucide="send-horizontal" class="lucide"></i></button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 스레드 패널 -->
+      <aside id="thread" class="flex w-80 shrink-0 flex-col border-l border-zinc-800 bg-[#1b1b1f]">
+        <header class="flex h-10 shrink-0 items-center gap-2 border-b border-zinc-800 px-3">
+          <i data-lucide="message-square-text" class="lucide text-zinc-500"></i>
+          <span class="font-semibold text-zinc-100">스레드</span>
+          <span class="mono text-[11px] text-zinc-600">12</span>
+          <button onclick="document.getElementById('thread').classList.add('hidden')" class="ml-auto rounded p-1 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300"><i data-lucide="x" class="lucide"></i></button>
+        </header>
+        <div class="flex-1 overflow-y-auto px-3 py-2 text-[12.5px]">
+          <div class="border-b border-zinc-800 pb-2">
+            <div class="flex items-baseline gap-2"><span class="font-semibold text-zinc-100">시로</span><span class="mono text-[10px] text-zinc-600">14:05</span></div>
+            <p class="text-zinc-400">응 가능해! matrix-js-sdk가 sync/E2EE 다 처리해줘서…</p>
+          </div>
+          <div class="mt-2"><div class="flex items-baseline gap-2"><span class="font-semibold text-zinc-100">마로</span><span class="mono text-[10px] text-zinc-600">14:15</span></div>
+            <p class="text-zinc-300">E2EE는 어려운거 아니야?</p></div>
+          <div class="mt-2"><div class="flex items-baseline gap-2"><span class="font-semibold text-zinc-100">시로</span><span class="mono text-[10px] text-zinc-600">14:21</span></div>
+            <p class="text-zinc-300">rust-crypto가 다 해줘서 괜찮아. 옛날만큼 지옥은 아니야 ㅋㅋㅋㅋㅋ</p></div>
+        </div>
+        <div class="shrink-0 border-t border-zinc-800 p-2">
+          <div class="flex items-center gap-2 rounded border border-zinc-700 bg-[#1f1f23] px-2 py-1.5 focus-within:border-zinc-500">
+            <input class="min-w-0 flex-1 bg-transparent text-[12.5px] text-zinc-100 placeholder-zinc-600 outline-none" placeholder="스레드에 답글…" />
+            <button class="text-zinc-500 hover:text-zinc-200"><i data-lucide="send-horizontal" class="lucide !w-3.5 !h-3.5"></i></button>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+</div>
+
+<script>
+  lucide.createIcons();
+  function toggle(btn) {
+    const chevron = btn.querySelector("svg");
+    const children = btn.nextElementSibling;
+    if (!children) return;
+    children.classList.toggle("hidden");
+    chevron.classList.toggle("-rotate-90");
+    // folder open/close 아이콘 스왑은 목업이라 생략
+  }
+</script>
+</body>
+</html>
