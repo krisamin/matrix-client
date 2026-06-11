@@ -1,4 +1,11 @@
-import { Download, X, ZoomIn, ZoomOut } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  X,
+  ZoomIn,
+  ZoomOut,
+} from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -9,13 +16,36 @@ interface LightboxState {
 
 let openLightboxFn: ((s: LightboxState) => void) | null = null;
 
+/* ── 이미지 레지스트리 ──
+   타임라인에 마운트된 이미지 MediaView가 자신을 등록.
+   라이트박스 ←/→는 이 목록(이벤트 타임스탬프 순)을 넘김. */
+interface RegisteredImage {
+  key: string; // eventId
+  ts: number; // 정렬 기준 (이벤트 타임스탬프)
+  url: string;
+  name: string;
+}
+const imageRegistry = new Map<string, RegisteredImage>();
+
+/** 타임라인 이미지 등록 (MediaView 마운트 시) — 반환: 해제 함수 */
+export function registerLightboxImage(img: RegisteredImage): () => void {
+  imageRegistry.set(img.key, img);
+  return () => {
+    imageRegistry.delete(img.key);
+  };
+}
+
+function sortedImages(): RegisteredImage[] {
+  return [...imageRegistry.values()].sort((a, b) => a.ts - b.ts);
+}
+
 /** 어디서든 이미지 라이트박스 열기 (MediaView 등) */
 export function openLightbox(url: string, name: string) {
   openLightboxFn?.({ url, name });
 }
 
 /** 이미지 라이트박스 오버레이 — 앱 루트에 1개 마운트.
- *  ESC/배경 클릭 닫기, 클릭 줌 토글, 원본 저장 */
+ *  ESC/배경 클릭 닫기, 클릭 줌 토글, ←/→ 같은 방 이미지 넘기기, 원본 저장 */
 export function Lightbox() {
   const [state, setState] = useState<LightboxState | null>(null);
   const [zoomed, setZoomed] = useState(false);
@@ -32,16 +62,34 @@ export function Lightbox() {
 
   const close = useCallback(() => setState(null), []);
 
+  // 현재 이미지의 레지스트리상 위치 (url 기준 — blob URL은 mxc당 유일)
+  const images = state ? sortedImages() : [];
+  const index = images.findIndex((i) => i.url === state?.url);
+  const prev = index > 0 ? images[index - 1] : null;
+  const next =
+    index >= 0 && index < images.length - 1 ? images[index + 1] : null;
+
+  const goTo = useCallback((img: RegisteredImage | null) => {
+    if (!img) return;
+    setState({ url: img.url, name: img.name });
+    setZoomed(false);
+  }, []);
+
   useEffect(() => {
     if (!state) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") close();
+      if (e.key === "ArrowLeft") goTo(prev);
+      if (e.key === "ArrowRight") goTo(next);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [state, close]);
+  }, [state, close, goTo, prev, next]);
 
   if (!state) return null;
+
+  const navBtn =
+    "rounded-full border border-line bg-bg-2/80 p-2.5 text-fg-1 backdrop-blur hover:bg-bg-3 hover:text-fg-0 disabled:opacity-30 disabled:pointer-events-none";
 
   return createPortal(
     // 배경 클릭 닫기 (ESC는 window 핸들러)
@@ -49,11 +97,16 @@ export function Lightbox() {
       className="msg-in fixed inset-0 z-50 flex flex-col bg-black/85 backdrop-blur-sm"
       onClick={close}
     >
-      {/* 헤더: 파일명 + 액션 (48px — 앱 헤더와 동일) */}
+      {/* 헤더: 파일명 + 위치 + 액션 (48px — 앱 헤더와 동일) */}
       <div className="flex h-12 shrink-0 items-center gap-2.5 px-5">
         <span className="min-w-0 flex-1 truncate text-[13px] text-fg-1">
           {state.name}
         </span>
+        {images.length > 1 && index >= 0 && (
+          <span className="shrink-0 font-mono text-[11px] text-fg-2">
+            {index + 1} / {images.length}
+          </span>
+        )}
         <a
           href={state.url}
           download={state.name}
@@ -90,7 +143,7 @@ export function Lightbox() {
 
       {/* 이미지 영역 */}
       <div
-        className={`flex min-h-0 flex-1 items-center justify-center p-4 ${
+        className={`relative flex min-h-0 flex-1 items-center justify-center p-4 ${
           zoomed ? "overflow-auto" : "overflow-hidden"
         }`}
       >
@@ -109,6 +162,34 @@ export function Lightbox() {
           }}
         />
       </div>
+
+      {/* 좌우 내비게이션 (이미지 2장 이상일 때) */}
+      {prev && (
+        <button
+          type="button"
+          className={`${navBtn} absolute left-4 top-1/2 -translate-y-1/2`}
+          title="이전 이미지 (←)"
+          onClick={(e) => {
+            e.stopPropagation();
+            goTo(prev);
+          }}
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </button>
+      )}
+      {next && (
+        <button
+          type="button"
+          className={`${navBtn} absolute right-4 top-1/2 -translate-y-1/2`}
+          title="다음 이미지 (→)"
+          onClick={(e) => {
+            e.stopPropagation();
+            goTo(next);
+          }}
+        >
+          <ChevronRight className="h-5 w-5" />
+        </button>
+      )}
     </div>,
     document.body,
   );

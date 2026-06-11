@@ -1,7 +1,7 @@
 import { type MatrixClient, type MatrixEvent, MsgType } from "matrix-js-sdk";
 import { useEffect, useState } from "react";
 import { getMediaBlobUrl, type MediaSource } from "../lib/media";
-import { openLightbox } from "./Lightbox";
+import { openLightbox, registerLightboxImage } from "./Lightbox";
 
 /** 이미지/비디오/오디오/파일 첨부 렌더 (인증 미디어 + E2EE 복호화 처리) */
 export function MediaView({
@@ -39,6 +39,17 @@ export function MediaView({
       alive = false;
     };
   }, [client, ev]);
+
+  // 이미지면 라이트박스 ←/→ 내비게이션 목록에 등록 (타임라인 마운트 동안)
+  useEffect(() => {
+    if (msgtype !== MsgType.Image || !blobUrl) return;
+    return registerLightboxImage({
+      key: ev.getId() ?? blobUrl,
+      ts: ev.getTs(),
+      url: blobUrl,
+      name: (ev.getContent().body as string) ?? "이미지",
+    });
+  }, [msgtype, blobUrl, ev]);
 
   if (error) return <span className="text-[12px] text-red-400">⚠ {error}</span>;
   if (!blobUrl)
