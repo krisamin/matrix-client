@@ -1,23 +1,13 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import {
-  ClientEvent,
   EventType,
-  MatrixEventEvent,
   MsgType,
-  RoomEvent,
-  SyncState,
-  ThreadEvent,
-  type MatrixClient,
   type MatrixEvent,
-  type Room,
-  type EventTimelineSet,
 } from "matrix-js-sdk";
-import { getReadyClient, ensureStarted, getNoThreadTimelineSet } from "../lib/matrix";
 import { uploadAndSendFile } from "../lib/media";
-import { visibleEvents } from "../lib/timeline";
 import { useSendTyping, useTypingMembers } from "../lib/typing";
-import { attachNotifications } from "../lib/notifications";
+import { useRoomTimeline, useReadReceipt } from "../hooks/useRoomTimeline";
 import { ConnectionBanner } from "../components/ConnectionBanner";
 import { EventLine } from "../components/EventLine";
 import { ThreadPanel } from "../components/ThreadPanel";
@@ -29,14 +19,17 @@ export function meta() {
 export default function RoomView() {
   const { roomId } = useParams<{ roomId: string }>();
   const navigate = useNavigate();
-  const [client, setClient] = useState<MatrixClient | null>(null);
-  const [room, setRoom] = useState<Room | null>(null);
-  const [events, setEvents] = useState<MatrixEvent[]>([]);
+  const goLogin = useCallback(
+    () => navigate("/login", { replace: true }),
+    [navigate],
+  );
+  const { client, room, events, hasMore, loadingOlder, loadOlder } =
+    useRoomTimeline(roomId, goLogin);
+  useReadReceipt(client, events);
+
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [loadingOlder, setLoadingOlder] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
   const [uploading, setUploading] = useState<string | null>(null);
   const [threadRootId, setThreadRootId] = useState<string | null>(null);
   const [replyTo, setReplyTo] = useState<MatrixEvent | null>(null);
@@ -45,198 +38,25 @@ export default function RoomView() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
   const stickToBottomRef = useRef(true);
-  const loadingOlderRef = useRef(false);
-  const tlSetRef = useRef<EventTimelineSet | null>(null);
   const myUserId = client?.getUserId() ?? "";
   const typingNames = useTypingMembers(client, room);
   const { notifyTyping, clearTyping } = useSendTyping(client, roomId);
 
-  useEffect(() => {
-    const promise = getReadyClient();
-    if (!promise || !roomId) {
-      navigate("/login", { replace: true });
-      return;
-    }
-    let cleanup: (() => void) | undefined;
-    promise.then((cl) => {
-      setClient(cl);
-      if (!cl.clientRunning) ensureStarted(cl);
-      attachNotifications(cl);
-
-      const bind = () => {
-        const r = cl.getRoom(roomId);
-        if (!r) return false;
-        setRoom(r);
-        // 과거 암호화 이벤트 복호화 시도
-        for (const ev of r.getLiveTimeline().getEvents()) {
-          if (ev.getType() === EventType.RoomMessageEncrypted) {
-            cl.decryptEventIfNeeded(ev);
-          }
-        }
-        setEvents(visibleEvents(r));
-        // MSC3874: 스레드 답글 제외 필터드 타임라인 생성 → 이후 페이지네이션은
-        // 서버가 스레드 답글 빼고 줌 (빈 페이지 데드락 원천 차단)
-        void (async () => {
-          const tlSet = await getNoThreadTimelineSet(cl, r);
-          tlSetRef.current = tlSet;
-          if (tlSet) {
-            setEvents(visibleEvents(r, tlSet));
-          }
-          await fillUntilVisible(cl, r);
-        })();
-        return true;
-      };
-
-      // 보이는 이벤트가 최소치를 넘거나 타임라인 끝에 닿을 때까지 backwards 페이지네이션
-      const fillUntilVisible = async (cl2: MatrixClient, r: Room) => {
-        const tlSet = tlSetRef.current;
-        for (let i = 0; i < 10 && visibleEvents(r, tlSet).length < 15; i++) {
-          const timeline = tlSet?.getLiveTimeline() ?? r.getLiveTimeline();
-          let more: boolean;
-          try {
-            more = await cl2.paginateEventTimeline(timeline, {
-              backwards: true,
-              limit: 50,
-            });
-          } catch (e) {
-            console.warn("[fillUntilVisible] paginate 실패:", e);
-            break;
-          }
-          for (const ev of timeline.getEvents()) {
-            if (ev.getType() === EventType.RoomMessageEncrypted) {
-              cl2.decryptEventIfNeeded(ev);
-            }
-          }
-          setEvents(visibleEvents(r, tlSet));
-          if (!more) {
-            setHasMore(false);
-            break;
-          }
-        }
-      };
-
-      const onSync = (state: SyncState) => {
-        if (state === SyncState.Prepared) bind();
-      };
-      if (!bind()) cl.on(ClientEvent.Sync, onSync);
-
-      const refresh = () => {
-        const r = cl.getRoom(roomId);
-        if (r) setEvents(visibleEvents(r, tlSetRef.current));
-      };
-      const onTimeline = (_ev: MatrixEvent, r?: Room) => {
-        if (r?.roomId !== roomId) return;
-        refresh();
-      };
-      const onDecrypted = (ev: MatrixEvent) => {
-        if (ev.getRoomId() !== roomId) return;
-        refresh();
-      };
-      // E2EE 수정(m.replace)은 복호화 후 비동기로 원본에 합쳐짐(makeReplaced)
-      // → 그 시점에 다시 그려야 최종 수정 내용이 보임 (스트리밍 봇 메시지)
-      const onReplaced = (ev: MatrixEvent) => {
-        if (ev.getRoomId() !== roomId) return;
-        refresh();
-      };
-      const onThreadUpdate = () => {
-        refresh(); // 스레드 답글 수 배지 갱신
-      };
-      // local echo 상태 변화(전송중→완료/실패) 반영 — 실패 표시/재전송 UI의 데이터 소스
-      const onLocalEcho = (_ev: MatrixEvent, r: Room) => {
-        if (r.roomId !== roomId) return;
-        refresh();
-      };
-      cl.on(RoomEvent.Timeline, onTimeline);
-      cl.on(MatrixEventEvent.Decrypted, onDecrypted);
-      cl.on(MatrixEventEvent.Replaced, onReplaced);
-      cl.on(RoomEvent.LocalEchoUpdated, onLocalEcho);
-      // ThreadEvent는 Room이 emit — 방이 생긴 뒤에 단다
-      const tryAttachThreadListener = () => {
-        const r = cl.getRoom(roomId);
-        if (r) {
-          r.on(ThreadEvent.Update, onThreadUpdate);
-          r.on(ThreadEvent.NewReply, onThreadUpdate);
-          return true;
-        }
-        return false;
-      };
-      if (!tryAttachThreadListener()) {
-        const onSyncForThread = (state: SyncState) => {
-          if (state === SyncState.Prepared && tryAttachThreadListener()) {
-            cl.off(ClientEvent.Sync, onSyncForThread);
-          }
-        };
-        cl.on(ClientEvent.Sync, onSyncForThread);
-      }
-      cleanup = () => {
-        cl.off(ClientEvent.Sync, onSync);
-        cl.off(RoomEvent.Timeline, onTimeline);
-        cl.off(MatrixEventEvent.Decrypted, onDecrypted);
-        cl.off(MatrixEventEvent.Replaced, onReplaced);
-        cl.off(RoomEvent.LocalEchoUpdated, onLocalEcho);
-        const r = cl.getRoom(roomId);
-        r?.off(ThreadEvent.Update, onThreadUpdate);
-        r?.off(ThreadEvent.NewReply, onThreadUpdate);
-      };
-    });
-    return () => cleanup?.();
-  }, [roomId, navigate]);
-
+  // 새 메시지 오면 바닥 고정 (사용자가 위를 보고 있으면 유지)
   useEffect(() => {
     if (stickToBottomRef.current) {
       bottomRef.current?.scrollIntoView({ behavior: "instant" });
     }
   }, [events]);
 
-  // 읽음 처리: 탭이 보이는 상태에서 마지막 메시지가 바뀌면 read receipt 전송
-  // (이게 없으면 다른 클라이언트에서 안읽음 배지가 영원히 안 꺼짐)
-  const lastReceiptRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (!client || events.length === 0) return;
-    const sendReceipt = () => {
-      if (document.visibilityState !== "visible") return;
-      const last = events[events.length - 1];
-      const id = last.getId();
-      if (!id || id.startsWith("~") || lastReceiptRef.current === id) return;
-      lastReceiptRef.current = id;
-      client.sendReadReceipt(last).catch((e) => {
-        lastReceiptRef.current = null; // 실패 시 재시도 허용
-        console.warn("read receipt 실패:", e);
-      });
-    };
-    sendReceipt();
-    // 백그라운드에서 새 메시지 → 탭으로 돌아왔을 때 읽음 처리
-    document.addEventListener("visibilitychange", sendReceipt);
-    window.addEventListener("focus", sendReceipt);
-    return () => {
-      document.removeEventListener("visibilitychange", sendReceipt);
-      window.removeEventListener("focus", sendReceipt);
-    };
-  }, [client, events]);
-
-  async function loadOlder() {
-    if (!client || !room || loadingOlderRef.current || !hasMore) return;
-    loadingOlderRef.current = true;
-    setLoadingOlder(true);
+  /** 과거 로드 + 스크롤 위치 보존 (보던 메시지 유지) */
+  async function loadOlderKeepScroll() {
     const list = listRef.current;
     const prevScrollHeight = list?.scrollHeight ?? 0;
     const prevScrollTop = list?.scrollTop ?? 0;
     try {
-      const timeline =
-        tlSetRef.current?.getLiveTimeline() ?? room.getLiveTimeline();
-      const more = await client.paginateEventTimeline(timeline, {
-        backwards: true,
-        limit: 30,
-      });
-      setHasMore(more);
-      // 새로 들어온 과거 암호화 이벤트 복호화
-      for (const ev of timeline.getEvents()) {
-        if (ev.getType() === EventType.RoomMessageEncrypted) {
-          client.decryptEventIfNeeded(ev);
-        }
-      }
-      setEvents(visibleEvents(room, tlSetRef.current));
-      // 스크롤 위치 보존: 늘어난 높이만큼 내려서 보던 메시지 유지
+      const loaded = await loadOlder();
+      if (!loaded) return;
       requestAnimationFrame(() => {
         if (list) {
           list.scrollTop = prevScrollTop + (list.scrollHeight - prevScrollHeight);
@@ -244,9 +64,6 @@ export default function RoomView() {
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      loadingOlderRef.current = false;
-      setLoadingOlder(false);
     }
   }
 
@@ -257,7 +74,7 @@ export default function RoomView() {
     stickToBottomRef.current =
       list.scrollHeight - list.scrollTop - list.clientHeight < 80;
     // 위쪽 200px 안으로 올라오면 과거 로드
-    if (list.scrollTop < 200) loadOlder();
+    if (list.scrollTop < 200) loadOlderKeepScroll();
   }
 
   async function send() {
@@ -306,7 +123,7 @@ export default function RoomView() {
         return;
       }
       if (!hasMore) break;
-      await loadOlder();
+      await loadOlderKeepScroll();
     }
   }
 
