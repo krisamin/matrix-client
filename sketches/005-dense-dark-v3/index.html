@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="ko" class="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>matrix-client — dense dark v3</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/wanteddev/wanted-sans@v1.0.3/packages/wanted-sans/fonts/webfonts/variable/split/WantedSansVariable.min.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  :root {
+    color-scheme: dark;
+    /* ── 팔레트: 더 어둡게, 4단계 고정 ── */
+    --bg-0: #0c0c0e;   /* 앱 배경 (가장 어두움) */
+    --bg-1: #111113;   /* 사이드바 / 패널 */
+    --bg-2: #18181b;   /* hover / 코드블록 / 입력창 */
+    --bg-3: #222226;   /* 선택됨 / 액티브 */
+    --line: #1f1f23;   /* 모든 보더 단일값 */
+    --fg-0: #e4e4e7;   /* 제목/이름 */
+    --fg-1: #a1a1aa;   /* 본문 */
+    --fg-2: #63636b;   /* 보조 (시간/메타) */
+    --fg-3: #45454c;   /* 비활성/힌트 */
+  }
+  body { font-family: "Wanted Sans Variable", "Wanted Sans", -apple-system, sans-serif; }
+  .mono { font-family: "Fira Code", ui-monospace, monospace; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: #2a2a2f; border: 3px solid transparent; border-radius: 6px; background-clip: content-box; }
+  ::-webkit-scrollbar-thumb:hover { background: #3a3a40; background-clip: content-box; border: 3px solid transparent; }
+  .lucide { width: 15px; height: 15px; stroke-width: 1.75; }
+  .msg-row:hover { background: var(--bg-2); }
+  .msg-row:hover .msg-actions { opacity: 1; }
+  .av-sq { width: 16px; height: 16px; border-radius: 4px; object-fit: cover; flex-shrink: 0; }
+  .av-rd { width: 16px; height: 16px; border-radius: 9999px; object-fit: cover; flex-shrink: 0; }
+
+  /* ── 트리: 행높이 26px 고정, 인덴트 16px 단위 ── */
+  .tree-row {
+    display: flex; align-items: center; gap: 6px;
+    height: 26px; padding: 0 8px; border-radius: 6px;
+    color: var(--fg-1); width: 100%;
+  }
+  .tree-row:hover { background: var(--bg-2); }
+  .tree-row.active { background: var(--bg-3); color: var(--fg-0); }
+  .tree-children { margin-left: 15px; padding-left: 7px; border-left: 1px solid var(--line); }
+
+  /* ── 메시지: 좌우 20px 고정, 그룹 간 12px ── */
+  .msg-row { padding: 2px 20px; border-radius: 0; }
+  .msg-group { margin-top: 12px; }
+
+  /* ── 배지 ── */
+  .badge { font-family: "Fira Code", monospace; font-size: 10px; line-height: 16px;
+    padding: 0 5px; border-radius: 8px; background: var(--bg-3); color: var(--fg-1); font-weight: 500; }
+  .badge-hl { background: #d4d4d8; color: #0c0c0e; font-weight: 700; }
+</style>
+</head>
+<body class="h-screen overflow-hidden text-[13px] leading-[1.5]" style="background: var(--bg-0); color: var(--fg-1);">
+<div class="flex h-full">
+
+  <!-- ──────────── 사이드바 ──────────── -->
+  <aside class="flex w-64 shrink-0 flex-col" style="background: var(--bg-1); border-right: 1px solid var(--line);">
+    <!-- 헤더: 높이 48px = 메인 헤더와 동일 -->
+    <div class="flex h-12 shrink-0 items-center gap-2 px-4" style="border-bottom: 1px solid var(--line);">
+      <img class="av-rd" src="https://api.dicebear.com/9.x/thumbs/svg?seed=krisamin" alt="" />
+      <span class="truncate font-medium" style="color: var(--fg-0);">krisamin</span>
+      <button class="ml-auto rounded-md p-1.5 hover:bg-[var(--bg-2)]" style="color: var(--fg-2);" title="설정">
+        <i data-lucide="settings-2" class="lucide"></i>
+      </button>
+    </div>
+
+    <!-- 트리: 패딩 12px 통일 -->
+    <nav class="flex-1 overflow-y-auto p-3 select-none">
+      <div class="flex h-6 items-center justify-between px-2">
+        <span class="text-[10px] font-semibold uppercase tracking-widest" style="color: var(--fg-3);">Rooms</span>
+        <button class="rounded p-0.5 hover:text-[var(--fg-1)]" style="color: var(--fg-3);"><i data-lucide="plus" class="lucide !w-3.5 !h-3.5"></i></button>
+      </div>
+
+      <!-- Space: popstar -->
+      <div>
+        <button onclick="toggle(this)" class="tree-row">
+          <i data-lucide="chevron-down" class="lucide !w-3.5 !h-3.5 shrink-0 transition-transform" style="color: var(--fg-3);"></i>
+          <img class="av-sq" src="https://api.dicebear.com/9.x/shapes/svg?seed=popstar" alt="" />
+          <span class="truncate font-medium" style="color: var(--fg-0);">popstar</span>
+        </button>
+        <div class="tree-children">
+          <button onclick="toggle(this)" class="tree-row">
+            <i data-lucide="chevron-down" class="lucide !w-3.5 !h-3.5 shrink-0 transition-transform" style="color: var(--fg-3);"></i>
+            <img class="av-sq" src="https://api.dicebear.com/9.x/shapes/svg?seed=infra" alt="" />
+            <span class="truncate">infra</span>
+          </button>
+          <div class="tree-children">
+            <a href="#" class="tree-row">
+              <img class="av-sq" src="https://api.dicebear.com/9.x/shapes/svg?seed=talos" alt="" />
+              <span class="truncate">talos</span>
+            </a>
+            <a href="#" class="tree-row">
+              <img class="av-sq" src="https://api.dicebear.com/9.x/shapes/svg?seed=argocd" alt="" />
+              <span class="flex-1 truncate">argocd</span>
+              <span class="badge">3</span>
+            </a>
+          </div>
+          <a href="#" class="tree-row">
+            <img class="av-sq" src="https://api.dicebear.com/9.x/shapes/svg?seed=general" alt="" />
+            <span class="truncate">general</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Space: pfct -->
+      <div>
+        <button onclick="toggle(this)" class="tree-row">
+          <i data-lucide="chevron-down" class="lucide !w-3.5 !h-3.5 shrink-0 -rotate-90 transition-transform" style="color: var(--fg-3);"></i>
+          <img class="av-sq" src="https://api.dicebear.com/9.x/shapes/svg?seed=pfct" alt="" />
+          <span class="flex-1 truncate font-medium" style="color: var(--fg-0);">pfct</span>
+          <span class="badge badge-hl">@1</span>
+        </button>
+        <div class="tree-children hidden"></div>
+      </div>
+
+      <div class="flex h-6 items-center px-2" style="margin-top: 12px;">
+        <span class="text-[10px] font-semibold uppercase tracking-widest" style="color: var(--fg-3);">Direct</span>
+      </div>
+
+      <!-- DM: 시로 + 스레드 자식 -->
+      <div>
+        <button onclick="toggle(this)" class="tree-row active">
+          <i data-lucide="chevron-down" class="lucide !w-3.5 !h-3.5 shrink-0 transition-transform" style="color: var(--fg-3);"></i>
+          <img class="av-rd" src="https://api.dicebear.com/9.x/thumbs/svg?seed=shiro" alt="" />
+          <span class="flex-1 truncate font-medium">시로</span>
+          <i data-lucide="pencil-line" class="lucide !w-3 !h-3 shrink-0 animate-pulse" style="color: var(--fg-2);"></i>
+        </button>
+        <div class="tree-children">
+          <button onclick="setView('thread-full')" class="tree-row" id="tree-thread">
+            <i data-lucide="message-square-text" class="lucide !w-3.5 !h-3.5 shrink-0" style="color: var(--fg-3);"></i>
+            <span class="flex-1 truncate">element 클론 가능?</span>
+            <span class="badge">2</span>
+          </button>
+          <button onclick="setView('thread-full')" class="tree-row">
+            <i data-lucide="message-square-text" class="lucide !w-3.5 !h-3.5 shrink-0" style="color: var(--fg-3);"></i>
+            <span class="truncate">UIUX 디자인 논의</span>
+          </button>
+        </div>
+      </div>
+      <a href="#" class="tree-row">
+        <span class="w-[14px] shrink-0"></span>
+        <img class="av-rd" src="https://api.dicebear.com/9.x/thumbs/svg?seed=hermes" alt="" />
+        <span class="truncate">hermes-bot</span>
+      </a>
+    </nav>
+
+    <!-- 푸터: 높이 36px -->
+    <div class="flex h-9 shrink-0 items-center gap-2 px-4 text-[11px]" style="border-top: 1px solid var(--line); color: var(--fg-3);">
+      <span class="h-1.5 w-1.5 rounded-full bg-emerald-600"></span>synced
+      <span class="mono ml-auto">E2EE</span>
+      <i data-lucide="shield-check" class="lucide !w-3.5 !h-3.5"></i>
+    </div>
+  </aside>
+
+  <!-- ──────────── 메인 ──────────── -->
+  <main class="flex min-w-0 flex-1">
+
+    <!-- ═══ Pane A: 채팅 ═══ -->
+    <section id="pane-chat" class="flex min-w-0 flex-1 flex-col">
+      <!-- 헤더 48px -->
+      <header class="flex h-12 shrink-0 items-center gap-2.5 px-5" style="border-bottom: 1px solid var(--line);">
+        <img class="av-rd !w-5 !h-5" src="https://api.dicebear.com/9.x/thumbs/svg?seed=shiro" alt="" />
+        <h1 class="font-semibold" style="color: var(--fg-0);">시로</h1>
+        <i data-lucide="lock" class="lucide !w-3.5 !h-3.5" style="color: var(--fg-3);"></i>
+        <div class="ml-auto flex items-center gap-0.5" style="color: var(--fg-2);">
+          <button class="rounded-md p-2 hover:bg-[var(--bg-2)] hover:text-[var(--fg-0)]" title="검색"><i data-lucide="search" class="lucide"></i></button>
+          <button class="rounded-md p-2 hover:bg-[var(--bg-2)] hover:text-[var(--fg-0)]" title="멤버"><i data-lucide="users" class="lucide"></i></button>
+        </div>
+      </header>
+
+      <div class="flex-1 overflow-y-auto py-3">
+        <!-- 날짜 구분선 -->
+        <div class="flex items-center gap-4 px-5 py-2">
+          <div class="h-px flex-1" style="background: var(--line);"></div>
+          <span class="mono text-[10px]" style="color: var(--fg-3);">2026-06-10 WED</span>
+          <div class="h-px flex-1" style="background: var(--line);"></div>
+        </div>
+
+        <!-- 메시지 그룹 -->
+        <div class="msg-group">
+          <div class="msg-row group relative">
+            <div class="flex items-baseline gap-2">
+              <span class="font-semibold" style="color: var(--fg-0);">마로</span>
+              <span class="mono text-[10px]" style="color: var(--fg-3);">14:02</span>
+            </div>
+            <p>시로야 지금 matrix 클라이언트로 element 사용하는데 element 같은거 직접 만들 수 있음?</p>
+            <div class="msg-actions absolute -top-3 right-5 flex items-center overflow-hidden rounded-lg opacity-0 shadow-xl transition-opacity" style="background: var(--bg-3); border: 1px solid var(--line);">
+              <button class="p-2 hover:bg-[var(--bg-2)]" style="color: var(--fg-1);" title="리액션"><i data-lucide="smile-plus" class="lucide !w-3.5 !h-3.5"></i></button>
+              <button class="p-2 hover:bg-[var(--bg-2)]" style="color: var(--fg-1);" title="답장"><i data-lucide="reply" class="lucide !w-3.5 !h-3.5"></i></button>
+              <button class="p-2 hover:bg-[var(--bg-2)]" style="color: var(--fg-1);" title="스레드"><i data-lucide="message-square-plus" class="lucide !w-3.5 !h-3.5"></i></button>
+              <button class="p-2 hover:bg-[var(--bg-2)]" style="color: var(--fg-1);" title="더보기"><i data-lucide="ellipsis" class="lucide !w-3.5 !h-3.5"></i></button>
+            </div>
+          </div>
+          <div class="msg-row group relative">
+            <p>UI 새로 만들고 싶은건데 그것만 하면 좀 쉬우려나?</p>
+          </div>
+        </div>
+
+        <div class="msg-group">
+          <div class="msg-row group relative">
+            <div class="flex items-baseline gap-2">
+              <span class="font-semibold" style="color: var(--fg-0);">시로</span>
+              <span class="mono text-[10px]" style="color: var(--fg-3);">14:05</span>
+              <span class="text-[10px]" style="color: var(--fg-3);">수정됨</span>
+            </div>
+            <p>응 가능해! <strong style="color: var(--fg-0);">matrix-js-sdk</strong>가 sync/E2EE 다 처리해줘서 UI만 갈아끼우면 돼:</p>
+            <pre class="mono my-2 overflow-x-auto rounded-lg px-3.5 py-2.5 text-[11.5px]" style="background: var(--bg-2); border: 1px solid var(--line);"><code><span style="color: var(--fg-3);">// MSC3874: 스레드 답글 제외 필터</span>
+const tlSet = await getNoThreadTimelineSet(cl, room);</code></pre>
+            <div class="mt-1.5 flex items-center gap-1.5">
+              <button class="mono flex h-[22px] items-center gap-1 rounded-md px-2 text-[11px]" style="background: var(--bg-3); border: 1px solid #3a3a40; color: var(--fg-0);">👍 2</button>
+              <button class="mono flex h-[22px] items-center gap-1 rounded-md px-2 text-[11px]" style="border: 1px solid var(--line); color: var(--fg-2);">🎉 1</button>
+            </div>
+            <button onclick="setView('split')" class="mt-1.5 flex h-[22px] items-center gap-1.5 text-[11px] hover:text-[var(--fg-0)]" style="color: var(--fg-2);">
+              <i data-lucide="message-square-text" class="lucide !w-3.5 !h-3.5"></i>
+              <span class="font-medium">element 클론 가능?</span>
+              <span style="color: var(--fg-3);">답글 12 · 14:21</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="msg-group">
+          <div class="msg-row group relative">
+            <div class="flex items-baseline gap-2">
+              <span class="font-semibold" style="color: var(--fg-0);">마로</span>
+              <span class="mono text-[10px]" style="color: var(--fg-3);">14:09</span>
+            </div>
+            <button class="mb-1 flex h-[22px] items-center gap-1.5 rounded-md pl-2 pr-2.5 text-[11px]" style="border-left: 2px solid #3a3a40; background: var(--bg-2); color: var(--fg-2);">
+              <i data-lucide="reply" class="lucide !w-3 !h-3"></i>
+              <span class="font-medium" style="color: var(--fg-1);">시로</span>
+              <span class="truncate">응 가능해! matrix-js-sdk가 sync/E2EE…</span>
+            </button>
+            <p>오 그럼 바로 시작하자 ㅋㅋㅋㅋㅋ</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 입력: 패딩 20px 통일 -->
+      <div class="shrink-0 px-5 pb-4">
+        <p class="flex h-6 items-center gap-1.5 text-[11px]" style="color: var(--fg-3);">
+          <i data-lucide="pencil-line" class="lucide !w-3 !h-3 animate-pulse"></i>시로 입력 중…
+        </p>
+        <div class="flex items-end gap-1 rounded-lg px-2 py-1.5 transition-colors focus-within:!border-[#3a3a40]" style="background: var(--bg-2); border: 1px solid var(--line);">
+          <button class="rounded-md p-1.5 hover:text-[var(--fg-0)]" style="color: var(--fg-2);"><i data-lucide="paperclip" class="lucide"></i></button>
+          <input class="min-w-0 flex-1 bg-transparent py-1 outline-none placeholder:text-[var(--fg-3)]" style="color: var(--fg-0);" placeholder="시로에게 메시지 보내기…" />
+          <button class="rounded-md p-1.5 hover:text-[var(--fg-0)]" style="color: var(--fg-2);"><i data-lucide="send-horizontal" class="lucide"></i></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ Pane B: 스레드 (동일 구조) ═══ -->
+    <section id="pane-thread" class="hidden min-w-0 flex-1 flex-col" style="border-left: 1px solid var(--line);">
+      <header class="flex h-12 shrink-0 items-center gap-2.5 px-5" style="border-bottom: 1px solid var(--line);">
+        <i data-lucide="message-square-text" class="lucide" style="color: var(--fg-2);"></i>
+        <h1 class="truncate font-semibold" style="color: var(--fg-0);">element 클론 가능?</h1>
+        <span class="mono text-[10px]" style="color: var(--fg-3);">답글 12</span>
+        <div class="ml-auto flex items-center gap-0.5" style="color: var(--fg-2);">
+          <button onclick="setView('thread-full')" class="rounded-md p-2 hover:bg-[var(--bg-2)] hover:text-[var(--fg-0)]" title="전체 화면"><i data-lucide="maximize-2" class="lucide"></i></button>
+          <button onclick="setView('chat')" class="rounded-md p-2 hover:bg-[var(--bg-2)] hover:text-[var(--fg-0)]" title="닫기"><i data-lucide="x" class="lucide"></i></button>
+        </div>
+      </header>
+
+      <div class="flex-1 overflow-y-auto py-3">
+        <div class="msg-group !mt-0">
+          <div class="msg-row group relative">
+            <div class="flex items-baseline gap-2">
+              <span class="font-semibold" style="color: var(--fg-0);">시로</span>
+              <span class="mono text-[10px]" style="color: var(--fg-3);">14:05</span>
+            </div>
+            <p>응 가능해! <strong style="color: var(--fg-0);">matrix-js-sdk</strong>가 sync/E2EE 다 처리해줘서…</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-4 px-5 py-2">
+          <div class="h-px flex-1" style="background: var(--line);"></div>
+          <span class="mono text-[10px]" style="color: var(--fg-3);">REPLIES 12</span>
+          <div class="h-px flex-1" style="background: var(--line);"></div>
+        </div>
+        <div class="msg-group !mt-0">
+          <div class="msg-row group relative">
+            <div class="flex items-baseline gap-2">
+              <span class="font-semibold" style="color: var(--fg-0);">마로</span>
+              <span class="mono text-[10px]" style="color: var(--fg-3);">14:15</span>
+            </div>
+            <p>E2EE는 어려운거 아니야?</p>
+            <div class="msg-actions absolute -top-3 right-5 flex items-center overflow-hidden rounded-lg opacity-0 shadow-xl transition-opacity" style="background: var(--bg-3); border: 1px solid var(--line);">
+              <button class="p-2 hover:bg-[var(--bg-2)]" style="color: var(--fg-1);"><i data-lucide="smile-plus" class="lucide !w-3.5 !h-3.5"></i></button>
+              <button class="p-2 hover:bg-[var(--bg-2)]" style="color: var(--fg-1);"><i data-lucide="reply" class="lucide !w-3.5 !h-3.5"></i></button>
+              <button class="p-2 hover:bg-[var(--bg-2)]" style="color: var(--fg-1);"><i data-lucide="ellipsis" class="lucide !w-3.5 !h-3.5"></i></button>
+            </div>
+          </div>
+        </div>
+        <div class="msg-group">
+          <div class="msg-row group relative">
+            <div class="flex items-baseline gap-2">
+              <span class="font-semibold" style="color: var(--fg-0);">시로</span>
+              <span class="mono text-[10px]" style="color: var(--fg-3);">14:21</span>
+            </div>
+            <p>rust-crypto가 다 해줘서 괜찮아. 옛날만큼 지옥은 아니야 ㅋㅋㅋㅋㅋ</p>
+            <div class="mt-1.5 flex items-center gap-1.5">
+              <button class="mono flex h-[22px] items-center gap-1 rounded-md px-2 text-[11px]" style="background: var(--bg-3); border: 1px solid #3a3a40; color: var(--fg-0);">😂 1</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="shrink-0 px-5 pb-4">
+        <p class="flex h-6 items-center text-[11px]"></p>
+        <div class="flex items-end gap-1 rounded-lg px-2 py-1.5 focus-within:!border-[#3a3a40]" style="background: var(--bg-2); border: 1px solid var(--line);">
+          <button class="rounded-md p-1.5 hover:text-[var(--fg-0)]" style="color: var(--fg-2);"><i data-lucide="paperclip" class="lucide"></i></button>
+          <input class="min-w-0 flex-1 bg-transparent py-1 outline-none placeholder:text-[var(--fg-3)]" style="color: var(--fg-0);" placeholder="스레드에 답글 보내기…" />
+          <button class="rounded-md p-1.5 hover:text-[var(--fg-0)]" style="color: var(--fg-2);"><i data-lucide="send-horizontal" class="lucide"></i></button>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+  lucide.createIcons();
+  function toggle(btn) {
+    const chevron = btn.querySelector("svg");
+    const children = btn.nextElementSibling;
+    if (!children) return;
+    children.classList.toggle("hidden");
+    chevron.classList.toggle("-rotate-90");
+  }
+  function setView(mode) {
+    const chat = document.getElementById("pane-chat");
+    const thread = document.getElementById("pane-thread");
+    chat.classList.toggle("hidden", mode === "thread-full");
+    chat.classList.toggle("flex", mode !== "thread-full");
+    thread.classList.toggle("hidden", mode === "chat");
+    thread.classList.toggle("flex", mode !== "chat");
+  }
+</script>
+</body>
+</html>
