@@ -31,6 +31,11 @@ export const links: Route.LinksFunction = () => [
     rel: "stylesheet",
     href: "https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&display=swap",
   },
+  // 이모지: Tossface — OS 기본 대신 통일된 이모지 렌더링 (unicode-range 분할 로드)
+  {
+    rel: "stylesheet",
+    href: "https://cdn.jsdelivr.net/gh/toss/tossface/dist/tossface.css",
+  },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {

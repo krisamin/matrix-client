@@ -2,9 +2,10 @@
 
 @theme {
   --font-sans: "Wanted Sans Variable", "Wanted Sans", -apple-system,
-    "Segoe UI", sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
+    "Segoe UI", sans-serif, "Tossface", "Apple Color Emoji", "Segoe UI Emoji",
     "Noto Color Emoji";
-  --font-mono: "Fira Code", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-mono: "Fira Code", ui-monospace, SFMono-Regular, Menlo, monospace,
+    "Tossface";
 
   /* ── 팔레트: 4단계 고정 (sketches/005-dense-dark-v3 확정안) ──
      임의 색 사용 금지 — 아래 토큰만 사용한다 */
