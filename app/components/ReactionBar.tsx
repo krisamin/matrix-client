@@ -10,8 +10,6 @@ import {
 import { RelationsEvent } from "matrix-js-sdk/lib/models/relations";
 import { useEffect, useRef, useState } from "react";
 
-export const QUICK_REACTIONS = ["👍", "❤️", "😂", "🎉", "😮", "👀"];
-
 /** 리액션 칩 + 추가 버튼. 메인/스레드 공용 (relations 컨테이너는 room 단위 공유) */
 export function ReactionBar({
   client,

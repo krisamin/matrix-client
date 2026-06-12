@@ -1,4 +1,4 @@
-import { Paperclip, SendHorizontal, X } from "lucide-react";
+import { Paperclip, SendHorizontal, SmilePlus, X } from "lucide-react";
 import type { MatrixClient, MatrixEvent, Room } from "matrix-js-sdk";
 import { useRef, useState } from "react";
 import { uploadAndSendFile } from "../lib/media";
@@ -6,6 +6,7 @@ import { type Mention, searchMembers } from "../lib/mention";
 import { quotePreview } from "../lib/reply";
 import { useSendTyping, useTypingMembers } from "../lib/typing";
 import { Avatar } from "./Avatar";
+import { EmojiPicker } from "./EmojiPicker";
 
 /** 메시지 입력창 — 룸/스레드 100% 동일 (005 디자인).
  *  타이핑 표시(수신/발신), 파일 첨부(버튼/붙여넣기), 답장 인용,
@@ -39,6 +40,8 @@ export function MessageInput({
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [mentionIndex, setMentionIndex] = useState(0);
   const mentionsRef = useRef<Mention[]>([]);
+  // 이모지 피커 (버튼 rect 앵커, null = 닫힘)
+  const [emojiAnchor, setEmojiAnchor] = useState<DOMRect | null>(null);
   const myUserId = client.getUserId() ?? "";
 
   const candidates =
@@ -80,6 +83,19 @@ export function MessageInput({
       input?.focus();
       const pos = m.at + inserted.length;
       input?.setSelectionRange(pos, pos);
+    });
+  }
+
+  /** 피커 선택 → 커서 위치에 이모지 삽입 */
+  function insertEmoji(emoji: string) {
+    const input = textInputRef.current;
+    const pos = input?.selectionStart ?? draft.length;
+    const next = draft.slice(0, pos) + emoji + draft.slice(pos);
+    setDraft(next);
+    requestAnimationFrame(() => {
+      input?.focus();
+      const p = pos + emoji.length;
+      input?.setSelectionRange(p, p);
     });
   }
 
@@ -252,6 +268,18 @@ export function MessageInput({
           placeholder={placeholder}
         />
         <button
+          type="button"
+          className="rounded-md p-2 text-fg-2 hover:bg-bg-2 hover:text-fg-0"
+          title="이모지"
+          onClick={(e) =>
+            setEmojiAnchor((v) =>
+              v ? null : e.currentTarget.getBoundingClientRect(),
+            )
+          }
+        >
+          <SmilePlus className="h-[15px] w-[15px]" />
+        </button>
+        <button
           type="submit"
           className="rounded-md p-2 text-fg-2 hover:bg-bg-2 hover:text-fg-0 disabled:opacity-50"
           disabled={sending || !draft.trim()}
@@ -260,6 +288,13 @@ export function MessageInput({
           <SendHorizontal className="h-[15px] w-[15px]" />
         </button>
       </form>
+      {emojiAnchor && (
+        <EmojiPicker
+          anchor={emojiAnchor}
+          onPick={insertEmoji}
+          onClose={() => setEmojiAnchor(null)}
+        />
+      )}
     </div>
   );
 }

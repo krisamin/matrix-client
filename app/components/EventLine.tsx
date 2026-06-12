@@ -18,9 +18,10 @@ import {
 import { useState } from "react";
 import { mentionsUser } from "../lib/mention";
 import { MEDIA_MSGTYPES } from "../lib/timeline";
+import { EmojiPicker } from "./EmojiPicker";
 import { MediaView } from "./MediaView";
 import { MessageBody } from "./MessageBody";
-import { QUICK_REACTIONS, ReactionBar } from "./ReactionBar";
+import { ReactionBar } from "./ReactionBar";
 import { getReplyToId, ReplyQuote } from "./ReplyQuote";
 
 function formatTime(ts: number): string {
@@ -63,7 +64,8 @@ export function EventLine({
   const [editing, setEditing] = useState(false);
   const [editDraft, setEditDraft] = useState("");
   const [busy, setBusy] = useState(false);
-  const [pickerOpen, setPickerOpen] = useState(false);
+  // 이모지 피커: 트리거 버튼 rect를 앵커로 포털 팝오버 (null = 닫힘)
+  const [pickerAnchor, setPickerAnchor] = useState<DOMRect | null>(null);
   // 마운트 시점에 "방금 도착한" 이벤트(5초 이내 / local echo)만 등장 애니메이션.
   // 과거 로드로 들어온 옛 메시지가 출렁이는 것 방지 (마운트 1회 판정 고정)
   const [animateIn] = useState(
@@ -149,7 +151,6 @@ export function EventLine({
   }
 
   async function react(key: string) {
-    setPickerOpen(false);
     try {
       await client.sendEvent(room.roomId, EventType.Reaction, {
         "m.relates_to": {
@@ -229,7 +230,11 @@ export function EventLine({
           <button
             type="button"
             className={actionBtn}
-            onClick={() => setPickerOpen((v) => !v)}
+            onClick={(e) =>
+              setPickerAnchor((v) =>
+                v ? null : e.currentTarget.getBoundingClientRect(),
+              )
+            }
             title="리액션"
           >
             <SmilePlus className="h-3.5 w-3.5" />
@@ -276,20 +281,13 @@ export function EventLine({
           )}
         </div>
       )}
-      {/* 빠른 리액션 피커 */}
-      {pickerOpen && (
-        <div className="absolute -top-3 right-40 z-20 flex items-center gap-0.5 rounded-lg border border-line bg-bg-3 p-1 shadow-xl">
-          {QUICK_REACTIONS.map((key) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => react(key)}
-              className="rounded-md px-1.5 py-0.5 text-sm hover:bg-bg-2"
-            >
-              {key}
-            </button>
-          ))}
-        </div>
+      {/* 이모지 피커 — 버튼 앵커 기준 포털 (스크롤 컨테이너 영향 없음) */}
+      {pickerAnchor && (
+        <EmojiPicker
+          anchor={pickerAnchor}
+          onPick={react}
+          onClose={() => setPickerAnchor(null)}
+        />
       )}
 
       {/* 답장 인용 */}
