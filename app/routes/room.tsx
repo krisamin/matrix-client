@@ -3,7 +3,6 @@ import {
   EventType,
   type MatrixClient,
   type MatrixEvent,
-  MsgType,
   type Room,
 } from "matrix-js-sdk";
 import { useState } from "react";
@@ -23,6 +22,7 @@ import {
   useRoomTimeline,
   useUnreadMarker,
 } from "../hooks/useRoomTimeline";
+import { buildMentionContent, type Mention } from "../lib/mention";
 import { useAppContext } from "./app-layout";
 
 export function meta() {
@@ -75,7 +75,7 @@ export default function RoomView() {
     );
   }
 
-  async function send(text: string) {
+  async function send(text: string, mentions: Mention[]) {
     if (replyTo) {
       // 답장: m.in_reply_to 관계 + 구식 클라용 fallback 인용문 (스펙 권장)
       const orig = replyTo.getContent().body ?? "";
@@ -86,13 +86,19 @@ export default function RoomView() {
         )
         .join("\n");
       await client.sendEvent(roomId!, EventType.RoomMessage, {
-        msgtype: MsgType.Text,
+        ...buildMentionContent(text, mentions),
         body: `${fallbackQuote}\n\n${text}`,
         "m.relates_to": {
           "m.in_reply_to": { event_id: replyTo.getId()! },
         },
-      });
+      } as never);
       setReplyTo(null);
+    } else if (mentions.length > 0) {
+      await client.sendEvent(
+        roomId!,
+        EventType.RoomMessage,
+        buildMentionContent(text, mentions) as never,
+      );
     } else {
       await client.sendTextMessage(roomId!, text);
     }

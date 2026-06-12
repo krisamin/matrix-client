@@ -1,10 +1,12 @@
 import { Maximize2, MessageSquareText, Minimize2, X } from "lucide-react";
+import { EventType } from "matrix-js-sdk";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { MessageInput } from "../components/MessageInput";
 import { PaneHeader, PaneHeaderButton } from "../components/PaneHeader";
 import { Timeline } from "../components/Timeline";
 import { useReadReceipt } from "../hooks/useRoomTimeline";
 import { useThreadTimeline } from "../hooks/useThreadTimeline";
+import { buildMentionContent, type Mention } from "../lib/mention";
 import { quotePreview } from "../lib/reply";
 import { useRoomContext } from "./room";
 
@@ -37,9 +39,20 @@ export default function ThreadView() {
   const title = rootEvent ? quotePreview(rootEvent) : "스레드";
   const replyCount = room.getThread(threadId!)?.length ?? 0;
 
-  async function sendReply(text: string) {
-    // threadId를 relation root로 — SDK가 m.thread 관계로 보냄
-    await client.sendTextMessage(room.roomId, threadId!, text);
+  async function sendReply(text: string, mentions: Mention[]) {
+    if (mentions.length > 0) {
+      await client.sendEvent(room.roomId, threadId!, EventType.RoomMessage, {
+        ...buildMentionContent(text, mentions),
+        "m.relates_to": {
+          rel_type: "m.thread",
+          event_id: threadId!,
+          is_falling_back: true,
+        },
+      } as never);
+    } else {
+      // threadId를 relation root로 — SDK가 m.thread 관계로 보냄
+      await client.sendTextMessage(room.roomId, threadId!, text);
+    }
   }
 
   function close() {

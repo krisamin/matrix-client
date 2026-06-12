@@ -16,6 +16,7 @@ import {
   type Room,
 } from "matrix-js-sdk";
 import { useState } from "react";
+import { mentionsUser } from "../lib/mention";
 import { MEDIA_MSGTYPES } from "../lib/timeline";
 import { MediaView } from "./MediaView";
 import { MessageBody } from "./MessageBody";
@@ -72,6 +73,10 @@ export function EventLine({
   const senderName = ev.sender?.name ?? sender;
   const mine = sender === myUserId;
   const content = ev.getContent();
+  // 내 멘션 — 좌측 노란 보더 + 옅은 배경으로 강조
+  const myName = room.getMember(myUserId)?.name ?? "";
+  const mentioned =
+    !mine && mentionsUser(content as Record<string, unknown>, myUserId, myName);
   const replyToId = getReplyToId(ev);
   const thread = ev.isThreadRoot ? ev.getThread() : null;
   const threadLength = thread?.length ?? 0;
@@ -194,7 +199,11 @@ export function EventLine({
       id={`ev-${ev.getId()}`}
       className={`group relative px-5 py-0.5 transition-colors hover:bg-bg-2/60 ${
         showHeader ? "mt-3" : ""
-      } ${highlighted ? "!bg-bg-3" : ""} ${animateIn ? "msg-in" : ""}`}
+      } ${highlighted ? "!bg-bg-3" : ""} ${animateIn ? "msg-in" : ""} ${
+        mentioned
+          ? "border-l-2 border-amber-400/70 bg-amber-400/[0.06] pl-[18px]"
+          : ""
+      }`}
     >
       {/* 그룹 헤더: 발신자 + 시각 (+수정됨) */}
       {showHeader && (

@@ -2,11 +2,14 @@ import { Paperclip, SendHorizontal, X } from "lucide-react";
 import type { MatrixClient, MatrixEvent, Room } from "matrix-js-sdk";
 import { useRef, useState } from "react";
 import { uploadAndSendFile } from "../lib/media";
+import { type Mention, searchMembers } from "../lib/mention";
 import { quotePreview } from "../lib/reply";
 import { useSendTyping, useTypingMembers } from "../lib/typing";
+import { Avatar } from "./Avatar";
 
 /** 메시지 입력창 — 룸/스레드 100% 동일 (005 디자인).
- *  타이핑 표시(수신/발신), 파일 첨부(버튼/붙여넣기), 답장 인용 표시.
+ *  타이핑 표시(수신/발신), 파일 첨부(버튼/붙여넣기), 답장 인용,
+ *  @멘션 자동완성 (↑↓/Tab/Enter 선택, Esc 닫기).
  *  전송 동작만 onSend 콜백으로 위임 (룸: sendTextMessage / 스레드: thread reply) */
 export function MessageInput({
   client,
@@ -20,7 +23,7 @@ export function MessageInput({
   room: Room;
   placeholder: string;
   /** 텍스트 전송 (답장 관계 포함 여부는 호출부 책임) */
-  onSend: (text: string) => Promise<void>;
+  onSend: (text: string, mentions: Mention[]) => Promise<void>;
   replyTo?: MatrixEvent | null;
   onCancelReply?: () => void;
 }) {
@@ -29,16 +32,66 @@ export function MessageInput({
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textInputRef = useRef<HTMLInputElement>(null);
   const typingNames = useTypingMembers(client, room);
   const { notifyTyping, clearTyping } = useSendTyping(client, room.roomId);
+  // 멘션: 자동완성 상태 + 본문에 삽입된 멘션 누적 (전송 시 content 빌드용)
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const [mentionIndex, setMentionIndex] = useState(0);
+  const mentionsRef = useRef<Mention[]>([]);
+  const myUserId = client.getUserId() ?? "";
+
+  const candidates =
+    mentionQuery != null ? searchMembers(room, mentionQuery, myUserId) : [];
+
+  /** 커서 앞 텍스트에서 "@쿼리" 추출 (공백 없는 연속 구간) */
+  function detectMention(value: string, cursor: number) {
+    const before = value.slice(0, cursor);
+    const at = before.lastIndexOf("@");
+    if (at < 0) return null;
+    // @ 바로 앞이 글자면 이메일 등으로 판단, 멘션 아님
+    if (at > 0 && /\S/.test(before[at - 1])) return null;
+    const query = before.slice(at + 1);
+    if (/\s/.test(query)) return null;
+    return { at, query };
+  }
+
+  function onDraftChange(value: string) {
+    setDraft(value);
+    if (value) notifyTyping();
+    const cursor = textInputRef.current?.selectionStart ?? value.length;
+    const m = detectMention(value, cursor);
+    setMentionQuery(m?.query ?? null);
+    setMentionIndex(0);
+  }
+
+  /** 자동완성 선택 → 본문의 "@쿼리"를 표시이름으로 치환 */
+  function pickMention(name: string, userId: string) {
+    const input = textInputRef.current;
+    const cursor = input?.selectionStart ?? draft.length;
+    const m = detectMention(draft, cursor);
+    if (!m) return;
+    const inserted = `${name} `;
+    const next = draft.slice(0, m.at) + inserted + draft.slice(cursor);
+    mentionsRef.current.push({ userId, name });
+    setDraft(next);
+    setMentionQuery(null);
+    requestAnimationFrame(() => {
+      input?.focus();
+      const pos = m.at + inserted.length;
+      input?.setSelectionRange(pos, pos);
+    });
+  }
 
   async function send() {
     if (!draft.trim() || sending) return;
     setSending(true);
     setError(null);
     try {
-      await onSend(draft);
+      await onSend(draft, mentionsRef.current);
       setDraft("");
+      mentionsRef.current = [];
+      setMentionQuery(null);
       clearTyping();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -67,6 +120,36 @@ export function MessageInput({
 
   return (
     <div className="relative shrink-0">
+      {/* 멘션 자동완성 팝업 — 입력 바 위 오버레이 */}
+      {candidates.length > 0 && (
+        <div className="absolute inset-x-3 bottom-full z-20 mb-1 overflow-hidden rounded-lg border border-line bg-bg-2 shadow-xl">
+          {candidates.map((m, i) => (
+            <button
+              key={m.userId}
+              type="button"
+              className={`flex h-8 w-full items-center gap-2 px-3 text-left ${
+                i === mentionIndex ? "bg-bg-3 text-fg-0" : "text-fg-1"
+              }`}
+              onMouseEnter={() => setMentionIndex(i)}
+              onClick={() => pickMention(m.name, m.userId)}
+            >
+              <Avatar
+                client={client}
+                mxcUrl={m.getMxcAvatarUrl()}
+                name={m.name}
+                shape="round"
+                size={16}
+              />
+              <span className="min-w-0 flex-1 truncate text-[13px]">
+                {m.name}
+              </span>
+              <span className="shrink-0 font-mono text-[11px] text-fg-3">
+                {m.userId}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
       {/* 상태 줄: 타이핑/업로드/에러 — 입력 바 위 오버레이 (레이아웃 영향 없음) */}
       {(error || uploading || typingNames.length > 0) && (
         <div className="pointer-events-none absolute inset-x-0 bottom-full z-10 flex justify-start px-4 pb-1">
@@ -137,11 +220,27 @@ export function MessageInput({
           <Paperclip className="h-[15px] w-[15px]" />
         </button>
         <input
+          ref={textInputRef}
           className="min-w-0 flex-1 bg-transparent px-1 py-2 text-fg-0 outline-none placeholder:text-fg-3"
           value={draft}
-          onChange={(e) => {
-            setDraft(e.target.value);
-            if (e.target.value) notifyTyping();
+          onChange={(e) => onDraftChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (candidates.length === 0) return;
+            if (e.key === "ArrowDown") {
+              e.preventDefault();
+              setMentionIndex((i) => (i + 1) % candidates.length);
+            } else if (e.key === "ArrowUp") {
+              e.preventDefault();
+              setMentionIndex(
+                (i) => (i - 1 + candidates.length) % candidates.length,
+              );
+            } else if (e.key === "Enter" || e.key === "Tab") {
+              e.preventDefault();
+              const m = candidates[mentionIndex];
+              if (m) pickMention(m.name, m.userId);
+            } else if (e.key === "Escape") {
+              setMentionQuery(null);
+            }
           }}
           onPaste={(e) => {
             const files = Array.from(e.clipboardData.files);
