@@ -5,45 +5,45 @@ import { useEffect, useState } from "react";
 import { getDmUserId } from "../lib/matrix";
 import { Avatar, RoomAvatar } from "./Avatar";
 import { PaneHeader, PaneHeaderButton } from "./PaneHeader";
-
-/** 파워레벨 → 역할 라벨 (Element 관례: 100 관리자 / 50 중재자) */
-function roleLabel(power: number): string | null {
-  if (power >= 100) return "관리자";
-  if (power >= 50) return "중재자";
-  return null;
-}
+import { roleLabel, UserProfileCard } from "./UserProfileCard";
 
 function MemberRow({
   client,
   member,
   isMe,
+  onClick,
 }: {
   client: MatrixClient;
   member: RoomMember;
   isMe: boolean;
+  onClick: (rect: DOMRect) => void;
 }) {
   const role = roleLabel(member.powerLevel);
   return (
-    <li
-      className="flex h-9 items-center gap-2.5 rounded-lg px-3 hover:bg-bg-2"
-      title={member.userId}
-    >
-      <Avatar
-        client={client}
-        mxcUrl={member.getMxcAvatarUrl()}
-        name={member.name}
-        shape="round"
-        size={20}
-      />
-      <span className="min-w-0 flex-1 truncate text-[13px] text-fg-1">
-        {member.name}
-        {isMe && <span className="ml-1.5 text-[11px] text-fg-3">(나)</span>}
-      </span>
-      {role && (
-        <span className="shrink-0 rounded-md border border-line px-1.5 py-0.5 font-mono text-[10px] text-fg-2">
-          {role}
+    <li>
+      <button
+        type="button"
+        className="flex h-9 w-full items-center gap-2.5 rounded-lg px-3 text-left hover:bg-bg-2"
+        title={member.userId}
+        onClick={(e) => onClick(e.currentTarget.getBoundingClientRect())}
+      >
+        <Avatar
+          client={client}
+          mxcUrl={member.getMxcAvatarUrl()}
+          name={member.name}
+          shape="round"
+          size={20}
+        />
+        <span className="min-w-0 flex-1 truncate text-[13px] text-fg-1">
+          {member.name}
+          {isMe && <span className="ml-1.5 text-[11px] text-fg-3">(나)</span>}
         </span>
-      )}
+        {role && (
+          <span className="shrink-0 rounded-md border border-line px-1.5 py-0.5 font-mono text-[10px] text-fg-2">
+            {role}
+          </span>
+        )}
+      </button>
     </li>
   );
 }
@@ -61,6 +61,11 @@ export function RoomInfoPane({
 }) {
   const [, force] = useState(0);
   const [copied, setCopied] = useState(false);
+  // 멤버 클릭 → 프로필 카드 (anchor + 대상 userId)
+  const [profile, setProfile] = useState<{
+    userId: string;
+    anchor: DOMRect;
+  } | null>(null);
   const myUserId = client.getUserId() ?? "";
   const encrypted = room.hasEncryptionStateEvent();
   const dmUserId = getDmUserId(client, room);
@@ -167,11 +172,27 @@ export function RoomInfoPane({
                 client={client}
                 member={m}
                 isMe={m.userId === myUserId}
+                onClick={(rect) =>
+                  setProfile((v) =>
+                    v?.userId === m.userId
+                      ? null
+                      : { userId: m.userId, anchor: rect },
+                  )
+                }
               />
             ))}
           </ul>
         </div>
       </div>
+      {profile && (
+        <UserProfileCard
+          client={client}
+          room={room}
+          userId={profile.userId}
+          anchor={profile.anchor}
+          onClose={() => setProfile(null)}
+        />
+      )}
     </section>
   );
 }

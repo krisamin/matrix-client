@@ -23,6 +23,7 @@ import { MediaView } from "./MediaView";
 import { MessageBody } from "./MessageBody";
 import { ReactionBar } from "./ReactionBar";
 import { getReplyToId, ReplyQuote } from "./ReplyQuote";
+import { UserProfileCard } from "./UserProfileCard";
 
 function formatTime(ts: number): string {
   return new Date(ts).toLocaleTimeString("ko-KR", {
@@ -66,6 +67,8 @@ export function EventLine({
   const [busy, setBusy] = useState(false);
   // 이모지 피커: 트리거 버튼 rect를 앵커로 포털 팝오버 (null = 닫힘)
   const [pickerAnchor, setPickerAnchor] = useState<DOMRect | null>(null);
+  // 발신자 프로필 카드 (이름 클릭)
+  const [profileAnchor, setProfileAnchor] = useState<DOMRect | null>(null);
   // 마운트 시점에 "방금 도착한" 이벤트(5초 이내 / local echo)만 등장 애니메이션.
   // 과거 로드로 들어온 옛 메시지가 출렁이는 것 방지 (마운트 1회 판정 고정)
   const [animateIn] = useState(
@@ -209,7 +212,16 @@ export function EventLine({
       {/* 그룹 헤더: 발신자 + 시각 (+수정됨) */}
       {showHeader && (
         <div className="flex items-baseline gap-2">
-          <span className="font-semibold text-fg-0">{senderName}</span>
+          <button
+            type="button"
+            className="font-semibold text-fg-0 hover:underline"
+            onClick={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              setProfileAnchor((v) => (v ? null : rect));
+            }}
+          >
+            {senderName}
+          </button>
           <span className="font-mono text-[11px] text-fg-3">
             {formatTime(ev.getTs())}
           </span>
@@ -287,6 +299,16 @@ export function EventLine({
           anchor={pickerAnchor}
           onPick={react}
           onClose={() => setPickerAnchor(null)}
+        />
+      )}
+      {/* 발신자 프로필 카드 */}
+      {profileAnchor && ev.getSender() && (
+        <UserProfileCard
+          client={client}
+          room={room}
+          userId={ev.getSender()!}
+          anchor={profileAnchor}
+          onClose={() => setProfileAnchor(null)}
         />
       )}
 
