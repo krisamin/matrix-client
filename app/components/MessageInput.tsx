@@ -271,11 +271,11 @@ export function MessageInput({
           type="button"
           className="rounded-md p-2 text-fg-2 hover:bg-bg-2 hover:text-fg-0"
           title="이모지"
-          onClick={(e) =>
-            setEmojiAnchor((v) =>
-              v ? null : e.currentTarget.getBoundingClientRect(),
-            )
-          }
+          onClick={(e) => {
+            // rect는 핸들러 안에서 즉시 읽기 — setState 콜백 시점엔 currentTarget이 null
+            const rect = e.currentTarget.getBoundingClientRect();
+            setEmojiAnchor((v) => (v ? null : rect));
+          }}
         >
           <SmilePlus className="h-[15px] w-[15px]" />
         </button>

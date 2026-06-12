@@ -230,11 +230,11 @@ export function EventLine({
           <button
             type="button"
             className={actionBtn}
-            onClick={(e) =>
-              setPickerAnchor((v) =>
-                v ? null : e.currentTarget.getBoundingClientRect(),
-              )
-            }
+            onClick={(e) => {
+              // rect는 핸들러 안에서 즉시 읽기 — setState 콜백 시점엔 currentTarget이 null
+              const rect = e.currentTarget.getBoundingClientRect();
+              setPickerAnchor((v) => (v ? null : rect));
+            }}
             title="리액션"
           >
             <SmilePlus className="h-3.5 w-3.5" />
