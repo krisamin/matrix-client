@@ -176,8 +176,10 @@ export function EmojiPicker({
           ))}
         </div>
 
-        {/* 그리드 — 가로는 클립: overflow-y만 주면 x도 auto로 승격돼 가로 스크롤 생김 */}
-        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-2 pb-2">
+        {/* 그리드 — 가로는 클립(overflow-y만 주면 x도 auto 승격돼 가로 스크롤 생김).
+            좌우 여백은 padding 대신 scrollbar-gutter both-edges로:
+            스크롤바(10px)가 오른쪽 패딩을 먹어 좌우가 비대칭해지는 문제 해결 */}
+        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pb-2 [scrollbar-gutter:stable_both-edges]">
           {results ? (
             results.length === 0 ? (
               <p className="px-1 py-4 text-center text-[12px] text-fg-3">
