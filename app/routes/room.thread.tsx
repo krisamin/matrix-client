@@ -1,10 +1,17 @@
-import { Maximize2, MessageSquareText, Minimize2, X } from "lucide-react";
+import {
+  Maximize2,
+  MessageSquareText,
+  Minimize2,
+  Search,
+  X,
+} from "lucide-react";
 import { EventType } from "matrix-js-sdk";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { DropZone } from "../components/DropZone";
 import { MessageInput } from "../components/MessageInput";
 import { PaneHeader, PaneHeaderButton } from "../components/PaneHeader";
+import { SearchPane } from "../components/SearchPane";
 import { Timeline } from "../components/Timeline";
 import { useReadReceipt } from "../hooks/useRoomTimeline";
 import { useThreadTimeline } from "../hooks/useThreadTimeline";
@@ -28,14 +35,13 @@ export default function ThreadView() {
   const navigate = useNavigate();
   const full = searchParams.get("full") === "1";
 
-  const { events, initialising, loadingOlder, loadOlder } = useThreadTimeline(
-    client,
-    room,
-    threadId!,
-  );
+  const { events, initialising, loadingOlder, loadOlder, hasMore } =
+    useThreadTimeline(client, room, threadId!);
   useReadReceipt(client, events);
   const myUserId = client.getUserId() ?? "";
   const uploadRef = useRef<((files: File[]) => void) | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [highlightId, setHighlightId] = useState<string | null>(null);
 
   const rootEvent =
     room.findEventById(threadId!) ?? room.getThread(threadId!)?.rootEvent;
@@ -62,67 +68,105 @@ export default function ThreadView() {
     navigate(`/room/${encodeURIComponent(roomId!)}`);
   }
 
-  return (
-    <DropZone
-      className={`flex min-w-0 flex-1 flex-col ${full ? "" : "border-l border-line"}`}
-      label="스레드"
-      onFiles={(files) => uploadRef.current?.(files)}
-    >
-      <PaneHeader
-        actions={
-          <>
-            <PaneHeaderButton
-              title={full ? "분할 화면" : "전체 화면"}
-              onClick={() =>
-                setSearchParams(full ? {} : { full: "1" }, { replace: true })
-              }
-            >
-              {full ? (
-                <Minimize2 className="h-[15px] w-[15px]" />
-              ) : (
-                <Maximize2 className="h-[15px] w-[15px]" />
-              )}
-            </PaneHeaderButton>
-            <PaneHeaderButton title="닫기" onClick={close}>
-              <X className="h-[15px] w-[15px]" />
-            </PaneHeaderButton>
-          </>
-        }
-      >
-        <MessageSquareText className="h-[15px] w-[15px] shrink-0 text-fg-2" />
-        <h1 className="truncate font-semibold text-fg-0">{title}</h1>
-        {replyCount > 0 && (
-          <span className="shrink-0 font-mono text-[11px] text-fg-3">
-            답글 {replyCount}
-          </span>
-        )}
-      </PaneHeader>
+  /** 검색 결과 클릭 → 해당 답글로 스크롤 + 잠깐 강조
+   *  (로드 안 됐으면 과거 답글을 더 불러오며 시도, 최대 5페이지) */
+  async function jumpTo(eventId: string) {
+    for (let i = 0; i < 5; i++) {
+      const el = document.getElementById(`ev-${eventId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        setHighlightId(eventId);
+        setTimeout(() => setHighlightId(null), 1600);
+        return;
+      }
+      if (!hasMore) break;
+      await loadOlder();
+    }
+  }
 
-      {initialising ? (
-        <div className="flex flex-1 items-center justify-center">
-          <span className="animate-pulse font-mono text-[12px] text-fg-3">
-            스레드 불러오는 중…
-          </span>
-        </div>
-      ) : (
-        <Timeline
+  return (
+    <>
+      <DropZone
+        className={`flex min-w-0 flex-1 flex-col ${full ? "" : "border-l border-line"}`}
+        label="스레드"
+        onFiles={(files) => uploadRef.current?.(files)}
+      >
+        <PaneHeader
+          actions={
+            <>
+              <PaneHeaderButton
+                title="스레드에서 검색"
+                onClick={() => setSearchOpen((v) => !v)}
+              >
+                <Search className="h-[15px] w-[15px]" />
+              </PaneHeaderButton>
+              <PaneHeaderButton
+                title={full ? "분할 화면" : "전체 화면"}
+                onClick={() =>
+                  setSearchParams(full ? {} : { full: "1" }, { replace: true })
+                }
+              >
+                {full ? (
+                  <Minimize2 className="h-[15px] w-[15px]" />
+                ) : (
+                  <Maximize2 className="h-[15px] w-[15px]" />
+                )}
+              </PaneHeaderButton>
+              <PaneHeaderButton title="닫기" onClick={close}>
+                <X className="h-[15px] w-[15px]" />
+              </PaneHeaderButton>
+            </>
+          }
+        >
+          <MessageSquareText className="h-[15px] w-[15px] shrink-0 text-fg-2" />
+          <h1 className="truncate font-semibold text-fg-0">{title}</h1>
+          {replyCount > 0 && (
+            <span className="shrink-0 font-mono text-[11px] text-fg-3">
+              답글 {replyCount}
+            </span>
+          )}
+        </PaneHeader>
+
+        {initialising ? (
+          <div className="flex flex-1 items-center justify-center">
+            <span className="animate-pulse font-mono text-[12px] text-fg-3">
+              스레드 불러오는 중…
+            </span>
+          </div>
+        ) : (
+          <Timeline
+            client={client}
+            room={room}
+            events={events}
+            myUserId={myUserId}
+            loadingOlder={loadingOlder}
+            loadOlder={loadOlder}
+            highlightId={highlightId}
+          />
+        )}
+
+        <MessageInput
+          client={client}
+          room={room}
+          placeholder="스레드에 답글 보내기…"
+          onSend={sendReply}
+          uploadRef={uploadRef}
+          threadId={threadId}
+        />
+      </DropZone>
+      {/* 스레드 검색 페인 — 로드된 답글에서 로컬 검색 */}
+      {searchOpen && (
+        <SearchPane
           client={client}
           room={room}
           events={events}
-          myUserId={myUserId}
-          loadingOlder={loadingOlder}
+          hasMore={hasMore}
           loadOlder={loadOlder}
+          onJump={jumpTo}
+          onClose={() => setSearchOpen(false)}
+          scope="thread"
         />
       )}
-
-      <MessageInput
-        client={client}
-        room={room}
-        placeholder="스레드에 답글 보내기…"
-        onSend={sendReply}
-        uploadRef={uploadRef}
-        threadId={threadId}
-      />
-    </DropZone>
+    </>
   );
 }

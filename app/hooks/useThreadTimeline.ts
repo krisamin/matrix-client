@@ -27,12 +27,14 @@ export function useThreadTimeline(
   const [events, setEvents] = useState<MatrixEvent[]>([]);
   const [initialising, setInitialising] = useState(true);
   const [loadingOlder, setLoadingOlder] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const backfillingRef = useRef(false);
   const loadingOlderRef = useRef(false);
 
   useEffect(() => {
     setEvents([]);
     setInitialising(true);
+    setHasMore(true);
     const thread =
       room.getThread(rootId) ??
       room.createThread(rootId, room.findEventById(rootId), [], true);
@@ -73,7 +75,10 @@ export function useThreadTimeline(
             limit: 50,
           });
           setEvents(visibleThreadEvents(client, thread.events));
-          if (!more) break;
+          if (!more) {
+            setHasMore(false);
+            break;
+          }
         }
       } catch (e) {
         console.warn("[thread backfill] 실패:", e);
@@ -123,12 +128,13 @@ export function useThreadTimeline(
       const thread = room.getThread(rootId);
       if (!thread) return false;
       // 호출 시점의 liveTimeline 사용 (리셋 이후의 현재 타임라인)
-      await client.paginateEventTimeline(thread.liveTimeline, {
+      const more = await client.paginateEventTimeline(thread.liveTimeline, {
         backwards: true,
         limit: 50,
       });
+      setHasMore(more);
       setEvents(visibleThreadEvents(client, thread.events));
-      return true;
+      return more;
     } catch (e) {
       console.warn("[thread loadOlder] 실패:", e);
       return false;
@@ -138,5 +144,5 @@ export function useThreadTimeline(
     }
   }
 
-  return { events, initialising, loadingOlder, loadOlder };
+  return { events, initialising, loadingOlder, loadOlder, hasMore };
 }

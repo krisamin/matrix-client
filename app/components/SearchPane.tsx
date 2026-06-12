@@ -81,7 +81,8 @@ function searchableBody(ev: MatrixEvent): string | null {
 
 /** 메시지 검색 페인 (우측 분할) —
  *  평문 방: 서버 검색 API (전체 히스토리, 페이지네이션)
- *  E2EE 방: 서버가 내용을 못 읽으므로 로컬 검색 + 과거 백필 버튼 */
+ *  E2EE 방: 서버가 내용을 못 읽으므로 로컬 검색 + 과거 백필 버튼
+ *  스레드(scope="thread"): 서버 검색이 스레드 필터를 지원 안 함 → 항상 로컬 */
 export function SearchPane({
   client,
   room,
@@ -90,17 +91,22 @@ export function SearchPane({
   loadOlder,
   onJump,
   onClose,
+  scope = "room",
 }: {
   client: MatrixClient;
   room: Room;
-  /** 로드된 타임라인 (E2EE 로컬 검색 대상) */
+  /** 로드된 타임라인 (로컬 검색 대상) */
   events: MatrixEvent[];
   hasMore: boolean;
   loadOlder: () => Promise<boolean>;
   onJump: (eventId: string) => void;
   onClose: () => void;
+  /** "thread"면 전달된 events에서만 로컬 검색 */
+  scope?: "room" | "thread";
 }) {
   const encrypted = room.hasEncryptionStateEvent();
+  // 로컬 검색 모드: E2EE(서버가 암호문만 봄) 또는 스레드(서버 검색에 스레드 필터 없음)
+  const localMode = encrypted || scope === "thread";
   const [query, setQuery] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -110,9 +116,9 @@ export function SearchPane({
   const serverResultsRef = useRef<ISearchResults | null>(null);
   const [searched, setSearched] = useState(""); // 마지막 실행된 검색어
 
-  // 로컬 검색 (E2EE 방) — 타이핑 즉시, 로드된 이벤트에서
+  // 로컬 검색 — 타이핑 즉시, 로드된 이벤트에서
   const localHits = useMemo(() => {
-    if (!encrypted || !query.trim()) return [];
+    if (!localMode || !query.trim()) return [];
     const q = query.trim().toLowerCase();
     const out: MatrixEvent[] = [];
     for (let i = events.length - 1; i >= 0; i--) {
@@ -121,7 +127,7 @@ export function SearchPane({
       if (out.length >= 200) break;
     }
     return out;
-  }, [encrypted, query, events]);
+  }, [localMode, query, events]);
 
   /** 평문 방: 서버 검색 실행 (Enter) */
   async function runServerSearch() {
@@ -162,7 +168,7 @@ export function SearchPane({
     }
   }
 
-  /** E2EE 방: 과거를 더 불러와서 검색 범위 확장 (한 번에 최대 10페이지) */
+  /** 로컬 모드: 과거를 더 불러와서 검색 범위 확장 (한 번에 최대 10페이지) */
   async function deepenLocal() {
     if (busy) return;
     setBusy(true);
@@ -175,12 +181,12 @@ export function SearchPane({
     }
   }
 
-  const hits = encrypted ? localHits : (serverHits ?? []);
+  const hits = localMode ? localHits : (serverHits ?? []);
   const showEmpty =
     !busy &&
     query.trim() !== "" &&
     hits.length === 0 &&
-    (encrypted || searched !== "");
+    (localMode || searched !== "");
 
   return (
     <section className="flex w-[360px] shrink-0 flex-col border-l border-line">
@@ -194,13 +200,13 @@ export function SearchPane({
         <input
           className="min-w-0 flex-1 bg-transparent text-[13px] text-fg-0 outline-none placeholder:text-fg-3"
           placeholder={
-            encrypted ? "검색 (로드된 메시지에서)…" : "검색 (Enter)…"
+            localMode ? "검색 (로드된 메시지에서)…" : "검색 (Enter)…"
           }
           value={query}
           autoFocus
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter" && !encrypted) runServerSearch();
+            if (e.key === "Enter" && !localMode) runServerSearch();
             if (e.key === "Escape") onClose();
           }}
         />
@@ -208,12 +214,12 @@ export function SearchPane({
 
       <div className="min-h-0 flex-1 overflow-y-auto p-2">
         {/* 결과 카운트 */}
-        {!encrypted && serverHits && (
+        {!localMode && serverHits && (
           <p className="px-3 pb-1 pt-1 font-mono text-[11px] text-fg-3">
             “{searched}” — {serverCount}건
           </p>
         )}
-        {encrypted && query.trim() && (
+        {localMode && query.trim() && (
           <p className="px-3 pb-1 pt-1 font-mono text-[11px] text-fg-3">
             로드된 {events.length}개 중 {localHits.length}건
             {localHits.length >= 200 && " (최대 200)"}
@@ -224,7 +230,7 @@ export function SearchPane({
           <ResultRow
             key={ev.getId()}
             ev={ev}
-            query={encrypted ? query.trim() : searched}
+            query={localMode ? query.trim() : searched}
             onJump={onJump}
           />
         ))}
@@ -243,7 +249,7 @@ export function SearchPane({
         )}
 
         {/* 더 보기 — 서버: next_batch / E2EE: 과거 백필 */}
-        {!busy && !encrypted && serverResultsRef.current?.next_batch && (
+        {!busy && !localMode && serverResultsRef.current?.next_batch && (
           <button
             type="button"
             className="mt-1 flex w-full items-center justify-center gap-1.5 rounded-lg border border-line py-2 text-[12px] text-fg-2 hover:bg-bg-2 hover:text-fg-0"
@@ -253,7 +259,7 @@ export function SearchPane({
             결과 더 보기
           </button>
         )}
-        {!busy && encrypted && query.trim() && hasMore && (
+        {!busy && localMode && query.trim() && hasMore && (
           <button
             type="button"
             className="mt-1 flex w-full items-center justify-center gap-1.5 rounded-lg border border-line py-2 text-[12px] text-fg-2 hover:bg-bg-2 hover:text-fg-0"
@@ -264,11 +270,12 @@ export function SearchPane({
           </button>
         )}
 
-        {/* E2EE 안내 (첫 진입) */}
-        {encrypted && !query.trim() && (
+        {/* 로컬 모드 안내 (첫 진입) */}
+        {localMode && !query.trim() && (
           <p className="px-3 py-4 text-[12px] leading-relaxed text-fg-3">
-            암호화 방은 서버가 내용을 읽을 수 없어 이 기기에 로드된 메시지에서
-            검색해. 범위가 부족하면 아래 버튼으로 과거를 더 불러올 수 있어.
+            {scope === "thread"
+              ? "스레드 검색은 이 기기에 로드된 답글에서 찾아. 범위가 부족하면 아래 버튼으로 과거 답글을 더 불러올 수 있어."
+              : "암호화 방은 서버가 내용을 읽을 수 없어 이 기기에 로드된 메시지에서 검색해. 범위가 부족하면 아래 버튼으로 과거를 더 불러올 수 있어."}
           </p>
         )}
       </div>
