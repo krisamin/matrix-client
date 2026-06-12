@@ -17,6 +17,7 @@ import { RoomAvatar } from "../components/Avatar";
 import { DropZone } from "../components/DropZone";
 import { MessageInput } from "../components/MessageInput";
 import { PaneHeader, PaneHeaderButton } from "../components/PaneHeader";
+import { RoomInfoPane } from "../components/RoomInfoPane";
 import { SearchPane } from "../components/SearchPane";
 import { Timeline } from "../components/Timeline";
 import {
@@ -64,7 +65,8 @@ export default function RoomView() {
 
   const [replyTo, setReplyTo] = useState<MatrixEvent | null>(null);
   const [highlightId, setHighlightId] = useState<string | null>(null);
-  const [searchOpen, setSearchOpen] = useState(false);
+  // 우측 패널: 검색/방정보 상호 배타 (둘 다 열리면 좁아져서)
+  const [sidePane, setSidePane] = useState<"search" | "info" | null>(null);
   // 드롭존 → MessageInput.sendFiles 브리지 (업로드 진행/에러 UI 재사용)
   const uploadRef = useRef<((files: File[]) => void) | null>(null);
 
@@ -145,16 +147,20 @@ export default function RoomView() {
               <>
                 <PaneHeaderButton
                   title="메시지 검색"
-                  onClick={() => setSearchOpen((v) => !v)}
+                  onClick={() =>
+                    setSidePane((v) => (v === "search" ? null : "search"))
+                  }
                 >
                   <Search className="h-[15px] w-[15px]" />
                 </PaneHeaderButton>
-                <span
-                  className="p-2"
+                <PaneHeaderButton
                   title={`멤버 ${room.getJoinedMemberCount()}명`}
+                  onClick={() =>
+                    setSidePane((v) => (v === "info" ? null : "info"))
+                  }
                 >
                   <Users className="h-[15px] w-[15px]" />
-                </span>
+                </PaneHeaderButton>
               </>
             }
           >
@@ -190,7 +196,7 @@ export default function RoomView() {
         </DropZone>
       )}
       {/* 검색 페인 (우측 분할) — 스레드 풀 화면일 땐 숨김 */}
-      {!threadFull && searchOpen && (
+      {!threadFull && sidePane === "search" && (
         <SearchPane
           client={client}
           room={room}
@@ -198,7 +204,15 @@ export default function RoomView() {
           hasMore={hasMore}
           loadOlder={loadOlder}
           onJump={jumpTo}
-          onClose={() => setSearchOpen(false)}
+          onClose={() => setSidePane(null)}
+        />
+      )}
+      {/* 방 정보 패널 */}
+      {!threadFull && sidePane === "info" && (
+        <RoomInfoPane
+          client={client}
+          room={room}
+          onClose={() => setSidePane(null)}
         />
       )}
       {/* 스레드 페인 (자식 라우트) */}
