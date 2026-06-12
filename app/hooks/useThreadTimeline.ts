@@ -109,6 +109,11 @@ export function useThreadTimeline(
       if (ev.threadRootId === rootId || ev.getId() === rootId) refresh();
     };
     client.on(MatrixEventEvent.Replaced, onReplaced);
+    // 스레드 read receipt (MSC3771) 도착 — 읽음 아바타 갱신
+    const onReceipt = (_ev: MatrixEvent, r: Room) => {
+      if (r.roomId === room.roomId) refresh();
+    };
+    client.on(RoomEvent.Receipt, onReceipt);
     return () => {
       thread.off(ThreadEvent.Update, onUpdate);
       thread.off(ThreadEvent.NewReply, onUpdate);
@@ -116,6 +121,7 @@ export function useThreadTimeline(
       thread.off(RoomEvent.TimelineReset, onUpdate);
       client.off(MatrixEventEvent.Decrypted, onDecrypted);
       client.off(MatrixEventEvent.Replaced, onReplaced);
+      client.off(RoomEvent.Receipt, onReceipt);
     };
   }, [client, room, rootId]);
 

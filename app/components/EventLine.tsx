@@ -22,6 +22,7 @@ import { EmojiPicker } from "./EmojiPicker";
 import { MediaView } from "./MediaView";
 import { MessageBody } from "./MessageBody";
 import { ReactionBar } from "./ReactionBar";
+import { ReadReceipts } from "./ReadReceipts";
 import { getReplyToId, ReplyQuote } from "./ReplyQuote";
 import { UserProfileCard } from "./UserProfileCard";
 
@@ -422,6 +423,9 @@ export function EventLine({
           )}
         </button>
       )}
+
+      {/* 읽음 표시 — 우측 하단 아바타 스택 */}
+      <ReadReceipts client={client} room={room} ev={ev} myUserId={myUserId} />
     </li>
   );
 }

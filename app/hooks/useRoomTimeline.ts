@@ -126,10 +126,15 @@ export function useRoomTimeline(client: MatrixClient, roomId: string) {
     const onLocalEcho = (_ev: MatrixEvent, r: Room) => {
       if (r.roomId === roomId) refresh();
     };
+    // 읽음 receipt 도착 — ReadReceipts(아바타 스택) 갱신
+    const onReceipt = (_ev: MatrixEvent, r: Room) => {
+      if (r.roomId === roomId) refresh();
+    };
     client.on(RoomEvent.Timeline, onTimeline);
     client.on(MatrixEventEvent.Decrypted, onDecrypted);
     client.on(MatrixEventEvent.Replaced, onReplaced);
     client.on(RoomEvent.LocalEchoUpdated, onLocalEcho);
+    client.on(RoomEvent.Receipt, onReceipt);
     // ThreadEvent는 Room이 emit — 방이 생긴 뒤에 단다
     const tryAttachThreadListener = () => {
       const r = client.getRoom(roomId);
@@ -153,6 +158,7 @@ export function useRoomTimeline(client: MatrixClient, roomId: string) {
       client.off(MatrixEventEvent.Decrypted, onDecrypted);
       client.off(MatrixEventEvent.Replaced, onReplaced);
       client.off(RoomEvent.LocalEchoUpdated, onLocalEcho);
+      client.off(RoomEvent.Receipt, onReceipt);
       const r = client.getRoom(roomId);
       r?.off(ThreadEvent.Update, onThreadUpdate);
       r?.off(ThreadEvent.NewReply, onThreadUpdate);
