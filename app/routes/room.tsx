@@ -5,7 +5,7 @@ import {
   type MatrixEvent,
   type Room,
 } from "matrix-js-sdk";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   Outlet,
   useNavigate,
@@ -14,6 +14,7 @@ import {
   useSearchParams,
 } from "react-router";
 import { RoomAvatar } from "../components/Avatar";
+import { DropZone } from "../components/DropZone";
 import { MessageInput } from "../components/MessageInput";
 import { PaneHeader } from "../components/PaneHeader";
 import { Timeline } from "../components/Timeline";
@@ -62,6 +63,8 @@ export default function RoomView() {
 
   const [replyTo, setReplyTo] = useState<MatrixEvent | null>(null);
   const [highlightId, setHighlightId] = useState<string | null>(null);
+  // 드롭존 → MessageInput.sendFiles 브리지 (업로드 진행/에러 UI 재사용)
+  const uploadRef = useRef<((files: File[]) => void) | null>(null);
 
   const threadFull = threadId != null && searchParams.get("full") === "1";
 
@@ -130,7 +133,11 @@ export default function RoomView() {
     <div className="flex min-h-0 min-w-0 flex-1">
       {/* 채팅 페인 — 스레드 풀 화면일 땐 숨김 */}
       {!threadFull && (
-        <section className="flex min-w-0 flex-1 flex-col">
+        <DropZone
+          className="flex min-w-0 flex-1 flex-col"
+          label={room.name}
+          onFiles={(files) => uploadRef.current?.(files)}
+        >
           <PaneHeader
             actions={
               <span
@@ -168,8 +175,9 @@ export default function RoomView() {
             onSend={send}
             replyTo={replyTo}
             onCancelReply={() => setReplyTo(null)}
+            uploadRef={uploadRef}
           />
-        </section>
+        </DropZone>
       )}
       {/* 스레드 페인 (자식 라우트) */}
       <Outlet context={{ client, room } satisfies RoomContext} />

@@ -19,6 +19,8 @@ export function MessageInput({
   onSend,
   replyTo,
   onCancelReply,
+  uploadRef,
+  threadId,
 }: {
   client: MatrixClient;
   room: Room;
@@ -27,6 +29,10 @@ export function MessageInput({
   onSend: (text: string, mentions: Mention[]) => Promise<void>;
   replyTo?: MatrixEvent | null;
   onCancelReply?: () => void;
+  /** 외부(드롭존 등)에서 파일 업로드를 트리거할 수 있게 sendFiles를 노출 */
+  uploadRef?: React.MutableRefObject<((files: File[]) => void) | null>;
+  /** 지정 시 파일 업로드를 해당 스레드로 전송 */
+  threadId?: string;
 }) {
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
@@ -122,10 +128,16 @@ export function MessageInput({
     try {
       for (const file of Array.from(files)) {
         setUploading(`${file.name} 업로드 중...`);
-        await uploadAndSendFile(client, room.roomId, file, (loaded, total) => {
-          const pct = total ? Math.round((loaded / total) * 100) : 0;
-          setUploading(`${file.name} 업로드 중... ${pct}%`);
-        });
+        await uploadAndSendFile(
+          client,
+          room.roomId,
+          file,
+          (loaded, total) => {
+            const pct = total ? Math.round((loaded / total) * 100) : 0;
+            setUploading(`${file.name} 업로드 중... ${pct}%`);
+          },
+          threadId,
+        );
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -133,6 +145,9 @@ export function MessageInput({
       setUploading(null);
     }
   }
+
+  // 드롭존이 부를 수 있게 최신 sendFiles 바인딩 (렌더마다 갱신)
+  if (uploadRef) uploadRef.current = sendFiles;
 
   return (
     <div className="relative shrink-0">

@@ -1,6 +1,8 @@
 import { Maximize2, MessageSquareText, Minimize2, X } from "lucide-react";
 import { EventType } from "matrix-js-sdk";
+import { useRef } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
+import { DropZone } from "../components/DropZone";
 import { MessageInput } from "../components/MessageInput";
 import { PaneHeader, PaneHeaderButton } from "../components/PaneHeader";
 import { Timeline } from "../components/Timeline";
@@ -33,6 +35,7 @@ export default function ThreadView() {
   );
   useReadReceipt(client, events);
   const myUserId = client.getUserId() ?? "";
+  const uploadRef = useRef<((files: File[]) => void) | null>(null);
 
   const rootEvent =
     room.findEventById(threadId!) ?? room.getThread(threadId!)?.rootEvent;
@@ -60,8 +63,10 @@ export default function ThreadView() {
   }
 
   return (
-    <section
+    <DropZone
       className={`flex min-w-0 flex-1 flex-col ${full ? "" : "border-l border-line"}`}
+      label="스레드"
+      onFiles={(files) => uploadRef.current?.(files)}
     >
       <PaneHeader
         actions={
@@ -115,7 +120,9 @@ export default function ThreadView() {
         room={room}
         placeholder="스레드에 답글 보내기…"
         onSend={sendReply}
+        uploadRef={uploadRef}
+        threadId={threadId}
       />
-    </section>
+    </DropZone>
   );
 }

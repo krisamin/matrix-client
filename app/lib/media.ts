@@ -152,6 +152,8 @@ export async function uploadAndSendFile(
   roomId: string,
   file: File,
   onProgress?: (loaded: number, total: number) => void,
+  /** 지정 시 해당 스레드로 전송 (m.thread 관계) */
+  threadId?: string,
 ): Promise<void> {
   const room = client.getRoom(roomId);
   const encrypted = room?.hasEncryptionStateEvent() ?? false;
@@ -174,7 +176,7 @@ export async function uploadAndSendFile(
       type: "application/octet-stream",
       progressHandler: (p) => onProgress?.(p.loaded, p.total),
     });
-    await client.sendMessage(roomId, {
+    await client.sendMessage(roomId, threadId ?? null, {
       ...baseContent,
       file: { ...fileInfo, url: content_uri } as EncryptedFile,
     } as unknown as RoomMessageEventContent);
@@ -183,7 +185,7 @@ export async function uploadAndSendFile(
       type: file.type || "application/octet-stream",
       progressHandler: (p) => onProgress?.(p.loaded, p.total),
     });
-    await client.sendMessage(roomId, {
+    await client.sendMessage(roomId, threadId ?? null, {
       ...baseContent,
       url: content_uri,
     } as unknown as RoomMessageEventContent);
