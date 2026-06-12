@@ -120,7 +120,9 @@ export function EmojiPicker({
   const recentList = recents.length > 0 ? recents : QUICK_REACTIONS;
 
   const emojiBtn =
-    "flex h-8 items-center justify-center rounded-md text-[18px] hover:bg-bg-3";
+    // overflow-hidden: 미지원 ZWJ 조합이 글리프 여러 개로 깨져 셀보다 넓게
+    // 렌더되는 경우 클립 (안 하면 스크롤 영역이 늘어나 가로 스크롤 생김)
+    "flex h-8 items-center justify-center overflow-hidden rounded-md text-[18px] hover:bg-bg-3";
 
   return createPortal(
     <>
@@ -174,8 +176,8 @@ export function EmojiPicker({
           ))}
         </div>
 
-        {/* 그리드 */}
-        <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
+        {/* 그리드 — 가로는 클립: overflow-y만 주면 x도 auto로 승격돼 가로 스크롤 생김 */}
+        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-2 pb-2">
           {results ? (
             results.length === 0 ? (
               <p className="px-1 py-4 text-center text-[12px] text-fg-3">
