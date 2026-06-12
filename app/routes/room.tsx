@@ -213,6 +213,7 @@ export default function RoomView() {
           client={client}
           room={room}
           onClose={() => setSidePane(null)}
+          onLeft={() => navigate("/")}
         />
       )}
       {/* 스레드 페인 (자식 라우트) */}

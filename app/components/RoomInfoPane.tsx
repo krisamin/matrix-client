@@ -1,4 +1,13 @@
-import { Check, Copy, Lock, LockOpen, X } from "lucide-react";
+import {
+  Check,
+  Copy,
+  Loader2,
+  Lock,
+  LockOpen,
+  LogOut,
+  UserPlus,
+  X,
+} from "lucide-react";
 import type { MatrixClient, Room, RoomMember } from "matrix-js-sdk";
 import { RoomMemberEvent, RoomStateEvent } from "matrix-js-sdk";
 import { useEffect, useState } from "react";
@@ -54,13 +63,24 @@ export function RoomInfoPane({
   client,
   room,
   onClose,
+  onLeft,
 }: {
   client: MatrixClient;
   room: Room;
   onClose: () => void;
+  /** 방을 나간 뒤 호출 (라우팅은 호출부 책임) */
+  onLeft: () => void;
 }) {
   const [, force] = useState(0);
   const [copied, setCopied] = useState(false);
+  // 초대 폼 상태
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteId, setInviteId] = useState("");
+  const [inviteBusy, setInviteBusy] = useState(false);
+  const [inviteMsg, setInviteMsg] = useState<string | null>(null);
+  // 나가기 (2단계 확인)
+  const [leaveArmed, setLeaveArmed] = useState(false);
+  const [leaveBusy, setLeaveBusy] = useState(false);
   // 멤버 클릭 → 프로필 카드 (anchor + 대상 userId)
   const [profile, setProfile] = useState<{
     userId: string;
@@ -69,6 +89,7 @@ export function RoomInfoPane({
   const myUserId = client.getUserId() ?? "";
   const encrypted = room.hasEncryptionStateEvent();
   const dmUserId = getDmUserId(client, room);
+  const canInvite = room.canInvite(myUserId);
 
   // 멤버십/프로필/파워레벨 변화 실시간 반영
   useEffect(() => {
@@ -101,6 +122,40 @@ export function RoomInfoPane({
       setTimeout(() => setCopied(false), 1200);
     } catch (e) {
       console.warn("클립보드 복사 실패:", e);
+    }
+  }
+
+  async function invite() {
+    const target = inviteId.trim();
+    // 형식 검증: @local:server
+    if (!/^@[^:]+:.+/.test(target)) {
+      setInviteMsg("형식: @user:server");
+      return;
+    }
+    if (inviteBusy) return;
+    setInviteBusy(true);
+    setInviteMsg(null);
+    try {
+      await client.invite(room.roomId, target);
+      setInviteMsg(`${target} 초대함`);
+      setInviteId("");
+    } catch (e) {
+      setInviteMsg(e instanceof Error ? e.message : String(e));
+    } finally {
+      setInviteBusy(false);
+    }
+  }
+
+  async function leave() {
+    if (leaveBusy) return;
+    setLeaveBusy(true);
+    try {
+      await client.leave(room.roomId);
+      onLeft();
+    } catch (e) {
+      console.warn("방 나가기 실패:", e);
+      setLeaveBusy(false);
+      setLeaveArmed(false);
     }
   }
 
@@ -162,9 +217,53 @@ export function RoomInfoPane({
 
         {/* 멤버 목록 */}
         <div className="p-2">
-          <p className="px-3 pb-1 pt-2 font-mono text-[11px] text-fg-3">
-            멤버 — {members.length}명
-          </p>
+          <div className="flex items-center justify-between px-3 pb-1 pt-2">
+            <p className="font-mono text-[11px] text-fg-3">
+              멤버 — {members.length}명
+            </p>
+            {canInvite && (
+              <button
+                type="button"
+                className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] text-fg-2 hover:bg-bg-2 hover:text-fg-0"
+                onClick={() => {
+                  setInviteOpen((v) => !v);
+                  setInviteMsg(null);
+                }}
+              >
+                <UserPlus className="h-3 w-3" />
+                초대
+              </button>
+            )}
+          </div>
+          {/* 초대 폼 */}
+          {inviteOpen && (
+            <form
+              className="mx-1 mb-2 flex flex-col gap-1.5 rounded-lg border border-line p-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                invite();
+              }}
+            >
+              <input
+                className="w-full rounded-md border border-line bg-bg-2 px-2 py-1.5 font-mono text-[12px] text-fg-0 outline-none placeholder:text-fg-3 focus:border-line-strong"
+                placeholder="@user:krisam.in"
+                value={inviteId}
+                autoFocus
+                onChange={(e) => setInviteId(e.target.value)}
+              />
+              {inviteMsg && (
+                <p className="px-1 text-[11px] text-fg-2">{inviteMsg}</p>
+              )}
+              <button
+                type="submit"
+                className="flex items-center justify-center gap-1.5 rounded-md bg-bg-3 py-1.5 text-[12px] font-medium text-fg-0 hover:bg-line-strong disabled:opacity-50"
+                disabled={inviteBusy || !inviteId.trim()}
+              >
+                {inviteBusy && <Loader2 className="h-3 w-3 animate-spin" />}
+                초대 보내기
+              </button>
+            </form>
+          )}
           <ul>
             {members.map((m) => (
               <MemberRow
@@ -182,6 +281,50 @@ export function RoomInfoPane({
               />
             ))}
           </ul>
+        </div>
+
+        {/* 위험 영역: 방 나가기 (2단계 확인) */}
+        <div className="border-t border-line p-3">
+          {leaveArmed ? (
+            <div className="flex flex-col gap-1.5">
+              <p className="px-1 text-[12px] text-fg-2">
+                정말 나갈까?{" "}
+                {encrypted &&
+                  "암호화 방은 다시 들어와도 이전 메시지를 못 읽을 수 있어."}
+              </p>
+              <div className="flex gap-1.5">
+                <button
+                  type="button"
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-md bg-red-950/60 py-1.5 text-[12px] font-medium text-red-300 hover:bg-red-900/60 disabled:opacity-50"
+                  disabled={leaveBusy}
+                  onClick={leave}
+                >
+                  {leaveBusy ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <LogOut className="h-3 w-3" />
+                  )}
+                  나가기
+                </button>
+                <button
+                  type="button"
+                  className="flex-1 rounded-md border border-line py-1.5 text-[12px] text-fg-2 hover:bg-bg-2"
+                  disabled={leaveBusy}
+                  onClick={() => setLeaveArmed(false)}
+                >
+                  취소
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="flex w-full items-center justify-center gap-1.5 rounded-md py-1.5 text-[12px] text-fg-2 hover:bg-bg-2 hover:text-red-300"
+              onClick={() => setLeaveArmed(true)}
+            >
+              <LogOut className="h-3 w-3" />방 나가기
+            </button>
+          )}
         </div>
       </div>
       {profile && (
