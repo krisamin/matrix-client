@@ -46,6 +46,7 @@ const ALLOWED_TAGS = [
   "img",
   "details",
   "summary",
+  "button", // 코드블록 복사 버튼 (highlightHtml에서 주입)
 ];
 
 const ALLOWED_ATTR = [
@@ -65,6 +66,9 @@ const ALLOWED_ATTR = [
   "data-mx-color",
   "data-mx-spoiler", // matrix 확장
   "class", // code language-* (구문 강조 훅)
+  "type",
+  "data-copy", // 코드블록 복사 버튼 (클릭 위임 식별)
+  "aria-label",
 ];
 
 // 외부 링크는 새 탭 + noopener 강제
@@ -114,6 +118,60 @@ function linkifyPlain(text: string): string {
   return escaped
     .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1">$1</a>')
     .replace(/\n/g, "<br/>");
+}
+
+/** code class="language-xxx"에서 hljs가 아는 언어명 추출 (없으면 null=자동감지) */
+function detectLanguage(codeEl: Element): string | null {
+  for (const cls of codeEl.classList) {
+    const m = /^language-(.+)$/.exec(cls) ?? /^lang-(.+)$/.exec(cls);
+    if (m) {
+      const lang = m[1].toLowerCase();
+      if (hljs.getLanguage(lang)) return lang;
+    }
+  }
+  return null;
+}
+
+/** 살균된 HTML 안의 모든 <pre><code>를 구문 강조하고 복사 버튼을 단다.
+ *  — 핵심: 하이라이트를 "문자열 단계"에서 끝내서 렌더 시 innerHTML 단 1회 세팅.
+ *    예전엔 useEffect에서 highlightElement로 DOM을 후처리해서, 수정(m.replace)/
+ *    복호화로 html이 재세팅될 때마다 "색 빠졌다가 다시 칠해짐"이 반복 → 깜빡임.
+ *    이제 색이 박힌 채로 그려지므로 깜빡임이 없다. */
+function highlightHtml(html: string): string {
+  // 빠른 탈출: 코드블록이 없으면 파싱 비용 자체를 스킵
+  if (!html.includes("<pre")) return html;
+  const doc = new DOMParser().parseFromString(
+    `<body>${html}</body>`,
+    "text/html",
+  );
+  for (const pre of doc.querySelectorAll("pre")) {
+    const code = pre.querySelector("code") ?? pre;
+    const text = code.textContent ?? "";
+    if (text.length > 0) {
+      const lang = detectLanguage(code);
+      try {
+        const result = lang
+          ? hljs.highlight(text, { language: lang })
+          : hljs.highlightAuto(text);
+        code.innerHTML = result.value;
+        code.classList.add("hljs");
+      } catch {
+        // 강조 실패해도 평문 코드는 그대로 보존
+      }
+    }
+    // <pre>를 래퍼로 감싸고 복사 버튼 주입 (CSS .code-block-wrap)
+    const wrap = doc.createElement("div");
+    wrap.className = "code-block-wrap";
+    const btn = doc.createElement("button");
+    btn.setAttribute("type", "button");
+    btn.setAttribute("data-copy", "");
+    btn.setAttribute("aria-label", "코드 복사");
+    btn.className = "code-copy-btn";
+    btn.textContent = "복사";
+    pre.replaceWith(wrap);
+    wrap.append(btn, pre);
+  }
+  return doc.body.innerHTML;
 }
 
 /** 수정(타이핑) reveal — root의 텍스트 노드들을 순회하며 fromOffset 이후
@@ -171,7 +229,8 @@ function revealTyping(root: HTMLElement, fromOffset: number): () => void {
 }
 
 /** 메시지 본문 렌더러: formatted_body(HTML)가 있으면 살균 후 렌더,
- *  없으면 평문 + URL 링크화 + <br> 변환. 코드블록은 highlight.js로 구문 강조.
+ *  없으면 평문 + URL 링크화 + <br> 변환. 코드블록은 highlight.js로 구문 강조
+ *  (문자열 단계에서 색을 박아 깜빡임 없음) + 복사 버튼 제공.
  *  수정(m.replace)된 이벤트는 SDK가 getContent()에서 최신 내용을
  *  돌려주므로 추가 처리 불필요. */
 export function MessageBody({
@@ -203,27 +262,24 @@ export function MessageBody({
           convertMxcUrls(client, stripMxReply(content.formatted_body)),
         )
       : linkifyPlain(plainBody);
-    return DOMPurify.sanitize(raw, {
+    const clean = DOMPurify.sanitize(raw, {
       ALLOWED_TAGS,
       ALLOWED_ATTR,
       // href는 http/https/mailto/matrix.to만
       ALLOWED_URI_REGEXP: /^(?:https?|mailto|magnet):|^#|^matrix:/i,
     });
+    // 구문 강조 + 복사 버튼을 문자열 단계에서 완성 (렌더 시 1회 세팅 → 깜빡임 0)
+    return highlightHtml(clean);
   }, [client, ev, body, formattedBody, evType]);
 
-  // 코드블록 구문 강조 + 수정 시 타이핑 reveal (렌더 후 DOM에 적용)
+  // 수정(m.replace) 시 타이핑 reveal (렌더 후 DOM에 적용) — 하이라이트는
+  // 더 이상 여기서 하지 않는다 (html 문자열에 이미 박혀 있음)
   const prevTextRef = useRef<string | null>(null);
   const cancelRevealRef = useRef<(() => void) | null>(null);
   // biome-ignore lint/correctness/useExhaustiveDependencies: html은 innerHTML 갱신 후 재실행 트리거 용도
   useEffect(() => {
     const root = ref.current;
     if (!root) return;
-    for (const block of root.querySelectorAll("pre code")) {
-      // 재렌더 시 dataset 마커가 남아 hljs가 경고만 내고 스킵하는 것 방지
-      delete (block as HTMLElement).dataset.highlighted;
-      hljs.highlightElement(block as HTMLElement);
-    }
-
     // 수정(m.replace)으로 본문이 바뀐 경우: 공통 prefix 이후부터 타이핑 reveal.
     // 첫 마운트(prev=null)는 스킵 — 과거 로드/입장 시 출렁임 방지
     const newText = root.textContent ?? "";
@@ -241,10 +297,33 @@ export function MessageBody({
     };
   }, [html]);
 
+  // 코드블록 복사 버튼 — 이벤트 위임 (innerHTML로 주입된 버튼이라 React 핸들러 못 닮)
+  function onClick(e: React.MouseEvent<HTMLDivElement>) {
+    const btn = (e.target as HTMLElement).closest<HTMLButtonElement>(
+      "button[data-copy]",
+    );
+    if (!btn) return;
+    const code = btn.parentElement?.querySelector("pre");
+    const text = code?.textContent ?? "";
+    if (!text) return;
+    navigator.clipboard
+      .writeText(text)
+      .then(() => {
+        btn.textContent = "복사됨!";
+        btn.classList.add("copied");
+        window.setTimeout(() => {
+          btn.textContent = "복사";
+          btn.classList.remove("copied");
+        }, 1400);
+      })
+      .catch((err) => console.warn("코드 복사 실패:", err));
+  }
+
   return (
     <div
       ref={ref}
       className="message-body min-w-0 break-words"
+      onClick={onClick}
       // DOMPurify 살균 완료
       dangerouslySetInnerHTML={{ __html: html }}
     />
