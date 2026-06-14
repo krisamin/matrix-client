@@ -164,7 +164,7 @@ export default function RoomView() {
               </>
             }
           >
-            <RoomAvatar client={client} room={room} size={20} />
+            <RoomAvatar client={client} room={room} size={20} showPresence />
             <h1 className="truncate font-semibold text-fg-0">{room.name}</h1>
             {room.hasEncryptionStateEvent() && (
               <Lock className="h-3.5 w-3.5 shrink-0 text-fg-3" />

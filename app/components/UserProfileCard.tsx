@@ -2,7 +2,8 @@ import { Check, Copy, ShieldCheck } from "lucide-react";
 import type { MatrixClient, Room, RoomMember } from "matrix-js-sdk";
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { Avatar } from "./Avatar";
+import { PRESENCE_LABEL, usePresence } from "../hooks/usePresence";
+import { Avatar, PresenceDot } from "./Avatar";
 
 /** 파워레벨 → 역할 라벨 (Element 관례: 100 관리자 / 50 중재자) */
 export function roleLabel(power: number): string | null {
@@ -37,6 +38,7 @@ export function UserProfileCard({
   const name = member?.name ?? userId;
   const role = member ? roleLabel(member.powerLevel) : null;
   const isMe = userId === client.getUserId();
+  const presence = usePresence(client, userId);
 
   // 위치: 앵커 왼쪽 정렬 + 뷰포트 클램프, 아래 우선 / 공간 부족 시 위
   const x = Math.min(
@@ -128,6 +130,15 @@ export function UserProfileCard({
                       : "알 수 없음"}
             </span>
           </span>
+          {presence && (
+            <span className="flex items-center justify-between">
+              <span className="text-fg-3">접속</span>
+              <span className="flex items-center gap-1.5 text-fg-1">
+                <PresenceDot presence={presence} size={8} />
+                {PRESENCE_LABEL[presence]}
+              </span>
+            </span>
+          )}
         </div>
       </div>
     </>,

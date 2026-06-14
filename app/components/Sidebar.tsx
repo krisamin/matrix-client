@@ -24,11 +24,13 @@ function RoomNode({
   room,
   active,
   activeThreadId,
+  showPresence = false,
 }: {
   client: MatrixClient;
   room: Room;
   active: boolean;
   activeThreadId?: string;
+  showPresence?: boolean;
 }) {
   const threads = room.getThreads();
   const hasThreads = threads.length > 0;
@@ -64,7 +66,12 @@ function RoomNode({
           to={`/room/${encodeURIComponent(room.roomId)}`}
           className="flex min-w-0 flex-1 items-center gap-1.5"
         >
-          <RoomAvatar client={client} room={room} size={16} />
+          <RoomAvatar
+            client={client}
+            room={room}
+            size={16}
+            showPresence={showPresence}
+          />
           <span
             className={`min-w-0 flex-1 truncate ${unread > 0 ? "font-semibold text-fg-0" : ""}`}
           >
@@ -217,7 +224,7 @@ export function Sidebar({ client }: { client: MatrixClient }) {
     }
   }
 
-  const renderRooms = (list: Room[]) =>
+  const renderRooms = (list: Room[], showPresence = false) =>
     list.map((room) => (
       <RoomNode
         key={room.roomId}
@@ -227,6 +234,7 @@ export function Sidebar({ client }: { client: MatrixClient }) {
         activeThreadId={
           params.roomId === room.roomId ? params.threadId : undefined
         }
+        showPresence={showPresence}
       />
     ));
 
@@ -280,7 +288,7 @@ export function Sidebar({ client }: { client: MatrixClient }) {
         {tree.dms.length > 0 && (
           <>
             <SectionLabel>Direct</SectionLabel>
-            {renderRooms(tree.dms)}
+            {renderRooms(tree.dms, true)}
           </>
         )}
         {tree.spaces.length > 0 && (
