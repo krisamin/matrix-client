@@ -54,13 +54,17 @@ export function MessageInput({
   const myUserId = client.getUserId() ?? "";
 
   // textarea auto-grow: 내용에 따라 높이를 1줄~최대(MAX_INPUT_PX)까지. 최대를
-  // 넘으면 내부 스크롤. draft가 바뀔 때마다(전송으로 비워질 때 포함) 재계산.
+  // 넘으면 그때만 내부 스크롤을 켠다. overflow를 항상 auto로 두면 sub-pixel
+  // 반올림 때문에 한 줄에서도 스크롤바가 떠서, 최대 도달 전엔 hidden으로 막는다.
+  // draft가 바뀔 때마다(전송으로 비워질 때 포함) 재계산.
   // biome-ignore lint/correctness/useExhaustiveDependencies: draft 변화로 재측정
   useEffect(() => {
     const el = textInputRef.current;
     if (!el) return;
     el.style.height = "auto"; // 줄어들 때도 정확히 재측정하려면 먼저 리셋
-    el.style.height = `${Math.min(el.scrollHeight, MAX_INPUT_PX)}px`;
+    const needed = el.scrollHeight;
+    el.style.height = `${Math.min(needed, MAX_INPUT_PX)}px`;
+    el.style.overflowY = needed > MAX_INPUT_PX ? "auto" : "hidden";
   }, [draft]);
 
   const candidates =
@@ -267,7 +271,7 @@ export function MessageInput({
         <textarea
           ref={textInputRef}
           rows={1}
-          className="min-w-0 flex-1 resize-none overflow-y-auto bg-transparent px-1 py-2 text-fg-0 leading-snug outline-none placeholder:text-fg-3"
+          className="min-w-0 flex-1 resize-none overflow-y-hidden bg-transparent px-1 py-2 text-fg-0 leading-snug outline-none placeholder:text-fg-3"
           style={{ maxHeight: MAX_INPUT_PX }}
           value={draft}
           onChange={(e) => onDraftChange(e.target.value)}
