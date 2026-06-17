@@ -187,36 +187,42 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
       }
     }, [rows.length, lastKey, isPrepend]);
 
-    // 높이 변화 추적(반응/이미지로드/링크프리뷰/수정 등) — React 신호로는 못 잡는다.
-    // 반응(ReactionBar)은 자기만 force 리렌더해서 rows/lastKey가 안 바뀌므로
-    // 위 effect가 발화하지 않는다. virtua는 아이템 재측정으로 리스트 컨테이너 높이를
-    // 키우지만 stick-to-bottom은 안 해준다 → 마지막 메시지에 반응이 달리면 잘려 보임.
-    // 콘텐츠 높이 증가를 ResizeObserver로 직접 관찰해, 직전에 바닥 근처였으면
-    // 다시 바닥으로 보낸다. 위로 스크롤 중(stickToBottom=false)엔 발화 안 함 →
-    // prepend로 위에 쌓일 때는 영향 없다.
+    // 높이 변화 추적 — React 신호로는 못 잡는 두 경우를 ResizeObserver로 커버.
+    //  (A) 콘텐츠(virtua 루트)가 커짐: 반응/이미지로드/링크프리뷰/수정 등. 반응은
+    //      ReactionBar가 자기만 force 리렌더해 rows/lastKey 불변 → 위 effect 미발화.
+    //  (B) 뷰포트(스크롤 컨테이너)가 줄어듦: 입력창이 여러 줄로 커지면 타임라인
+    //      높이가 줄어 마지막 메시지가 입력창 뒤로 밀린다 → 다시 바닥으로.
+    // 둘 다 "직전에 바닥 근처였을 때만" 바닥 추적 → 위로 스크롤 중엔 영향 없다.
     useEffect(() => {
       const container = scrollRef.current;
       // virtua 루트 = 스크롤 컨테이너의 마지막 자식(spacer 다음).
-      const target = container?.lastElementChild;
-      if (!container || !target) return;
-      let prevHeight = target.getBoundingClientRect().height;
-      const ro = new ResizeObserver(() => {
-        const h = target.getBoundingClientRect().height;
-        const grew = h > prevHeight + 0.5;
-        prevHeight = h;
+      const content = container?.lastElementChild;
+      if (!container || !content) return;
+      let prevContentH = content.getBoundingClientRect().height;
+      let prevViewportH = container.getBoundingClientRect().height;
+      const stickIfNeeded = () => {
         if (
-          grew &&
           initialDoneRef.current &&
           stickToBottomRef.current &&
           rows.length > 0
         ) {
           vRef.current?.scrollToIndex(rows.length - 1, { align: "end" });
         }
+      };
+      const ro = new ResizeObserver(() => {
+        const contentH = content.getBoundingClientRect().height;
+        const viewportH = container.getBoundingClientRect().height;
+        // 콘텐츠가 커졌거나(A) 뷰포트가 줄었으면(B) 바닥 재정렬.
+        const contentGrew = contentH > prevContentH + 0.5;
+        const viewportShrank = viewportH < prevViewportH - 0.5;
+        prevContentH = contentH;
+        prevViewportH = viewportH;
+        if (contentGrew || viewportShrank) stickIfNeeded();
       });
-      ro.observe(target);
+      ro.observe(content);
+      ro.observe(container);
       return () => ro.disconnect();
-      // rows.length가 바뀌면 target(virtua 루트)이 유지되더라도 prevHeight 기준을
-      // 새로 잡아야 정확 — 재구독으로 초기화.
+      // rows.length가 바뀌면 기준 높이를 새로 잡아야 정확 — 재구독으로 초기화.
     }, [rows.length]);
 
     // 부모(jumpTo)용: 인덱스 기반 스크롤 (가상화라 DOM에 없을 수 있어 인덱스로).

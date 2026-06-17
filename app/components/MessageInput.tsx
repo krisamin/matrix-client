@@ -260,15 +260,6 @@ export function MessageInput({
             e.target.value = "";
           }}
         />
-        <button
-          type="button"
-          className="flex h-12 w-9 shrink-0 items-center justify-center rounded-md text-fg-2 hover:bg-bg-2 hover:text-fg-0 disabled:opacity-50"
-          disabled={!!uploading}
-          onClick={() => fileInputRef.current?.click()}
-          title="파일 첨부"
-        >
-          <Paperclip className="h-[15px] w-[15px]" />
-        </button>
         <textarea
           ref={textInputRef}
           rows={1}
@@ -319,6 +310,15 @@ export function MessageInput({
           }}
           placeholder={placeholder}
         />
+        <button
+          type="button"
+          className="flex h-12 w-9 shrink-0 items-center justify-center rounded-md text-fg-2 hover:bg-bg-2 hover:text-fg-0 disabled:opacity-50"
+          disabled={!!uploading}
+          onClick={() => fileInputRef.current?.click()}
+          title="파일 첨부"
+        >
+          <Paperclip className="h-[15px] w-[15px]" />
+        </button>
         <button
           type="button"
           className="flex h-12 w-9 shrink-0 items-center justify-center rounded-md text-fg-2 hover:bg-bg-2 hover:text-fg-0"
