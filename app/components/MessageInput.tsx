@@ -240,10 +240,11 @@ export function MessageInput({
         </div>
       )}
 
-      {/* 입력 바: 헤더와 대칭 — 보더탑 + 좌우 꽉 참. 멀티라인이라 items-end로
-          버튼은 아래 정렬, textarea만 위로 자란다. */}
+      {/* 입력 바: 헤더와 대칭 — 보더탑 + 좌우 꽉 참. 세로 패딩은 textarea 내부로
+          넣어(py-3) 입력 영역이 바 위아래로 꽉 차고, 스크롤이 끝과 끝까지 흐른다.
+          멀티라인이라 items-end로 버튼은 아래 정렬, textarea만 위로 자란다. */}
       <form
-        className="flex min-h-12 items-end gap-1 border-t border-line bg-bg-1 px-3 py-1.5 transition-colors focus-within:bg-bg-2"
+        className="flex min-h-12 items-end gap-1 border-t border-line bg-bg-1 px-3 transition-colors focus-within:bg-bg-2"
         onSubmit={(e) => {
           e.preventDefault();
           send();
@@ -261,7 +262,7 @@ export function MessageInput({
         />
         <button
           type="button"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-fg-2 hover:bg-bg-2 hover:text-fg-0 disabled:opacity-50"
+          className="flex h-12 w-9 shrink-0 items-center justify-center rounded-md text-fg-2 hover:bg-bg-2 hover:text-fg-0 disabled:opacity-50"
           disabled={!!uploading}
           onClick={() => fileInputRef.current?.click()}
           title="파일 첨부"
@@ -271,7 +272,7 @@ export function MessageInput({
         <textarea
           ref={textInputRef}
           rows={1}
-          className="min-h-9 min-w-0 flex-1 resize-none overflow-y-hidden bg-transparent px-1 py-1.5 text-[15px] text-fg-0 leading-6 outline-none placeholder:text-fg-3"
+          className="min-h-12 min-w-0 flex-1 resize-none overflow-y-hidden bg-transparent px-1 py-3 text-[15px] text-fg-0 leading-6 outline-none placeholder:text-fg-3"
           style={{ maxHeight: MAX_INPUT_PX }}
           value={draft}
           onChange={(e) => onDraftChange(e.target.value)}
@@ -320,7 +321,7 @@ export function MessageInput({
         />
         <button
           type="button"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-fg-2 hover:bg-bg-2 hover:text-fg-0"
+          className="flex h-12 w-9 shrink-0 items-center justify-center rounded-md text-fg-2 hover:bg-bg-2 hover:text-fg-0"
           title="이모지"
           onClick={(e) => {
             // rect는 핸들러 안에서 즉시 읽기 — setState 콜백 시점엔 currentTarget이 null
@@ -332,7 +333,7 @@ export function MessageInput({
         </button>
         <button
           type="submit"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-fg-2 hover:bg-bg-2 hover:text-fg-0 disabled:opacity-50"
+          className="flex h-12 w-9 shrink-0 items-center justify-center rounded-md text-fg-2 hover:bg-bg-2 hover:text-fg-0 disabled:opacity-50"
           disabled={sending || !draft.trim()}
           title="전송 (⌘/Ctrl + Enter)"
         >
