@@ -89,9 +89,10 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
     ref,
   ) {
     const scrollRef = useRef<HTMLDivElement>(null);
-    // 스크롤 위치 보존을 위한 직전 스냅샷
-    const prevScrollHeightRef = useRef(0);
-    const prevFirstKeyRef = useRef<string | null>(null);
+    // prepend(과거 로드) 위치 보존: 로드 "시작" 시점의 바닥 기준 거리를 박아둔다.
+    // delta 누적이 아니라 절대 거리라, 로드~보정 사이에 다른 리렌더(복호화/
+    // 이미지 로드 등)가 끼어도 어긋나지 않는다. null = 보정 대기 없음.
+    const pendingPrependRef = useRef<number | null>(null);
     const prevLenRef = useRef(0);
     // 직전 렌더 시점에 바닥 근처였는지 (append 추적 판단용)
     const wasNearBottomRef = useRef(true);
@@ -127,12 +128,6 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
       return out;
     }, [events, topSlot, hasMore, unreadMarkerId]);
 
-    // 첫 이벤트 행의 key (prepend 감지용 — 맨 앞에 새 행이 붙었는지)
-    const firstEventKey = useMemo(() => {
-      const r = rows.find((x) => x.kind === "event");
-      return r?.key ?? null;
-    }, [rows]);
-
     // 렌더 직전(브라우저 페인트 전)에 스크롤 위치를 결정한다.
     // useLayoutEffect라서 사용자는 중간 점프를 못 본다 → 출렁임 0.
     useLayoutEffect(() => {
@@ -140,44 +135,36 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
       if (!el) return;
 
       const prevLen = prevLenRef.current;
-      const prevFirstKey = prevFirstKeyRef.current;
-      const prevScrollHeight = prevScrollHeightRef.current;
+      const grew = rows.length > prevLen;
 
-      // 1) 초기 진입: 맨 아래로 (1회)
-      if (!didInitialScrollRef.current && rows.length > 0) {
+      // 1) prepend 보정 대기 중이면 최우선 — 로드 시작 시점의 바닥 기준 거리를
+      //    복원한다. scrollTop = (전체높이 - 뷰포트) - 저장된 바닥거리.
+      //    delta 누적이 아니라 절대 위치라 중간 리렌더와 무관하게 정확.
+      if (pendingPrependRef.current != null && grew) {
+        const dist = pendingPrependRef.current;
+        pendingPrependRef.current = null;
+        el.scrollTop = el.scrollHeight - el.clientHeight - dist;
+      }
+      // 2) 초기 진입: 맨 아래로 (1회)
+      else if (!didInitialScrollRef.current && rows.length > 0) {
         el.scrollTop = el.scrollHeight;
         didInitialScrollRef.current = true;
       }
-      // 2) prepend: 맨 앞 이벤트 key가 바뀌고 길이가 늘었으면 과거가 위에 붙은 것.
-      //    늘어난 높이만큼 scrollTop을 더해 보던 위치 고정.
-      else if (
-        firstEventKey != null &&
-        prevFirstKey != null &&
-        firstEventKey !== prevFirstKey &&
-        rows.length > prevLen
-      ) {
-        const delta = el.scrollHeight - prevScrollHeight;
-        if (delta > 0) el.scrollTop += delta;
-      }
       // 3) append: 끝에 행이 붙었고 직전에 바닥 근처였으면 바닥 추적.
-      else if (rows.length > prevLen && wasNearBottomRef.current) {
+      else if (grew && wasNearBottomRef.current) {
         el.scrollTop = el.scrollHeight;
       }
 
-      // 스냅샷 갱신
-      prevScrollHeightRef.current = el.scrollHeight;
-      prevFirstKeyRef.current = firstEventKey;
       prevLenRef.current = rows.length;
       wasNearBottomRef.current =
         el.scrollHeight - el.scrollTop - el.clientHeight < NEAR_BOTTOM_PX;
-    }, [rows.length, firstEventKey]);
+    }, [rows.length]);
 
     // 방이 바뀌면 초기 스크롤/스냅샷 리셋
     // biome-ignore lint/correctness/useExhaustiveDependencies: room.roomId 변화로 리셋
     useEffect(() => {
       didInitialScrollRef.current = false;
-      prevScrollHeightRef.current = 0;
-      prevFirstKeyRef.current = null;
+      pendingPrependRef.current = null;
       prevLenRef.current = 0;
       wasNearBottomRef.current = true;
     }, [room.roomId]);
@@ -204,9 +191,14 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
       // 바닥 근처 여부를 매 스크롤마다 추적 (append 추적 판단의 소스)
       wasNearBottomRef.current =
         el.scrollHeight - el.scrollTop - el.clientHeight < NEAR_BOTTOM_PX;
-      // 위로 충분히 올라오면 과거 로드. 위치 보존은 useLayoutEffect가 처리.
-      if (el.scrollTop < LOAD_TRIGGER_PX && !loadingOlder && hasMore)
+      // 위로 충분히 올라오면 과거 로드. 로드 "시작" 시점의 바닥 기준 거리를
+      // 박아둬서, 로드 완료 후 useLayoutEffect가 그 위치를 정확히 복원한다.
+      if (el.scrollTop < LOAD_TRIGGER_PX && !loadingOlder && hasMore) {
+        if (pendingPrependRef.current == null)
+          pendingPrependRef.current =
+            el.scrollHeight - el.scrollTop - el.clientHeight;
         void loadOlder();
+      }
     }, [loadingOlder, hasMore, loadOlder]);
 
     return (
@@ -225,7 +217,7 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
         <div
           ref={scrollRef}
           onScroll={onScroll}
-          className="flex-1 overflow-y-auto"
+          className="flex-1 overflow-y-auto py-3"
           style={{ overflowAnchor: "none" }}
         >
           {rows.map((row) => {
