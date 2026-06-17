@@ -226,12 +226,16 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
       const ro = new ResizeObserver(() => {
         const contentH = content.getBoundingClientRect().height;
         const viewportH = container.getBoundingClientRect().height;
-        // 콘텐츠가 커졌거나(A) 뷰포트가 줄었으면(B) 바닥 재정렬.
+        // 콘텐츠가 커졌거나(A) 뷰포트 높이가 바뀌면(B) 바닥 재정렬.
+        //  - 뷰포트 줄어듦: 입력창이 여러 줄로 커져 마지막 메시지가 가려질 때.
+        //  - 뷰포트 커짐: 전송 후 입력창이 한 줄로 줄며 아래 공간이 생길 때.
+        //    이때 overflowAnchor:none + virtua라 브라우저 자동 바닥고정이 안 먹어
+        //    마지막 메시지가 바닥에서 뜬다(전송했는데 안 내려가던 증상의 원인).
         const contentGrew = contentH > prevContentH + 0.5;
-        const viewportShrank = viewportH < prevViewportH - 0.5;
+        const viewportChanged = Math.abs(viewportH - prevViewportH) > 0.5;
         prevContentH = contentH;
         prevViewportH = viewportH;
-        if (contentGrew || viewportShrank) stickIfNeeded();
+        if (contentGrew || viewportChanged) stickIfNeeded();
       });
       ro.observe(content);
       ro.observe(container);
