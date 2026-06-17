@@ -58,6 +58,10 @@ const EventLineInner = function EventLine({
   highlighted,
 }: {
   ev: MatrixEvent;
+  /** 내용 버전 스냅샷 (group.ts eventVersion). 직접 쓰진 않지만 prop으로
+   *  받아야 memo가 복호화/수정/삭제로 인한 in-place mutation을 감지해
+   *  리렌더한다. ev는 같은 인스턴스라 참조 비교로는 변화를 못 잡기 때문. */
+  contentVersion: string;
   myUserId: string;
   client: MatrixClient;
   room: Room;

@@ -31,6 +31,7 @@ type Row =
       showHeader: boolean;
       dateDivider: string | null;
       unreadAfter: boolean;
+      contentVersion: string;
     };
 
 interface TimelineProps {
@@ -99,7 +100,7 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
       const showUnreadAfter =
         markerIndex >= 0 && markerIndex < items.length - 1 ? markerIndex : -1;
 
-      items.forEach(({ ev, showHeader, dateDivider }, i) => {
+      items.forEach(({ ev, showHeader, dateDivider, contentVersion }, i) => {
         out.push({
           kind: "event",
           key: ev.getId() ?? `idx-${i}`,
@@ -107,6 +108,7 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
           showHeader,
           dateDivider,
           unreadAfter: i === showUnreadAfter,
+          contentVersion,
         });
       });
       return out;
@@ -167,6 +169,7 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
             {row.dateDivider && <DateDivider label={row.dateDivider} />}
             <EventLine
               ev={row.ev}
+              contentVersion={row.contentVersion}
               myUserId={myUserId}
               client={client}
               room={room}
