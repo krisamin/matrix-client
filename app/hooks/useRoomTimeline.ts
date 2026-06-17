@@ -11,6 +11,7 @@ import {
   ThreadEvent,
 } from "matrix-js-sdk";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { eventVersion } from "../lib/group";
 import { getNoThreadTimelineSet } from "../lib/matrix";
 import { visibleEvents } from "../lib/timeline";
 
@@ -21,6 +22,17 @@ function decryptPending(client: MatrixClient, events: MatrixEvent[]): void {
       client.decryptEventIfNeeded(ev);
     }
   }
+}
+
+/** events 배열의 내용 서명 — id + 버전(복호화/수정/삭제 상태)으로 구성.
+ *  이게 같으면 화면에 그릴 내용이 동일하다는 뜻 → 새 배열을 만들어도
+ *  이전 참조를 유지해 Timeline 전체 리렌더를 막는다(D3 정체성 보존).
+ *  eventVersion은 group.ts와 동일 소스 — 복호화로 버전이 바뀌면 서명이
+ *  달라져 통과하므로, 리렌더 폭주는 막으면서 복호화 반영은 놓치지 않는다. */
+function eventsSignature(events: MatrixEvent[]): string {
+  let sig = "";
+  for (const ev of events) sig += `${ev.getId()}@${eventVersion(ev)};`;
+  return sig;
 }
 
 /**
@@ -41,17 +53,42 @@ export function useRoomTimeline(client: MatrixClient, roomId: string) {
   const [loadingOlder, setLoadingOlder] = useState(false);
   const loadingOlderRef = useRef(false);
   const tlSetRef = useRef<EventTimelineSet | null>(null);
+  // 세대 토큰(D2): effect 재실행(방/클라 전환)마다 증가. async 작업이
+  // await에서 깨어났을 때 이 토큰이 바뀌었으면 = 이미 다른 방으로 넘어간 것
+  // → 이전 방 데이터를 현재 state에 쓰는 race를 차단한다.
+  const genRef = useRef(0);
+  // 마지막으로 커밋한 events의 내용 서명(D3). 같으면 setEvents 스킵 → 참조 보존.
+  const lastSigRef = useRef<string>("\u0000init");
+  // receipt epoch: 읽음 표시는 events 내용을 안 바꾸지만 ReadReceipts 갱신을
+  // 위해 리렌더가 필요하다(기존 동작). epoch을 올려 서명을 강제로 바꿔
+  // 새 배열을 내보낸다 — 정체성 보존 dedup이 receipt를 삼키지 않게.
+  const receiptEpochRef = useRef(0);
+
+  /** 현재 방의 표시 이벤트를 state에 반영. 단:
+   *  1) gen이 어긋나면(방 전환됨) 무시 — stale write 차단
+   *  2) 내용 서명이 직전과 같으면 setEvents 스킵 — 배열 참조 보존(리렌더 폭주 방지) */
+  const commit = useCallback((r: Room, gen: number) => {
+    if (gen !== genRef.current) return;
+    const next = visibleEvents(r, tlSetRef.current);
+    const sig = `${receiptEpochRef.current}:${eventsSignature(next)}`;
+    if (sig === lastSigRef.current) return;
+    lastSigRef.current = sig;
+    setEvents(next);
+  }, []);
 
   useEffect(() => {
+    const gen = ++genRef.current;
     setRoom(null);
     setEvents([]);
     setHasMore(true);
     tlSetRef.current = null;
+    lastSigRef.current = "\u0000init";
 
     // 보이는 이벤트가 최소치를 넘거나 타임라인 끝에 닿을 때까지 backwards 페이지네이션
     const fillUntilVisible = async (r: Room) => {
       const tlSet = tlSetRef.current;
       for (let i = 0; i < 10 && visibleEvents(r, tlSet).length < 15; i++) {
+        if (gen !== genRef.current) return; // 방 전환됨 — 중단
         const timeline = tlSet?.getLiveTimeline() ?? r.getLiveTimeline();
         let more: boolean;
         try {
@@ -63,10 +100,11 @@ export function useRoomTimeline(client: MatrixClient, roomId: string) {
           console.warn("[fillUntilVisible] paginate 실패:", e);
           break;
         }
+        if (gen !== genRef.current) return; // await 사이 방 전환됨
         decryptPending(client, timeline.getEvents());
-        setEvents(visibleEvents(r, tlSet));
+        commit(r, gen);
         if (!more) {
-          setHasMore(false);
+          if (gen === genRef.current) setHasMore(false);
           break;
         }
       }
@@ -77,13 +115,14 @@ export function useRoomTimeline(client: MatrixClient, roomId: string) {
       if (!r) return false;
       setRoom(r);
       decryptPending(client, r.getLiveTimeline().getEvents());
-      setEvents(visibleEvents(r));
+      commit(r, gen);
       // MSC3874: 스레드 답글 제외 필터드 타임라인 → 이후 페이지네이션은
       // 서버가 스레드 답글 빼고 줌 (빈 페이지 데드락 원천 차단)
       void (async () => {
         const tlSet = await getNoThreadTimelineSet(client, r);
+        if (gen !== genRef.current) return; // await 사이 방 전환됨
         tlSetRef.current = tlSet;
-        if (tlSet) setEvents(visibleEvents(r, tlSet));
+        if (tlSet) commit(r, gen);
         await fillUntilVisible(r);
       })();
       return true;
@@ -96,7 +135,7 @@ export function useRoomTimeline(client: MatrixClient, roomId: string) {
 
     const refreshNow = () => {
       const r = client.getRoom(roomId);
-      if (r) setEvents(visibleEvents(r, tlSetRef.current));
+      if (r) commit(r, gen);
     };
     // 복호화/수정 이벤트는 페이지네이션 중 메시지당 수십 번 연쇄로 터짐 —
     // 프레임당 1회로 배칭해서 전체 리스트 리렌더 폭주 방지
@@ -126,9 +165,14 @@ export function useRoomTimeline(client: MatrixClient, roomId: string) {
     const onLocalEcho = (_ev: MatrixEvent, r: Room) => {
       if (r.roomId === roomId) refresh();
     };
-    // 읽음 receipt 도착 — ReadReceipts(아바타 스택) 갱신
+    // 읽음 receipt 도착 — ReadReceipts(아바타 스택) 갱신.
+    // receipt는 events 내용을 안 바꾸므로 epoch을 올려 dedup을 우회 →
+    // 새 배열을 강제로 내보내 리렌더 트리거(기존 동작 보존).
     const onReceipt = (_ev: MatrixEvent, r: Room) => {
-      if (r.roomId === roomId) refresh();
+      if (r.roomId === roomId) {
+        receiptEpochRef.current++;
+        refresh();
+      }
     };
     client.on(RoomEvent.Timeline, onTimeline);
     client.on(MatrixEventEvent.Decrypted, onDecrypted);
@@ -163,13 +207,14 @@ export function useRoomTimeline(client: MatrixClient, roomId: string) {
       r?.off(ThreadEvent.Update, onThreadUpdate);
       r?.off(ThreadEvent.NewReply, onThreadUpdate);
     };
-  }, [client, roomId]);
+  }, [client, roomId, commit]);
 
   /** 과거 페이지 로드. 더 가져왔으면 true (동시 호출은 무시) */
   const loadOlder = useCallback(async (): Promise<boolean> => {
     if (!room || loadingOlderRef.current || !hasMore) return false;
     loadingOlderRef.current = true;
     setLoadingOlder(true);
+    const gen = genRef.current;
     try {
       const timeline =
         tlSetRef.current?.getLiveTimeline() ?? room.getLiveTimeline();
@@ -177,15 +222,16 @@ export function useRoomTimeline(client: MatrixClient, roomId: string) {
         backwards: true,
         limit: 30,
       });
+      if (gen !== genRef.current) return false; // await 사이 방 전환됨
       setHasMore(more);
       decryptPending(client, timeline.getEvents());
-      setEvents(visibleEvents(room, tlSetRef.current));
+      commit(room, gen);
       return true;
     } finally {
       loadingOlderRef.current = false;
       setLoadingOlder(false);
     }
-  }, [client, room, hasMore]);
+  }, [client, room, hasMore, commit]);
 
   return { room, events, hasMore, loadingOlder, loadOlder };
 }
