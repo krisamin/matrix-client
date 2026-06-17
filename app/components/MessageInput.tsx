@@ -53,14 +53,17 @@ export function MessageInput({
   const [emojiAnchor, setEmojiAnchor] = useState<DOMRect | null>(null);
   const myUserId = client.getUserId() ?? "";
 
-  // textarea auto-grow: 내용에 따라 높이를 1줄~최대(MAX_INPUT_PX)까지. 최대를
-  // 넘으면 그때만 내부 스크롤을 켠다. overflow를 항상 auto로 두면 sub-pixel
-  // 반올림 때문에 한 줄에서도 스크롤바가 떠서, 최대 도달 전엔 hidden으로 막는다.
-  // draft가 바뀔 때마다(전송으로 비워질 때 포함) 재계산.
+  // textarea auto-grow: 내용에 따라 높이를 1줄~최대(MAX_INPUT_PX)까지.
+  // 1순위는 CSS field-sizing:content(아래 className) — JS로 height="auto" 리셋해
+  // scrollHeight를 재는 방식은 매 입력마다 textarea를 잠깐 collapse→restore로
+  // 출렁여, 그 출렁임이 타임라인 뷰포트를 흔들어 virtua onScroll이 stick을
+  // 풀어버린다(→ 입력 중 자동 바닥추적이 끊기고 전송 후에도 안 내려감). CSS가
+  // 처리하면 출렁임이 없다. 미지원 브라우저에서만 JS 측정으로 폴백.
   // biome-ignore lint/correctness/useExhaustiveDependencies: draft 변화로 재측정
   useEffect(() => {
     const el = textInputRef.current;
     if (!el) return;
+    if (CSS.supports("field-sizing", "content")) return; // CSS가 처리
     el.style.height = "auto"; // 줄어들 때도 정확히 재측정하려면 먼저 리셋
     const needed = el.scrollHeight;
     el.style.height = `${Math.min(needed, MAX_INPUT_PX)}px`;
@@ -263,8 +266,8 @@ export function MessageInput({
         <textarea
           ref={textInputRef}
           rows={1}
-          className="min-h-12 min-w-0 flex-1 resize-none overflow-y-hidden bg-transparent px-1 py-3 text-[15px] text-fg-0 leading-6 outline-none placeholder:text-fg-3"
-          style={{ maxHeight: MAX_INPUT_PX }}
+          className="min-h-12 min-w-0 flex-1 resize-none overflow-y-auto bg-transparent px-1 py-3 text-[15px] text-fg-0 leading-6 outline-none placeholder:text-fg-3"
+          style={{ maxHeight: MAX_INPUT_PX, fieldSizing: "content" }}
           value={draft}
           onChange={(e) => onDraftChange(e.target.value)}
           onKeyDown={(e) => {
