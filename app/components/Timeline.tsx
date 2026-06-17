@@ -99,6 +99,9 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
     const initialDoneRef = useRef(false);
     // append 추적용: 직전 마지막 행 key (끝이 바뀌었는지 판단).
     const prevLastKeyRef = useRef<string | null>(null);
+    // 프로그램적 바닥 스크롤 중 플래그 — 바닥으로 미는 과정의 onScroll이
+    // stick=false로 오판해 바닥 추적이 영구 차단되는 걸 막는다.
+    const programmaticRef = useRef(false);
     // prepend 감지를 데이터로 한다 — flag(ref) 방식은 async loadOlder + 중간
     // loadingOlder 렌더를 못 버티고 useLayoutEffect 리셋에 죽어서 shift가 누락,
     // 로드된 높이만큼 위치가 어긋났다(과거 로드 시 그만큼 더 스크롤되던 버그).
@@ -206,7 +209,18 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
           stickToBottomRef.current &&
           rows.length > 0
         ) {
-          vRef.current?.scrollToIndex(rows.length - 1, { align: "end" });
+          // virtua scrollToIndex(last,"end")는 뷰포트 축소 직후 정확히 바닥에
+          // 안 닿고, rAF로 미루면 virtua가 자기 위치로 되돌려 안 먹는다(실측).
+          // RO 콜백에서 즉시 DOM 스크롤을 바닥으로 밀고, 그 과정의 onScroll이
+          // stick을 오판하지 않게 programmaticRef로 가드한다.
+          const el = scrollRef.current;
+          if (el) {
+            programmaticRef.current = true;
+            el.scrollTop = el.scrollHeight;
+            requestAnimationFrame(() => {
+              programmaticRef.current = false;
+            });
+          }
         }
       };
       const ro = new ResizeObserver(() => {
@@ -248,6 +262,9 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
         // 초기 측정 전(viewportSize=0)이거나 초기 정렬 완료 전이면 트리거 금지 —
         // 측정 전 onScroll(offset≈0)이 loadOlder를 연쇄 발화하는 폭주 차단.
         if (handle.viewportSize === 0 || !initialDoneRef.current) return;
+        // 프로그램적 바닥 스크롤(stickIfNeeded) 중엔 stick 재계산 금지 — 바닥으로
+        // 미는 과정의 onScroll이 stick=false로 오판하면 추적이 영구 차단된다.
+        if (programmaticRef.current) return;
         // 바닥 근처 여부 추적 (append 추적 판단의 소스). 공식 Chat 예제 공식.
         stickToBottomRef.current =
           offset - handle.scrollSize + handle.viewportSize >= -1.5;
