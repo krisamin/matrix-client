@@ -292,7 +292,7 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
             EventLine 내부가 책임진다(헤더=넓게, 같은 유저 연속=좁게). */}
         <div
           ref={scrollRef}
-          className="flex flex-1 flex-col overflow-y-auto py-3"
+          className="flex min-h-0 flex-1 flex-col overflow-y-auto py-3"
           style={{ overflowAnchor: "none" }}
         >
           {/* spacer: 메시지가 뷰포트보다 적을 때 아래로 정렬 */}
