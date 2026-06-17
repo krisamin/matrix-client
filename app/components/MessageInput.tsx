@@ -1,12 +1,15 @@
 import { Paperclip, SendHorizontal, SmilePlus, X } from "lucide-react";
 import type { MatrixClient, MatrixEvent, Room } from "matrix-js-sdk";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { uploadAndSendFile } from "../lib/media";
 import { type Mention, searchMembers } from "../lib/mention";
 import { quotePreview } from "../lib/reply";
 import { useSendTyping, useTypingMembers } from "../lib/typing";
 import { Avatar } from "./Avatar";
 import { EmojiPicker } from "./EmojiPicker";
+
+/** 입력창 최대 높이(px). 이 높이를 넘으면 textarea 내부 스크롤. */
+const MAX_INPUT_PX = 200;
 
 /** 메시지 입력창 — 룸/스레드 100% 동일 (005 디자인).
  *  타이핑 표시(수신/발신), 파일 첨부(버튼/붙여넣기), 답장 인용,
@@ -39,7 +42,7 @@ export function MessageInput({
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const textInputRef = useRef<HTMLInputElement>(null);
+  const textInputRef = useRef<HTMLTextAreaElement>(null);
   const typingNames = useTypingMembers(client, room);
   const { notifyTyping, clearTyping } = useSendTyping(client, room.roomId);
   // 멘션: 자동완성 상태 + 본문에 삽입된 멘션 누적 (전송 시 content 빌드용)
@@ -49,6 +52,16 @@ export function MessageInput({
   // 이모지 피커 (버튼 rect 앵커, null = 닫힘)
   const [emojiAnchor, setEmojiAnchor] = useState<DOMRect | null>(null);
   const myUserId = client.getUserId() ?? "";
+
+  // textarea auto-grow: 내용에 따라 높이를 1줄~최대(MAX_INPUT_PX)까지. 최대를
+  // 넘으면 내부 스크롤. draft가 바뀔 때마다(전송으로 비워질 때 포함) 재계산.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: draft 변화로 재측정
+  useEffect(() => {
+    const el = textInputRef.current;
+    if (!el) return;
+    el.style.height = "auto"; // 줄어들 때도 정확히 재측정하려면 먼저 리셋
+    el.style.height = `${Math.min(el.scrollHeight, MAX_INPUT_PX)}px`;
+  }, [draft]);
 
   const candidates =
     mentionQuery != null ? searchMembers(room, mentionQuery, myUserId) : [];
@@ -223,9 +236,10 @@ export function MessageInput({
         </div>
       )}
 
-      {/* 입력 바: 헤더와 대칭 — 보더탑 + 좌우 꽉 참, 높이 48px */}
+      {/* 입력 바: 헤더와 대칭 — 보더탑 + 좌우 꽉 참. 멀티라인이라 items-end로
+          버튼은 아래 정렬, textarea만 위로 자란다. */}
       <form
-        className="flex min-h-12 items-center gap-1 border-t border-line bg-bg-1 px-3 transition-colors focus-within:bg-bg-2"
+        className="flex min-h-12 items-end gap-1 border-t border-line bg-bg-1 px-3 py-1.5 transition-colors focus-within:bg-bg-2"
         onSubmit={(e) => {
           e.preventDefault();
           send();
@@ -243,34 +257,52 @@ export function MessageInput({
         />
         <button
           type="button"
-          className="rounded-md p-2 text-fg-2 hover:bg-bg-2 hover:text-fg-0 disabled:opacity-50"
+          className="shrink-0 rounded-md p-2 text-fg-2 hover:bg-bg-2 hover:text-fg-0 disabled:opacity-50"
           disabled={!!uploading}
           onClick={() => fileInputRef.current?.click()}
           title="파일 첨부"
         >
           <Paperclip className="h-[15px] w-[15px]" />
         </button>
-        <input
+        <textarea
           ref={textInputRef}
-          className="min-w-0 flex-1 bg-transparent px-1 py-2 text-fg-0 outline-none placeholder:text-fg-3"
+          rows={1}
+          className="min-w-0 flex-1 resize-none overflow-y-auto bg-transparent px-1 py-2 text-fg-0 leading-snug outline-none placeholder:text-fg-3"
+          style={{ maxHeight: MAX_INPUT_PX }}
           value={draft}
           onChange={(e) => onDraftChange(e.target.value)}
           onKeyDown={(e) => {
-            if (candidates.length === 0) return;
-            if (e.key === "ArrowDown") {
+            // 멘션 자동완성이 열려 있으면 그 키 조작 우선 (↑↓/Tab/Enter/Esc)
+            if (candidates.length > 0) {
+              if (e.key === "ArrowDown") {
+                e.preventDefault();
+                setMentionIndex((i) => (i + 1) % candidates.length);
+                return;
+              }
+              if (e.key === "ArrowUp") {
+                e.preventDefault();
+                setMentionIndex(
+                  (i) => (i - 1 + candidates.length) % candidates.length,
+                );
+                return;
+              }
+              if (e.key === "Enter" || e.key === "Tab") {
+                // 자동완성 선택 (단, Cmd/Ctrl+Enter는 전송으로 빠지게 둠)
+                if (e.key === "Tab" || !(e.metaKey || e.ctrlKey)) {
+                  e.preventDefault();
+                  const m = candidates[mentionIndex];
+                  if (m) pickMention(m.name, m.userId);
+                  return;
+                }
+              } else if (e.key === "Escape") {
+                setMentionQuery(null);
+                return;
+              }
+            }
+            // Cmd/Ctrl + Enter = 전송. 그냥 Enter = 줄바꿈(기본 동작 유지).
+            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
               e.preventDefault();
-              setMentionIndex((i) => (i + 1) % candidates.length);
-            } else if (e.key === "ArrowUp") {
-              e.preventDefault();
-              setMentionIndex(
-                (i) => (i - 1 + candidates.length) % candidates.length,
-              );
-            } else if (e.key === "Enter" || e.key === "Tab") {
-              e.preventDefault();
-              const m = candidates[mentionIndex];
-              if (m) pickMention(m.name, m.userId);
-            } else if (e.key === "Escape") {
-              setMentionQuery(null);
+              send();
             }
           }}
           onPaste={(e) => {
@@ -284,7 +316,7 @@ export function MessageInput({
         />
         <button
           type="button"
-          className="rounded-md p-2 text-fg-2 hover:bg-bg-2 hover:text-fg-0"
+          className="shrink-0 rounded-md p-2 text-fg-2 hover:bg-bg-2 hover:text-fg-0"
           title="이모지"
           onClick={(e) => {
             // rect는 핸들러 안에서 즉시 읽기 — setState 콜백 시점엔 currentTarget이 null
@@ -296,9 +328,9 @@ export function MessageInput({
         </button>
         <button
           type="submit"
-          className="rounded-md p-2 text-fg-2 hover:bg-bg-2 hover:text-fg-0 disabled:opacity-50"
+          className="shrink-0 rounded-md p-2 text-fg-2 hover:bg-bg-2 hover:text-fg-0 disabled:opacity-50"
           disabled={sending || !draft.trim()}
-          title="전송"
+          title="전송 (⌘/Ctrl + Enter)"
         >
           <SendHorizontal className="h-[15px] w-[15px]" />
         </button>
