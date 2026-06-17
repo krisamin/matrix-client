@@ -132,6 +132,33 @@ function detectLanguage(codeEl: Element): string | null {
   return null;
 }
 
+/** 살균+하이라이트 결과 모듈 캐시.
+ *  가상 스크롤에서 행이 뷰포트를 들락날락하면 MessageBody가 mount/unmount를
+ *  반복한다. useMemo는 unmount 시 캐시가 날아가므로, 재마운트마다 무거운
+ *  DOMPurify.sanitize + highlightHtml(hljs)이 재실행돼 스크롤이 버벅인다.
+ *  결과를 컴포넌트 밖(모듈 레벨) Map에 보관해 재마운트 시 즉시 히트시킨다.
+ *  키 = 이벤트 id + 내용 길이 (수정/복호화로 내용이 바뀌면 키가 달라져 갱신).
+ *  LRU 비슷하게 상한을 두고 오래된 항목부터 버린다. */
+const htmlCache = new Map<string, string>();
+const HTML_CACHE_MAX = 600;
+
+function getCachedHtml(key: string, build: () => string): string {
+  const hit = htmlCache.get(key);
+  if (hit !== undefined) {
+    // 최근 사용으로 끌어올림 (Map은 삽입 순서 유지 → 재삽입으로 LRU 근사)
+    htmlCache.delete(key);
+    htmlCache.set(key, hit);
+    return hit;
+  }
+  const built = build();
+  htmlCache.set(key, built);
+  if (htmlCache.size > HTML_CACHE_MAX) {
+    const oldest = htmlCache.keys().next().value;
+    if (oldest !== undefined) htmlCache.delete(oldest);
+  }
+  return built;
+}
+
 /** 살균된 HTML 안의 모든 <pre><code>를 구문 강조하고 복사 버튼을 단다.
  *  — 핵심: 하이라이트를 "문자열 단계"에서 끝내서 렌더 시 innerHTML 단 1회 세팅.
  *    예전엔 useEffect에서 highlightElement로 DOM을 후처리해서, 수정(m.replace)/
@@ -249,27 +276,34 @@ export function MessageBody({
   const evType = ev.getType();
   // biome-ignore lint/correctness/useExhaustiveDependencies: content 객체 대신 문자열 키로 메모 (성능)
   const html = useMemo(() => {
-    const useHtml =
-      content.format === "org.matrix.custom.html" &&
-      typeof content.formatted_body === "string";
-    // 답장 메시지의 평문 fallback 인용부는 ReplyQuote가 따로 그리므로 제거
-    const isReply = getReplyToId(ev) != null;
-    const plainBody = isReply
-      ? stripPlainReplyFallback(content.body ?? "")
-      : (content.body ?? "");
-    const raw = useHtml
-      ? stripInterTagNewlines(
-          convertMxcUrls(client, stripMxReply(content.formatted_body)),
-        )
-      : linkifyPlain(plainBody);
-    const clean = DOMPurify.sanitize(raw, {
-      ALLOWED_TAGS,
-      ALLOWED_ATTR,
-      // href는 http/https/mailto/matrix.to만
-      ALLOWED_URI_REGEXP: /^(?:https?|mailto|magnet):|^#|^matrix:/i,
+    // 모듈 캐시 키: 이벤트 id + 내용 길이 (수정/복호화로 내용 바뀌면 갱신).
+    // 재마운트(가상 스크롤 in/out) 시 useMemo는 날아가지만 이 캐시는 살아남음.
+    const cacheKey = `${ev.getId() ?? "?"}:${(body ?? "").length}:${
+      (formattedBody ?? "").length
+    }`;
+    return getCachedHtml(cacheKey, () => {
+      const useHtml =
+        content.format === "org.matrix.custom.html" &&
+        typeof content.formatted_body === "string";
+      // 답장 메시지의 평문 fallback 인용부는 ReplyQuote가 따로 그리므로 제거
+      const isReply = getReplyToId(ev) != null;
+      const plainBody = isReply
+        ? stripPlainReplyFallback(content.body ?? "")
+        : (content.body ?? "");
+      const raw = useHtml
+        ? stripInterTagNewlines(
+            convertMxcUrls(client, stripMxReply(content.formatted_body)),
+          )
+        : linkifyPlain(plainBody);
+      const clean = DOMPurify.sanitize(raw, {
+        ALLOWED_TAGS,
+        ALLOWED_ATTR,
+        // href는 http/https/mailto/matrix.to만
+        ALLOWED_URI_REGEXP: /^(?:https?|mailto|magnet):|^#|^matrix:/i,
+      });
+      // 구문 강조 + 복사 버튼을 문자열 단계에서 완성 (렌더 시 1회 세팅 → 깜빡임 0)
+      return highlightHtml(clean);
     });
-    // 구문 강조 + 복사 버튼을 문자열 단계에서 완성 (렌더 시 1회 세팅 → 깜빡임 0)
-    return highlightHtml(clean);
   }, [client, ev, body, formattedBody, evType]);
 
   // 수정(m.replace) 시 타이핑 reveal (렌더 후 DOM에 적용) — 하이라이트는

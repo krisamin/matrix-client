@@ -5,7 +5,7 @@ import {
   type MatrixEvent,
   type Room,
 } from "matrix-js-sdk";
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   Outlet,
   useNavigate,
@@ -74,6 +74,35 @@ export default function RoomView() {
 
   const threadFull = threadId != null && searchParams.get("full") === "1";
 
+  /** 인용 박스 클릭 → 원문으로 스크롤 + 잠깐 강조.
+   *  로드된 범위에 없으면 과거를 더 불러오며 시도 (최대 5페이지).
+   *  가상 스크롤이라 DOM 유무와 무관하게 인덱스 기반(timelineRef)으로 스크롤.
+   *  useCallback: EventLine memo가 깨지지 않도록 안정 참조 유지.
+   *  (훅 규칙 — 아래 `if (!room)` 조기 반환보다 위에 있어야 함) */
+  const jumpTo = useCallback(
+    async (eventId: string) => {
+      for (let i = 0; i < 5; i++) {
+        if (timelineRef.current?.scrollToEvent(eventId)) {
+          setHighlightId(eventId);
+          setTimeout(() => setHighlightId(null), 1600);
+          return;
+        }
+        if (!hasMore) break;
+        await loadOlder();
+      }
+    },
+    [hasMore, loadOlder],
+  );
+
+  const openThread = useCallback(
+    (rootId: string) => {
+      navigate(
+        `/room/${encodeURIComponent(roomId!)}/thread/${encodeURIComponent(rootId)}`,
+      );
+    },
+    [navigate, roomId],
+  );
+
   if (!room) {
     return (
       <div className="flex flex-1 items-center justify-center">
@@ -111,27 +140,6 @@ export default function RoomView() {
     } else {
       await client.sendTextMessage(roomId!, text);
     }
-  }
-
-  /** 인용 박스 클릭 → 원문으로 스크롤 + 잠깐 강조.
-   *  로드된 범위에 없으면 과거를 더 불러오며 시도 (최대 5페이지).
-   *  가상 스크롤이라 DOM 유무와 무관하게 인덱스 기반(timelineRef)으로 스크롤. */
-  async function jumpTo(eventId: string) {
-    for (let i = 0; i < 5; i++) {
-      if (timelineRef.current?.scrollToEvent(eventId)) {
-        setHighlightId(eventId);
-        setTimeout(() => setHighlightId(null), 1600);
-        return;
-      }
-      if (!hasMore) break;
-      await loadOlder();
-    }
-  }
-
-  function openThread(rootId: string) {
-    navigate(
-      `/room/${encodeURIComponent(roomId!)}/thread/${encodeURIComponent(rootId)}`,
-    );
   }
 
   return (

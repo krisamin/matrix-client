@@ -15,7 +15,7 @@ import {
   RelationType,
   type Room,
 } from "matrix-js-sdk";
-import { useState } from "react";
+import { memo, useState } from "react";
 import { mentionsUser } from "../lib/mention";
 import { quotePreview, thumbnailSource } from "../lib/reply";
 import { MEDIA_MSGTYPES } from "../lib/timeline";
@@ -41,7 +41,7 @@ function formatTime(ts: number): string {
  *  - 그룹 첫 줄만 발신자/시각 헤더 표시 (showHeader)
  *  - hover 시 우상단 플로팅 액션 툴바 (리액션/답장/스레드/수정/삭제)
  *  - 본문(텍스트/미디어) + 리액션 칩 + 스레드 링크 */
-export function EventLine({
+const EventLineInner = function EventLine({
   ev,
   myUserId,
   client,
@@ -458,4 +458,11 @@ export function EventLine({
       <ReadReceipts client={client} room={room} ev={ev} myUserId={myUserId} />
     </li>
   );
-}
+};
+
+/** memo로 감싸 가상 스크롤 재렌더를 차단한다. 과거 로드 등으로 events 배열이
+ *  통째로 교체돼도, 개별 행의 props(ev 참조/showHeader/highlighted 등)가
+ *  안 바뀐 행은 재렌더를 건너뛴다 → 보이는 행들의 불필요한 리렌더 방지.
+ *  ev는 SDK가 같은 MatrixEvent 인스턴스를 재사용하므로 참조 비교가 유효하다.
+ *  (내용 변화는 Decrypted/Replaced 리스너가 별도 refresh로 처리) */
+export const EventLine = memo(EventLineInner);
