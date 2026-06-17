@@ -89,10 +89,12 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
     ref,
   ) {
     const scrollRef = useRef<HTMLDivElement>(null);
-    // prepend(과거 로드) 위치 보존: 로드 "시작" 시점의 바닥 기준 거리를 박아둔다.
-    // delta 누적이 아니라 절대 거리라, 로드~보정 사이에 다른 리렌더(복호화/
-    // 이미지 로드 등)가 끼어도 어긋나지 않는다. null = 보정 대기 없음.
-    const pendingPrependRef = useRef<number | null>(null);
+    // prepend(과거 로드) 위치 보존: 로드 시작 직전의 scrollHeight를 박아둔다.
+    // 보정은 "현재 scrollTop + 늘어난 높이(delta)"로 순수 증분만 적용 →
+    // 로드 중 사용자가 더 스크롤했어도 그 위치 기준으로 새로 쌓인 만큼만
+    // 밀린다(절대 위치 복원은 사용자의 중간 스크롤을 무시해 튄다).
+    // null = 보정 대기 없음.
+    const prependFromHeightRef = useRef<number | null>(null);
     const prevLenRef = useRef(0);
     // 직전 렌더 시점에 바닥 근처였는지 (append 추적 판단용)
     const wasNearBottomRef = useRef(true);
@@ -137,13 +139,13 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
       const prevLen = prevLenRef.current;
       const grew = rows.length > prevLen;
 
-      // 1) prepend 보정 대기 중이면 최우선 — 로드 시작 시점의 바닥 기준 거리를
-      //    복원한다. scrollTop = (전체높이 - 뷰포트) - 저장된 바닥거리.
-      //    delta 누적이 아니라 절대 위치라 중간 리렌더와 무관하게 정확.
-      if (pendingPrependRef.current != null && grew) {
-        const dist = pendingPrependRef.current;
-        pendingPrependRef.current = null;
-        el.scrollTop = el.scrollHeight - el.clientHeight - dist;
+      // 1) prepend 보정 대기 중이면 최우선 — 늘어난 높이(delta)만큼만 현재
+      //    scrollTop에 더한다. 절대 위치 복원이 아니라 순수 증분이라, 로드 중
+      //    사용자가 더 스크롤했어도 그 위치 기준으로 위에 쌓인 만큼만 밀린다.
+      if (prependFromHeightRef.current != null && grew) {
+        const delta = el.scrollHeight - prependFromHeightRef.current;
+        prependFromHeightRef.current = null;
+        if (delta > 0) el.scrollTop += delta;
       }
       // 2) 초기 진입: 맨 아래로 (1회)
       else if (!didInitialScrollRef.current && rows.length > 0) {
@@ -164,7 +166,7 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
     // biome-ignore lint/correctness/useExhaustiveDependencies: room.roomId 변화로 리셋
     useEffect(() => {
       didInitialScrollRef.current = false;
-      pendingPrependRef.current = null;
+      prependFromHeightRef.current = null;
       prevLenRef.current = 0;
       wasNearBottomRef.current = true;
     }, [room.roomId]);
@@ -191,12 +193,11 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
       // 바닥 근처 여부를 매 스크롤마다 추적 (append 추적 판단의 소스)
       wasNearBottomRef.current =
         el.scrollHeight - el.scrollTop - el.clientHeight < NEAR_BOTTOM_PX;
-      // 위로 충분히 올라오면 과거 로드. 로드 "시작" 시점의 바닥 기준 거리를
-      // 박아둬서, 로드 완료 후 useLayoutEffect가 그 위치를 정확히 복원한다.
+      // 위로 충분히 올라오면 과거 로드. 로드 시작 직전의 scrollHeight를 박아둬서,
+      // 로드 완료 후 useLayoutEffect가 늘어난 높이(delta)만큼만 더해 위치 보존.
       if (el.scrollTop < LOAD_TRIGGER_PX && !loadingOlder && hasMore) {
-        if (pendingPrependRef.current == null)
-          pendingPrependRef.current =
-            el.scrollHeight - el.scrollTop - el.clientHeight;
+        if (prependFromHeightRef.current == null)
+          prependFromHeightRef.current = el.scrollHeight;
         void loadOlder();
       }
     }, [loadingOlder, hasMore, loadOlder]);
