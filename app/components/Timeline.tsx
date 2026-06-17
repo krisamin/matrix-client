@@ -89,12 +89,12 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
     ref,
   ) {
     const scrollRef = useRef<HTMLDivElement>(null);
-    // prepend(과거 로드) 위치 보존: 로드 시작 직전의 scrollHeight를 박아둔다.
-    // 보정은 "현재 scrollTop + 늘어난 높이(delta)"로 순수 증분만 적용 →
-    // 로드 중 사용자가 더 스크롤했어도 그 위치 기준으로 새로 쌓인 만큼만
-    // 밀린다(절대 위치 복원은 사용자의 중간 스크롤을 무시해 튄다).
-    // null = 보정 대기 없음.
-    const prependFromHeightRef = useRef<number | null>(null);
+    // prepend(과거 로드) 위치 보존: 높이 차이(delta)는 로드 전후 사이에
+    // 이미지 로드/복호화로 높이가 또 바뀌면 어긋난다. 대신 "앵커 엘리먼트"를
+    // 쓴다 — 로드 직전 뷰포트 최상단에 걸친 실제 메시지 노드와 그 화면상
+    // 위치(컨테이너 기준 top)를 기억해뒀다가, 로드 후 그 노드가 같은 자리에
+    // 오도록 scrollTop을 맞춘다. 노드 자체가 기준점이라 높이 변화에 안 흔들림.
+    const anchorRef = useRef<{ id: string; top: number } | null>(null);
     const prevLenRef = useRef(0);
     // 직전 렌더 시점에 바닥 근처였는지 (append 추적 판단용)
     const wasNearBottomRef = useRef(true);
@@ -139,13 +139,29 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
       const prevLen = prevLenRef.current;
       const grew = rows.length > prevLen;
 
-      // 1) prepend 보정 대기 중이면 최우선 — 늘어난 높이(delta)만큼만 현재
-      //    scrollTop에 더한다. 절대 위치 복원이 아니라 순수 증분이라, 로드 중
-      //    사용자가 더 스크롤했어도 그 위치 기준으로 위에 쌓인 만큼만 밀린다.
-      if (prependFromHeightRef.current != null && grew) {
-        const delta = el.scrollHeight - prependFromHeightRef.current;
-        prependFromHeightRef.current = null;
-        if (delta > 0) el.scrollTop += delta;
+      // 1) prepend 보정 대기 중이면 최우선 — 저장해둔 앵커 노드가 로드 후
+      //    화면에서 움직인 만큼 scrollTop을 보정해 제자리로 되돌린다.
+      //    높이 차이가 아니라 실제 노드 위치 기준이라 이미지/복호화 높이
+      //    변화에 흔들리지 않는다.
+      if (anchorRef.current != null && grew) {
+        const a = anchorRef.current;
+        anchorRef.current = null;
+        const anchorEl = el.querySelector(`#${CSS.escape(a.id)}`);
+        if (anchorEl) {
+          const cTop = el.getBoundingClientRect().top;
+          const nowTop = anchorEl.getBoundingClientRect().top - cTop;
+          const shift = nowTop - a.top;
+          if (shift !== 0) el.scrollTop += shift;
+          if (
+            typeof window !== "undefined" &&
+            localStorage.getItem("tlDebug") === "1"
+          ) {
+            // biome-ignore lint/suspicious/noConsole: 임시 계측
+            console.log(
+              `[anchor] id=${a.id} savedTop=${a.top.toFixed(0)} nowTop=${nowTop.toFixed(0)} shift=${shift.toFixed(0)} → scrollTop=${el.scrollTop.toFixed(0)}`,
+            );
+          }
+        }
       }
       // 2) 초기 진입: 맨 아래로 (1회)
       else if (!didInitialScrollRef.current && rows.length > 0) {
@@ -166,7 +182,7 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
     // biome-ignore lint/correctness/useExhaustiveDependencies: room.roomId 변화로 리셋
     useEffect(() => {
       didInitialScrollRef.current = false;
-      prependFromHeightRef.current = null;
+      anchorRef.current = null;
       prevLenRef.current = 0;
       wasNearBottomRef.current = true;
     }, [room.roomId]);
@@ -193,11 +209,22 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
       // 바닥 근처 여부를 매 스크롤마다 추적 (append 추적 판단의 소스)
       wasNearBottomRef.current =
         el.scrollHeight - el.scrollTop - el.clientHeight < NEAR_BOTTOM_PX;
-      // 위로 충분히 올라오면 과거 로드. 로드 시작 직전의 scrollHeight를 박아둬서,
-      // 로드 완료 후 useLayoutEffect가 늘어난 높이(delta)만큼만 더해 위치 보존.
+      // 위로 충분히 올라오면 과거 로드. 로드 직전, 뷰포트 최상단에 걸친 실제
+      // 메시지 노드를 앵커로 저장(id + 컨테이너 기준 화면 top). 로드 후
+      // useLayoutEffect가 이 노드를 같은 자리로 되돌린다.
       if (el.scrollTop < LOAD_TRIGGER_PX && !loadingOlder && hasMore) {
-        if (prependFromHeightRef.current == null)
-          prependFromHeightRef.current = el.scrollHeight;
+        if (anchorRef.current == null) {
+          const cTop = el.getBoundingClientRect().top;
+          // id가 ev-로 시작하는 메시지 노드 중 화면 안(top >= 0)에 들어온 첫 것
+          const nodes = el.querySelectorAll<HTMLElement>('[id^="ev-"]');
+          for (const node of nodes) {
+            const top = node.getBoundingClientRect().top - cTop;
+            if (top >= 0) {
+              if (node.id) anchorRef.current = { id: node.id, top };
+              break;
+            }
+          }
+        }
         void loadOlder();
       }
     }, [loadingOlder, hasMore, loadOlder]);
