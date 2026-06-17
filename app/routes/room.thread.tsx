@@ -12,7 +12,7 @@ import { DropZone } from "../components/DropZone";
 import { MessageInput } from "../components/MessageInput";
 import { PaneHeader, PaneHeaderButton } from "../components/PaneHeader";
 import { SearchPane } from "../components/SearchPane";
-import { Timeline } from "../components/Timeline";
+import { Timeline, type TimelineHandle } from "../components/Timeline";
 import { useReadReceipt } from "../hooks/useRoomTimeline";
 import { useThreadTimeline } from "../hooks/useThreadTimeline";
 import { buildMentionContent, type Mention } from "../lib/mention";
@@ -40,6 +40,7 @@ export default function ThreadView() {
   useReadReceipt(client, events);
   const myUserId = client.getUserId() ?? "";
   const uploadRef = useRef<((files: File[]) => void) | null>(null);
+  const timelineRef = useRef<TimelineHandle>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [highlightId, setHighlightId] = useState<string | null>(null);
 
@@ -72,9 +73,7 @@ export default function ThreadView() {
    *  (로드 안 됐으면 과거 답글을 더 불러오며 시도, 최대 5페이지) */
   async function jumpTo(eventId: string) {
     for (let i = 0; i < 5; i++) {
-      const el = document.getElementById(`ev-${eventId}`);
-      if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      if (timelineRef.current?.scrollToEvent(eventId)) {
         setHighlightId(eventId);
         setTimeout(() => setHighlightId(null), 1600);
         return;
@@ -135,6 +134,7 @@ export default function ThreadView() {
           </div>
         ) : (
           <Timeline
+            ref={timelineRef}
             client={client}
             room={room}
             events={events}

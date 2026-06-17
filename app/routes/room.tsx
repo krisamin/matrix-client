@@ -19,7 +19,7 @@ import { MessageInput } from "../components/MessageInput";
 import { PaneHeader, PaneHeaderButton } from "../components/PaneHeader";
 import { RoomInfoPane } from "../components/RoomInfoPane";
 import { SearchPane } from "../components/SearchPane";
-import { Timeline } from "../components/Timeline";
+import { Timeline, type TimelineHandle } from "../components/Timeline";
 import {
   useReadReceipt,
   useRoomTimeline,
@@ -69,6 +69,8 @@ export default function RoomView() {
   const [sidePane, setSidePane] = useState<"search" | "info" | null>(null);
   // 드롭존 → MessageInput.sendFiles 브리지 (업로드 진행/에러 UI 재사용)
   const uploadRef = useRef<((files: File[]) => void) | null>(null);
+  // 가상 스크롤 타임라인 명령형 핸들 (점프용 — DOM 존재 무관 인덱스 스크롤)
+  const timelineRef = useRef<TimelineHandle>(null);
 
   const threadFull = threadId != null && searchParams.get("full") === "1";
 
@@ -112,12 +114,11 @@ export default function RoomView() {
   }
 
   /** 인용 박스 클릭 → 원문으로 스크롤 + 잠깐 강조.
-   *  로드된 범위에 없으면 과거를 더 불러오며 시도 (최대 5페이지) */
+   *  로드된 범위에 없으면 과거를 더 불러오며 시도 (최대 5페이지).
+   *  가상 스크롤이라 DOM 유무와 무관하게 인덱스 기반(timelineRef)으로 스크롤. */
   async function jumpTo(eventId: string) {
     for (let i = 0; i < 5; i++) {
-      const el = document.getElementById(`ev-${eventId}`);
-      if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      if (timelineRef.current?.scrollToEvent(eventId)) {
         setHighlightId(eventId);
         setTimeout(() => setHighlightId(null), 1600);
         return;
@@ -171,6 +172,7 @@ export default function RoomView() {
             )}
           </PaneHeader>
           <Timeline
+            ref={timelineRef}
             client={client}
             room={room}
             events={events}
