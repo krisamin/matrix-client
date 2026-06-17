@@ -34,7 +34,6 @@ export default function ScrollTest() {
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const vRef = useRef<VirtualizerHandle>(null);
-  const isPrependRef = useRef(false);
   const stickToBottomRef = useRef(true);
   // 초기 바닥 정렬: scheduled(중복 스케줄 방지) / done(onScroll 허용 시점).
   // rAF로 정렬이 끝난 뒤에 done=true → 그 전 onScroll의 loadOlder 폭주 차단.
@@ -43,16 +42,31 @@ export default function ScrollTest() {
   const prevLastKeyRef = useRef<number | null>(null);
   const loadingRef = useRef(false);
 
+  // prepend 감지를 데이터로 — flag(ref)는 async loadOlder + 중간 loading 렌더를
+  // 못 버티고 useLayoutEffect 리셋에 죽는다. 대신 "첫 key가 바뀌고 마지막 key는
+  // 그대로 + 길이 증가"면 이번 렌더가 prepend라고 렌더 중에 판정 → shift 켠다.
+  const prevFirstKeyRef = useRef<number | null>(null);
+  const prevLenRef = useRef(0);
+
   const addLog = useCallback((s: string) => {
     setLog((p) =>
       [`${new Date().toLocaleTimeString()} ${s}`, ...p].slice(0, 12),
     );
   }, []);
 
+  const firstKey = msgs.length > 0 ? msgs[0].id : null;
   const lastKey = msgs.length > 0 ? msgs[msgs.length - 1].id : null;
 
+  // 렌더 중 prepend 판정 (refs는 아래 useLayoutEffect에서 갱신)
+  const isPrepend =
+    msgs.length > prevLenRef.current &&
+    firstKey !== prevFirstKeyRef.current &&
+    lastKey === prevLastKeyRef.current;
+
+  // 렌더 반영 후 비교 기준 갱신
   useLayoutEffect(() => {
-    isPrependRef.current = false;
+    prevFirstKeyRef.current = firstKey;
+    prevLenRef.current = msgs.length;
   });
 
   useEffect(() => {
@@ -74,26 +88,41 @@ export default function ScrollTest() {
       });
       return;
     }
-    if (!isPrependRef.current && endChanged && stickToBottomRef.current) {
+    if (!isPrepend && endChanged && stickToBottomRef.current) {
       handle.scrollToIndex(lastIdx, { align: "end" });
       addLog(`append 바닥추적 → scrollToIndex(${lastIdx}, end)`);
-    } else if (isPrependRef.current) {
+    } else if (isPrepend) {
       addLog(`prepend (shift=true, virtua가 위치 유지)`);
     }
-  }, [msgs.length, lastKey, addLog]);
+  }, [msgs.length, lastKey, isPrepend, addLog]);
 
   const loadOlder = useCallback(() => {
     if (loadingRef.current) return;
     loadingRef.current = true;
     setLoadingOlder(true);
-    addLog("loadOlder 시작...");
-    // 네트워크 흉내 (300ms 지연)
+    addLog("loadOlder 시작... (실제앱 흐름: 재무장 없음)");
+    // 측정: prepend 직전 scrollTop/scrollHeight 기록
+    const sc = scrollRef.current;
+    const beforeTop = sc?.scrollTop ?? 0;
+    const beforeH = sc?.scrollHeight ?? 0;
+    // 네트워크 흉내 (300ms 지연) — 실제 앱처럼 isPrependRef 재무장 안 함.
+    // onScroll에서 한 번 켠 게 중간 loadingOlder 렌더에서 리셋되는지 본다.
     setTimeout(() => {
-      isPrependRef.current = true;
+      // 실제 앱은 여기서 isPrependRef를 다시 켜지 않는다 (부모가 events만 줌)
       setMsgs((p) => [...Array.from({ length: 20 }, makeMsg).reverse(), ...p]);
       loadingRef.current = false;
       setLoadingOlder(false);
-      addLog("loadOlder 완료 (20개 prepend)");
+      // prepend 반영 후 측정
+      requestAnimationFrame(() => {
+        const afterTop = sc?.scrollTop ?? 0;
+        const afterH = sc?.scrollHeight ?? 0;
+        const hGrew = afterH - beforeH;
+        const topGrew = afterTop - beforeTop;
+        addLog(
+          `prepend 완료 — heightGrew=${hGrew} scrollTopGrew=${topGrew} ` +
+            `${hGrew === topGrew ? "✓보존" : hGrew * 2 === topGrew ? "✗이중!" : "✗어긋남"}`,
+        );
+      });
     }, 300);
   }, [addLog]);
 
@@ -107,7 +136,6 @@ export default function ScrollTest() {
       stickToBottomRef.current =
         offset - handle.scrollSize + handle.viewportSize >= -1.5;
       if (offset < LOAD_TRIGGER_PX && !loadingRef.current) {
-        isPrependRef.current = true;
         loadOlder();
       }
     },
@@ -154,7 +182,7 @@ export default function ScrollTest() {
           <Virtualizer
             ref={vRef}
             scrollRef={scrollRef}
-            shift={isPrependRef.current}
+            shift={isPrepend}
             onScroll={onScroll}
           >
             {msgs.map((m) => (

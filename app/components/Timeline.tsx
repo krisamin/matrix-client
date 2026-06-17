@@ -60,10 +60,11 @@ const LOAD_TRIGGER_PX = 400;
 /** 타임라인 스크롤 영역 — 룸/스레드 100% 동일.
  *
  *  스크롤 위치 보존은 virtua가 전담한다(검증된 reverse-infinite-scroll):
- *   - prepend(과거 로드): 로드 직전 isPrependRef=true → Virtualizer shift prop이
- *     true가 되어 "끝 기준"으로 위치를 유지한다. 직접 scrollHeight/anchor를
- *     계산하던 로직은 전부 제거(엣지케이스에서 계속 어긋났음 — react-virtual은
- *     애초에 reverse scroll 미지원).
+ *   - prepend(과거 로드): 렌더 중 key 변화로 감지(첫 key 변경 + 마지막 key 유지
+ *     + 길이 증가) → 그 렌더에만 Virtualizer shift=true → "끝 기준"으로 위치 유지.
+ *     flag(ref) 방식은 async loadOlder + 중간 loadingOlder 렌더에서 리셋돼 shift가
+ *     누락→로드 높이만큼 위치가 어긋났음. 직접 scrollHeight/anchor 계산도 전부 제거
+ *     (엣지케이스에서 계속 어긋남 — react-virtual은 애초에 reverse scroll 미지원).
  *   - append(새 메시지): 직전 바닥 근처(shouldStickToBottom)였으면
  *     scrollToIndex(last, {align:"end"})로 바닥 추적.
  *   - 초기 진입: 맨 아래로.
@@ -90,9 +91,6 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
   ) {
     const scrollRef = useRef<HTMLDivElement>(null);
     const vRef = useRef<VirtualizerHandle>(null);
-    // prepend(과거 로드)가 진행 중인지 — true면 virtua가 끝 기준으로 위치 유지.
-    // 매 렌더 후 useLayoutEffect에서 false로 리셋(공식 Chat 예제 패턴).
-    const isPrependRef = useRef(false);
     // 직전에 바닥 근처였는지 — append 시 바닥 추적 판단의 소스.
     const stickToBottomRef = useRef(true);
     // 초기 바닥 정렬: scheduled(중복 스케줄 방지) / done(onScroll 허용 시점).
@@ -101,6 +99,13 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
     const initialDoneRef = useRef(false);
     // append 추적용: 직전 마지막 행 key (끝이 바뀌었는지 판단).
     const prevLastKeyRef = useRef<string | null>(null);
+    // prepend 감지를 데이터로 한다 — flag(ref) 방식은 async loadOlder + 중간
+    // loadingOlder 렌더를 못 버티고 useLayoutEffect 리셋에 죽어서 shift가 누락,
+    // 로드된 높이만큼 위치가 어긋났다(과거 로드 시 그만큼 더 스크롤되던 버그).
+    // 대신 "첫 key가 바뀌고 마지막 key는 그대로 + 길이 증가"면 이번 렌더가
+    // prepend라고 렌더 중에 판정 → shift를 정확한 그 렌더에만 켠다.
+    const prevFirstKeyRef = useRef<string | null>(null);
+    const prevLenRef = useRef(0);
 
     // 통합 행 배열 구성
     const rows = useMemo<Row[]>(() => {
@@ -131,11 +136,21 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
       return out;
     }, [events, topSlot, hasMore, unreadMarkerId]);
 
+    const firstKey = rows.length > 0 ? rows[0].key : null;
     const lastKey = rows.length > 0 ? rows[rows.length - 1].key : null;
 
-    // prepend 플래그는 렌더 반영 직후 해제 (공식 패턴). shift는 이번 렌더에만 적용.
+    // 렌더 중 prepend 판정: 첫 key가 바뀌고 + 마지막 key는 그대로 + 길이 증가.
+    // (refs는 아래 useLayoutEffect에서 이번 렌더 값으로 갱신)
+    const isPrepend =
+      rows.length > prevLenRef.current &&
+      firstKey !== prevFirstKeyRef.current &&
+      lastKey === prevLastKeyRef.current;
+
+    // 렌더 반영 후 prepend 비교 기준 갱신. (lastKey는 append 추적 effect에서
+    // 별도로 갱신하므로 여기선 first/len만.)
     useLayoutEffect(() => {
-      isPrependRef.current = false;
+      prevFirstKeyRef.current = firstKey;
+      prevLenRef.current = rows.length;
     });
 
     // 방이 바뀌면 상태 리셋
@@ -143,9 +158,10 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
     useEffect(() => {
       initialScheduledRef.current = false;
       initialDoneRef.current = false;
-      isPrependRef.current = false;
       stickToBottomRef.current = true;
       prevLastKeyRef.current = null;
+      prevFirstKeyRef.current = null;
+      prevLenRef.current = 0;
     }, [room.roomId]);
 
     // 행 변화 후 스크롤 처리: 초기 진입(맨 아래) / append 바닥 추적.
@@ -165,15 +181,11 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
           vRef.current?.scrollToIndex(lastIdx, { align: "end" });
           initialDoneRef.current = true;
         });
-      } else if (
-        !isPrependRef.current &&
-        endChanged &&
-        stickToBottomRef.current
-      ) {
+      } else if (!isPrepend && endChanged && stickToBottomRef.current) {
         // append(끝 바뀜) + 바닥 근처였으면 바닥 추적
         handle.scrollToIndex(lastIdx, { align: "end" });
       }
-    }, [rows.length, lastKey]);
+    }, [rows.length, lastKey, isPrepend]);
 
     // 부모(jumpTo)용: 인덱스 기반 스크롤 (가상화라 DOM에 없을 수 있어 인덱스로).
     useImperativeHandle(
@@ -201,10 +213,9 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
         // 바닥 근처 여부 추적 (append 추적 판단의 소스). 공식 Chat 예제 공식.
         stickToBottomRef.current =
           offset - handle.scrollSize + handle.viewportSize >= -1.5;
-        // 위로 충분히 올라오면 과거 로드. prepend 플래그를 켜면 다음 렌더의
-        // shift가 위치를 보존한다 → 직접 보정 불필요.
+        // 위로 충분히 올라오면 과거 로드. prepend는 다음 렌더에서 key 변화로
+        // 감지돼 shift가 자동으로 켜진다(flag 불필요 — async를 못 버텼음).
         if (offset < LOAD_TRIGGER_PX && !loadingOlder && hasMore) {
-          isPrependRef.current = true;
           void loadOlder();
         }
       },
@@ -234,7 +245,7 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
           <Virtualizer
             ref={vRef}
             scrollRef={scrollRef}
-            shift={isPrependRef.current}
+            shift={isPrepend}
             onScroll={onScroll}
           >
             {rows.map((row) => {
