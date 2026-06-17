@@ -37,6 +37,11 @@ function formatTime(ts: number): string {
   });
 }
 
+/** 등장 애니메이션을 이미 재생한 이벤트 id 집합 (모듈 레벨).
+ *  가상 스크롤에서 행이 재마운트될 때마다 msg-in이 재생되면 메시지가
+ *  떠오르며 잔상처럼 보인다. 한 이벤트당 최초 1회만 애니메이션하도록 기록. */
+const animatedOnce = new Set<string>();
+
 /** 메시지 한 줄 (플랫 로그 스타일, 005 디자인):
  *  - 그룹 첫 줄만 발신자/시각 헤더 표시 (showHeader)
  *  - hover 시 우상단 플로팅 액션 툴바 (리액션/답장/스레드/수정/삭제)
@@ -74,10 +79,15 @@ const EventLineInner = function EventLine({
   // 발신자 프로필 카드 (이름 클릭)
   const [profileAnchor, setProfileAnchor] = useState<DOMRect | null>(null);
   // 마운트 시점에 "방금 도착한" 이벤트(5초 이내 / local echo)만 등장 애니메이션.
-  // 과거 로드로 들어온 옛 메시지가 출렁이는 것 방지 (마운트 1회 판정 고정)
-  const [animateIn] = useState(
-    () => ev.status != null || Date.now() - ev.getTs() < 5000,
-  );
+  // 단 한 이벤트당 최초 1회만 — 가상 스크롤 재마운트 때마다 떠오르는 잔상 방지.
+  const [animateIn] = useState(() => {
+    const id = ev.getId();
+    const fresh = ev.status != null || Date.now() - ev.getTs() < 5000;
+    if (!fresh) return false;
+    if (id && animatedOnce.has(id)) return false; // 이미 재생함 → 재마운트
+    if (id) animatedOnce.add(id);
+    return true;
+  });
   const sender = ev.getSender() ?? "?";
   const senderName = ev.sender?.name ?? sender;
   const mine = sender === myUserId;
@@ -211,8 +221,8 @@ const EventLineInner = function EventLine({
   return (
     <li
       id={`ev-${ev.getId()}`}
-      className={`group relative px-5 py-0.5 transition-colors hover:bg-bg-2/60 ${
-        showHeader ? "mt-3" : ""
+      className={`group relative px-5 transition-colors hover:bg-bg-2/60 ${
+        showHeader ? "pt-3 pb-0.5" : "py-0.5"
       } ${highlighted ? "!bg-bg-3" : ""} ${animateIn ? "msg-in" : ""} ${
         mentioned
           ? "border-l-2 border-amber-400/70 bg-amber-400/[0.06] pl-[18px]"

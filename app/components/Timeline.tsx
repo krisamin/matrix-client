@@ -115,7 +115,13 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
     const virtualizer = useVirtualizer({
       count: rows.length,
       getScrollElement: () => scrollRef.current,
-      estimateSize: () => 60,
+      // 행 종류별 추정으로 초기 추정-실측 격차를 줄여 prepend 출렁임 완화.
+      // (헤더 있는 메시지 ~88, 이어지는 메시지 ~34, 구분선 ~36)
+      estimateSize: (i) => {
+        const r = rows[i];
+        if (r.kind !== "event") return 36;
+        return r.showHeader ? 88 : 34;
+      },
       getItemKey: (i) => rows[i].key,
       overscan: 8,
       // 채팅은 바닥 기준 — prepend 위치 보존 + append 바닥 추적을 빌트인 처리
@@ -217,6 +223,11 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
                   left: 0,
                   width: "100%",
                   transform: `translateY(${vi.start}px)`,
+                  // flow-root: 자식의 margin이 wrapper 밖으로 collapse돼
+                  // measureElement(getBoundingClientRect)에서 누락되는 것을
+                  // 차단. 측정 높이가 실제와 어긋나면 행이 겹치거나(잔상)
+                  // 측정 후 출렁이거나 빈 칸이 깜빡인다 — 그 원천을 막는다.
+                  display: "flow-root",
                 }}
               >
                 {renderRow(rows[vi.index])}
