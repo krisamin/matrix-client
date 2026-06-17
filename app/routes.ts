@@ -17,6 +17,4 @@ export default [
   route("login", "routes/login.tsx"),
   route("oidc/callback", "routes/oidc.callback.tsx"),
   route("verify", "routes/verify.tsx"),
-  // 인증 없는 스크롤 동작 테스트 (개발용 — virtua reverse scroll 검증)
-  route("_scrolltest", "routes/scrolltest.tsx"),
 ] satisfies RouteConfig;
