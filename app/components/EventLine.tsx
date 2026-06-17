@@ -24,6 +24,7 @@ import { MessageBody } from "./MessageBody";
 import { ReactionBar } from "./ReactionBar";
 import { ReadReceipts } from "./ReadReceipts";
 import { getReplyToId, ReplyQuote } from "./ReplyQuote";
+import { ToolCallChip } from "./ToolCallChip";
 import { UserProfileCard } from "./UserProfileCard";
 
 function formatTime(ts: number): string {
@@ -84,6 +85,12 @@ export function EventLine({
   const mentioned =
     !mine && mentionsUser(content as Record<string, unknown>, myUserId, myName);
   const replyToId = getReplyToId(ev);
+  // 게이트웨이가 tool-progress 버블에 단 마커 (m.notice + tool_progress 필드).
+  // 일반 채팅 대신 접힌 칩으로 렌더 — 삭제/복호화중/미디어는 제외.
+  const isToolProgress =
+    content.tool_progress === true &&
+    ev.getType() === EventType.RoomMessage &&
+    !ev.isRedacted();
   const thread = ev.isThreadRoot ? ev.getThread() : null;
   const threadLength = thread?.length ?? 0;
   const isMedia =
@@ -363,6 +370,8 @@ export function EventLine({
             </button>
           </span>
         </form>
+      ) : isToolProgress ? (
+        <ToolCallChip client={client} ev={ev} />
       ) : isMedia ? (
         <div
           className={`max-w-[640px] ${isPending || isFailed ? "opacity-60" : ""}`}
