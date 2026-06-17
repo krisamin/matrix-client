@@ -269,9 +269,18 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
         // 프로그램적 바닥 스크롤(stickIfNeeded) 중엔 stick 재계산 금지 — 바닥으로
         // 미는 과정의 onScroll이 stick=false로 오판하면 추적이 영구 차단된다.
         if (programmaticRef.current) return;
-        // 바닥 근처 여부 추적 (append 추적 판단의 소스). 공식 Chat 예제 공식.
-        stickToBottomRef.current =
-          offset - handle.scrollSize + handle.viewportSize >= -1.5;
+        // 바닥 근처 여부는 실제 DOM(scrollRef) 기준으로 판정한다.
+        // virtua가 넘기는 scrollSize/viewportSize는 리사이즈 직후 stale이라,
+        // 전송 시 입력창이 줄어 뷰포트가 커지는 순간 offset만 먼저 줄고
+        // viewportSize 갱신은 늦어 공식(offset-scrollSize+viewportSize)이
+        // "바닥 아님"으로 오판→stick이 죽고, 한 번 죽으면 RO 재정렬이 영영
+        // skip돼 전송해도 안 내려갔다(라인 한 번 바뀌면 안 되던 증상의 진짜 원인).
+        // DOM은 stale될 일이 없어 항상 정확하다.
+        const el = scrollRef.current;
+        if (el) {
+          const domDist = el.scrollHeight - el.scrollTop - el.clientHeight;
+          stickToBottomRef.current = domDist <= 2;
+        }
         // 위로 충분히 올라오면 과거 로드. prepend는 다음 렌더에서 key 변화로
         // 감지돼 shift가 자동으로 켜진다(flag 불필요 — async를 못 버텼음).
         if (offset < LOAD_TRIGGER_PX && !loadingOlder && hasMore) {
