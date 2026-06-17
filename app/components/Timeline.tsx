@@ -1,9 +1,10 @@
-import { useVirtualizer } from "@tanstack/react-virtual";
 import type { MatrixClient, MatrixEvent, Room } from "matrix-js-sdk";
 import {
   forwardRef,
   useCallback,
+  useEffect,
   useImperativeHandle,
+  useLayoutEffect,
   useMemo,
   useRef,
 } from "react";
@@ -11,16 +12,14 @@ import { groupTimeline } from "../lib/group";
 import { DateDivider, UnreadDivider } from "./DateDivider";
 import { EventLine } from "./EventLine";
 
-/** 부모(점프/검색)가 호출하는 명령형 핸들. 가상 스크롤에서는 안 보이는
- *  행이 DOM에 없으므로 getElementById 대신 인덱스 기반 스크롤이 필요하다. */
+/** 부모(점프/검색)가 호출하는 명령형 핸들. */
 export interface TimelineHandle {
   /** 로드된 범위에 해당 이벤트가 있으면 그 행으로 스크롤하고 true 반환 */
   scrollToEvent: (eventId: string) => boolean;
 }
 
-/** 가상 스크롤 행 — topSlot/시작구분선/이벤트를 한 배열로 통합해
- *  가상화 인덱스를 단순하게 유지한다. dateDivider/UnreadDivider는
- *  해당 이벤트 행 내부(위/아래)에 같이 렌더 → 1행 = 1 virtual item. */
+/** 렌더 행 — topSlot/시작구분선/이벤트를 한 배열로 통합. dateDivider/
+ *  UnreadDivider는 해당 이벤트 행 내부(위/아래)에 같이 렌더. */
 type Row =
   | { kind: "top"; key: string }
   | { kind: "start"; key: string }
@@ -54,16 +53,22 @@ interface TimelineProps {
   unreadMarkerId?: string | null;
 }
 
-/** 타임라인 스크롤 영역 — 룸/스레드 100% 동일. @tanstack/react-virtual로
- *  보이는 행만 렌더(수백 개여도 가벼움).
+/** 바닥 추적으로 간주하는 임계(px) — 이 안에 있으면 "바닥에 붙어있다" 판정 */
+const NEAR_BOTTOM_PX = 80;
+/** 위쪽 이 안으로 올라오면 과거 로드 (여유 있게 미리) */
+const LOAD_TRIGGER_PX = 400;
+
+/** 타임라인 스크롤 영역 — 룸/스레드 100% 동일.
  *
- *  스크롤 동작은 virtualizer의 `anchorTo: "end"`에 위임한다:
- *   - prepend(과거 로드): 현재 뷰포트 앵커 기준으로 scrollOffset을 자동
- *     보정 → 보던 위치 불변 (추정/측정 오차와 무관).
- *   - append(새 메시지): 바닥 근처(isAtEnd)이고 마지막 키가 바뀌었을 때만
- *     `followOnAppend`로 바닥 추적 → 부드럽게 따라감.
- *   - 제자리 갱신(복호화/수신/수정 — 끝 키 불변)은 edgeKeysChanged=false라
- *     스크롤을 건드리지 않음 → smooth 스크롤이 끊기던 문제 원천 해결. */
+ *  전통적 채팅 스크롤(Element/Discord류). 가상화를 쓰지 않는다 — 채팅은
+ *  수백 행 규모라 전부 렌더해도 가볍고, 가상화의 동적 높이 측정/위치
+ *  앵커링이 오히려 스크롤 위치를 튀게 만들었다(99030e9 회귀).
+ *
+ *  스크롤 위치 관리 3원칙:
+ *   1) prepend(과거 로드): 로드 직전 scrollHeight를 기억 → 로드 후 늘어난
+ *      만큼 scrollTop을 더해 보던 위치를 정확히 보존(측정/추정 오차 0).
+ *   2) append(새 메시지): 직전에 바닥 근처였으면 바닥으로 따라감.
+ *   3) 초기 진입: 맨 아래로. */
 export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
   function Timeline(
     {
@@ -84,6 +89,14 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
     ref,
   ) {
     const scrollRef = useRef<HTMLDivElement>(null);
+    // 스크롤 위치 보존을 위한 직전 스냅샷
+    const prevScrollHeightRef = useRef(0);
+    const prevFirstKeyRef = useRef<string | null>(null);
+    const prevLenRef = useRef(0);
+    // 직전 렌더 시점에 바닥 근처였는지 (append 추적 판단용)
+    const wasNearBottomRef = useRef(true);
+    // 초기 진입 후 1회 바닥 점프 완료 여부
+    const didInitialScrollRef = useRef(false);
 
     // 통합 행 배열 구성
     const rows = useMemo<Row[]>(() => {
@@ -114,86 +127,87 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
       return out;
     }, [events, topSlot, hasMore, unreadMarkerId]);
 
-    const virtualizer = useVirtualizer({
-      count: rows.length,
-      getScrollElement: () => scrollRef.current,
-      // 행 종류별 추정으로 초기 추정-실측 격차를 줄여 prepend 출렁임 완화.
-      // (헤더 있는 메시지 ~88, 이어지는 메시지 ~34, 구분선 ~36)
-      estimateSize: (i) => {
-        const r = rows[i];
-        if (r.kind !== "event") return 36;
-        return r.showHeader ? 88 : 34;
-      },
-      getItemKey: (i) => rows[i].key,
-      overscan: 8,
-      // 채팅은 바닥 기준 — prepend 위치 보존 + append 바닥 추적을 빌트인 처리
-      anchorTo: "end",
-      // 바닥 근처에서 새 메시지가 끝에 붙으면 부드럽게 따라감
-      followOnAppend: "smooth",
-      // 바닥 추적으로 간주하는 임계(px) — onScroll의 80px과 맞춤
-      scrollEndThreshold: 80,
-    });
+    // 첫 이벤트 행의 key (prepend 감지용 — 맨 앞에 새 행이 붙었는지)
+    const firstEventKey = useMemo(() => {
+      const r = rows.find((x) => x.kind === "event");
+      return r?.key ?? null;
+    }, [rows]);
 
-    // 부모(jumpTo)용: 인덱스 기반 스크롤 (DOM 존재 여부와 무관하게 동작)
+    // 렌더 직전(브라우저 페인트 전)에 스크롤 위치를 결정한다.
+    // useLayoutEffect라서 사용자는 중간 점프를 못 본다 → 출렁임 0.
+    useLayoutEffect(() => {
+      const el = scrollRef.current;
+      if (!el) return;
+
+      const prevLen = prevLenRef.current;
+      const prevFirstKey = prevFirstKeyRef.current;
+      const prevScrollHeight = prevScrollHeightRef.current;
+
+      // 1) 초기 진입: 맨 아래로 (1회)
+      if (!didInitialScrollRef.current && rows.length > 0) {
+        el.scrollTop = el.scrollHeight;
+        didInitialScrollRef.current = true;
+      }
+      // 2) prepend: 맨 앞 이벤트 key가 바뀌고 길이가 늘었으면 과거가 위에 붙은 것.
+      //    늘어난 높이만큼 scrollTop을 더해 보던 위치 고정.
+      else if (
+        firstEventKey != null &&
+        prevFirstKey != null &&
+        firstEventKey !== prevFirstKey &&
+        rows.length > prevLen
+      ) {
+        const delta = el.scrollHeight - prevScrollHeight;
+        if (delta > 0) el.scrollTop += delta;
+      }
+      // 3) append: 끝에 행이 붙었고 직전에 바닥 근처였으면 바닥 추적.
+      else if (rows.length > prevLen && wasNearBottomRef.current) {
+        el.scrollTop = el.scrollHeight;
+      }
+
+      // 스냅샷 갱신
+      prevScrollHeightRef.current = el.scrollHeight;
+      prevFirstKeyRef.current = firstEventKey;
+      prevLenRef.current = rows.length;
+      wasNearBottomRef.current =
+        el.scrollHeight - el.scrollTop - el.clientHeight < NEAR_BOTTOM_PX;
+    }, [rows.length, firstEventKey]);
+
+    // 방이 바뀌면 초기 스크롤/스냅샷 리셋
+    // biome-ignore lint/correctness/useExhaustiveDependencies: room.roomId 변화로 리셋
+    useEffect(() => {
+      didInitialScrollRef.current = false;
+      prevScrollHeightRef.current = 0;
+      prevFirstKeyRef.current = null;
+      prevLenRef.current = 0;
+      wasNearBottomRef.current = true;
+    }, [room.roomId]);
+
+    // 부모(jumpTo)용: DOM id 기반 스크롤. 전부 렌더되므로 보이는 범위면 즉시 동작.
     useImperativeHandle(
       ref,
       () => ({
         scrollToEvent: (eventId: string) => {
-          const idx = rows.findIndex(
-            (r) => r.kind === "event" && r.ev.getId() === eventId,
+          const el = scrollRef.current?.querySelector(
+            `#ev-${CSS.escape(eventId)}`,
           );
-          if (idx < 0) return false;
-          virtualizer.scrollToIndex(idx, { align: "center" });
+          if (!el) return false;
+          el.scrollIntoView({ block: "center" });
           return true;
         },
       }),
-      [rows, virtualizer],
+      [],
     );
 
-    function onScroll() {
+    const onScroll = useCallback(() => {
       const el = scrollRef.current;
       if (!el) return;
-      // 위쪽 400px 안으로 올라오면 과거 로드 (여유 있게 미리).
-      // 위치 보존은 virtualizer anchorTo가 알아서 처리.
-      if (el.scrollTop < 400 && !loadingOlder && hasMore) void loadOlder();
-    }
-
-    const virtualItems = virtualizer.getVirtualItems();
-
-    const renderRow = useCallback(
-      (row: Row) => {
-        if (row.kind === "top") return topSlot;
-        if (row.kind === "start") return <DateDivider label="대화의 시작" />;
-        return (
-          <>
-            {row.dateDivider && <DateDivider label={row.dateDivider} />}
-            <EventLine
-              ev={row.ev}
-              contentVersion={row.contentVersion}
-              myUserId={myUserId}
-              client={client}
-              room={room}
-              showHeader={row.showHeader}
-              onOpenThread={onOpenThread}
-              onReply={onReply}
-              onJumpTo={onJumpTo}
-              highlighted={highlightId === row.ev.getId()}
-            />
-            {row.unreadAfter && <UnreadDivider />}
-          </>
-        );
-      },
-      [
-        client,
-        room,
-        myUserId,
-        topSlot,
-        onOpenThread,
-        onReply,
-        onJumpTo,
-        highlightId,
-      ],
-    );
+      // 바닥 근처 여부를 매 스크롤마다 추적 (append 추적 판단의 소스)
+      wasNearBottomRef.current =
+        el.scrollHeight - el.scrollTop - el.clientHeight < NEAR_BOTTOM_PX;
+      // 위로 충분히 올라오면 과거 로드. 위치 보존은 useLayoutEffect가 처리.
+      if (el.scrollTop < LOAD_TRIGGER_PX && !loadingOlder && hasMore)
+        void loadOlder();
+    }, [loadingOlder, hasMore, loadOlder]);
 
     return (
       <div className="relative flex min-h-0 flex-1 flex-col">
@@ -205,38 +219,38 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
             </span>
           </div>
         )}
+        {/* 스크롤 컨테이너 — 패딩/갭 없음. 행 간격은 전부 EventLine 내부가
+            책임진다(같은 유저 연속=좁게, 헤더=넓게). 바깥 패딩이 없어야
+            마지막 행 바닥이 스크롤 끝과 정확히 일치한다. */}
         <div
           ref={scrollRef}
           onScroll={onScroll}
-          className="flex-1 overflow-y-auto py-3"
+          className="flex-1 overflow-y-auto"
           style={{ overflowAnchor: "none" }}
         >
-          {/* 전체 높이 스페이서 — 가상 아이템은 이 안에 절대 배치 */}
-          <div
-            style={{ height: virtualizer.getTotalSize(), position: "relative" }}
-          >
-            {virtualItems.map((vi) => (
-              <div
-                key={vi.key}
-                data-index={vi.index}
-                ref={virtualizer.measureElement}
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  width: "100%",
-                  transform: `translateY(${vi.start}px)`,
-                  // flow-root: 자식의 margin이 wrapper 밖으로 collapse돼
-                  // measureElement(getBoundingClientRect)에서 누락되는 것을
-                  // 차단. 측정 높이가 실제와 어긋나면 행이 겹치거나(잔상)
-                  // 측정 후 출렁이거나 빈 칸이 깜빡인다 — 그 원천을 막는다.
-                  display: "flow-root",
-                }}
-              >
-                {renderRow(rows[vi.index])}
+          {rows.map((row) => {
+            if (row.kind === "top") return <div key={row.key}>{topSlot}</div>;
+            if (row.kind === "start")
+              return <DateDivider key={row.key} label="대화의 시작" />;
+            return (
+              <div key={row.key}>
+                {row.dateDivider && <DateDivider label={row.dateDivider} />}
+                <EventLine
+                  ev={row.ev}
+                  contentVersion={row.contentVersion}
+                  myUserId={myUserId}
+                  client={client}
+                  room={room}
+                  showHeader={row.showHeader}
+                  onOpenThread={onOpenThread}
+                  onReply={onReply}
+                  onJumpTo={onJumpTo}
+                  highlighted={highlightId === row.ev.getId()}
+                />
+                {row.unreadAfter && <UnreadDivider />}
               </div>
-            ))}
-          </div>
+            );
+          })}
         </div>
       </div>
     );

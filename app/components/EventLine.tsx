@@ -223,7 +223,7 @@ const EventLineInner = function EventLine({
     "p-2 text-fg-1 hover:bg-bg-2 hover:text-fg-0 transition-colors";
 
   return (
-    <li
+    <div
       id={`ev-${ev.getId()}`}
       className={`group relative px-5 transition-colors hover:bg-bg-2/60 ${
         showHeader ? "pt-3 pb-0.5" : "py-0.5"
@@ -470,7 +470,7 @@ const EventLineInner = function EventLine({
 
       {/* 읽음 표시 — 우측 하단 아바타 스택 */}
       <ReadReceipts client={client} room={room} ev={ev} myUserId={myUserId} />
-    </li>
+    </div>
   );
 };
 
