@@ -17,10 +17,12 @@ import {
 } from "matrix-js-sdk";
 import { useState } from "react";
 import { mentionsUser } from "../lib/mention";
+import { quotePreview, thumbnailSource } from "../lib/reply";
 import { MEDIA_MSGTYPES } from "../lib/timeline";
 import { EmojiPicker } from "./EmojiPicker";
 import { MediaView } from "./MediaView";
 import { MessageBody } from "./MessageBody";
+import { QuoteThumbnail } from "./QuoteThumbnail";
 import { ReactionBar } from "./ReactionBar";
 import { ReadReceipts } from "./ReadReceipts";
 import { getReplyToId, ReplyQuote } from "./ReplyQuote";
@@ -416,19 +418,38 @@ export function EventLine({
       {/* 리액션 칩 */}
       <ReactionBar client={client} room={room} ev={ev} myUserId={myUserId} />
 
-      {/* 스레드 링크 (답글 있을 때만 — 시작은 hover 툴바에서) */}
+      {/* 스레드 링크 (답글 있을 때만 — 시작은 hover 툴바에서).
+          마지막 답글의 발신자 + 내용 미리보기(+이미지 썸네일)를 함께 표시 */}
       {onOpenThread && threadLength > 0 && (
         <button
           type="button"
-          className="mt-1.5 flex h-[22px] items-center gap-1.5 text-[12px] text-fg-2 hover:text-fg-0"
+          className="group/thread mt-1.5 flex min-h-[22px] max-w-full items-center gap-1.5 rounded-md py-0.5 pr-2 text-[12px] text-fg-2 hover:bg-bg-2 hover:text-fg-0"
           onClick={() => onOpenThread(ev.getId()!)}
         >
-          <MessageSquareText className="h-3.5 w-3.5" />
-          <span className="font-medium">답글 {threadLength}</span>
+          <MessageSquareText className="h-3.5 w-3.5 shrink-0 text-fg-3" />
+          <span className="shrink-0 font-medium text-fg-1">
+            답글 {threadLength}
+          </span>
           {thread?.replyToEvent && (
-            <span className="font-mono text-[11px] text-fg-3">
-              {formatTime(thread.replyToEvent.getTs())}
-            </span>
+            <>
+              <span className="shrink-0 text-fg-3">·</span>
+              <span className="shrink-0 font-medium text-fg-2">
+                {thread.replyToEvent.sender?.name ??
+                  thread.replyToEvent.getSender()}
+              </span>
+              {(() => {
+                const t = thumbnailSource(thread.replyToEvent);
+                return t ? (
+                  <QuoteThumbnail client={client} source={t} size={16} />
+                ) : null;
+              })()}
+              <span className="truncate text-fg-2">
+                {quotePreview(thread.replyToEvent)}
+              </span>
+              <span className="ml-auto shrink-0 pl-1 font-mono text-[11px] text-fg-3">
+                {formatTime(thread.replyToEvent.getTs())}
+              </span>
+            </>
           )}
         </button>
       )}
