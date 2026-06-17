@@ -261,7 +261,7 @@ export function MessageInput({
         />
         <button
           type="button"
-          className="shrink-0 rounded-md p-2 text-fg-2 hover:bg-bg-2 hover:text-fg-0 disabled:opacity-50"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-fg-2 hover:bg-bg-2 hover:text-fg-0 disabled:opacity-50"
           disabled={!!uploading}
           onClick={() => fileInputRef.current?.click()}
           title="파일 첨부"
@@ -271,7 +271,7 @@ export function MessageInput({
         <textarea
           ref={textInputRef}
           rows={1}
-          className="min-w-0 flex-1 resize-none overflow-y-hidden bg-transparent px-1 py-2 text-fg-0 leading-snug outline-none placeholder:text-fg-3"
+          className="min-h-9 min-w-0 flex-1 resize-none overflow-y-hidden bg-transparent px-1 py-1.5 text-[15px] text-fg-0 leading-6 outline-none placeholder:text-fg-3"
           style={{ maxHeight: MAX_INPUT_PX }}
           value={draft}
           onChange={(e) => onDraftChange(e.target.value)}
@@ -320,7 +320,7 @@ export function MessageInput({
         />
         <button
           type="button"
-          className="shrink-0 rounded-md p-2 text-fg-2 hover:bg-bg-2 hover:text-fg-0"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-fg-2 hover:bg-bg-2 hover:text-fg-0"
           title="이모지"
           onClick={(e) => {
             // rect는 핸들러 안에서 즉시 읽기 — setState 콜백 시점엔 currentTarget이 null
@@ -332,7 +332,7 @@ export function MessageInput({
         </button>
         <button
           type="submit"
-          className="shrink-0 rounded-md p-2 text-fg-2 hover:bg-bg-2 hover:text-fg-0 disabled:opacity-50"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-fg-2 hover:bg-bg-2 hover:text-fg-0 disabled:opacity-50"
           disabled={sending || !draft.trim()}
           title="전송 (⌘/Ctrl + Enter)"
         >
