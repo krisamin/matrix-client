@@ -95,8 +95,10 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
     const isPrependRef = useRef(false);
     // 직전에 바닥 근처였는지 — append 시 바닥 추적 판단의 소스.
     const stickToBottomRef = useRef(true);
-    // 초기 진입 후 1회 바닥 점프 완료 여부.
-    const didInitialScrollRef = useRef(false);
+    // 초기 바닥 정렬: scheduled(중복 스케줄 방지) / done(onScroll 허용 시점).
+    // rAF로 정렬이 끝난 뒤 done=true → 측정 전 onScroll의 loadOlder 폭주 차단.
+    const initialScheduledRef = useRef(false);
+    const initialDoneRef = useRef(false);
     // append 추적용: 직전 마지막 행 key (끝이 바뀌었는지 판단).
     const prevLastKeyRef = useRef<string | null>(null);
 
@@ -139,7 +141,8 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
     // 방이 바뀌면 상태 리셋
     // biome-ignore lint/correctness/useExhaustiveDependencies: room.roomId 변화로 리셋
     useEffect(() => {
-      didInitialScrollRef.current = false;
+      initialScheduledRef.current = false;
+      initialDoneRef.current = false;
       isPrependRef.current = false;
       stickToBottomRef.current = true;
       prevLastKeyRef.current = null;
@@ -154,10 +157,14 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
       const endChanged = lastKey !== prevLastKeyRef.current;
       prevLastKeyRef.current = lastKey;
 
-      if (!didInitialScrollRef.current) {
-        // 초기 진입: 맨 아래로
-        handle.scrollToIndex(lastIdx, { align: "end" });
-        didInitialScrollRef.current = true;
+      if (!initialScheduledRef.current) {
+        // 초기 진입: rAF로 미뤄 측정 완료 후 맨 아래로(측정 전 호출은 부정확).
+        // done은 rAF 안에서 세팅 → 그 전 onScroll의 loadOlder 폭주를 막는다.
+        initialScheduledRef.current = true;
+        requestAnimationFrame(() => {
+          vRef.current?.scrollToIndex(lastIdx, { align: "end" });
+          initialDoneRef.current = true;
+        });
       } else if (
         !isPrependRef.current &&
         endChanged &&
@@ -188,6 +195,9 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
       (offset: number) => {
         const handle = vRef.current;
         if (!handle) return;
+        // 초기 측정 전(viewportSize=0)이거나 초기 정렬 완료 전이면 트리거 금지 —
+        // 측정 전 onScroll(offset≈0)이 loadOlder를 연쇄 발화하는 폭주 차단.
+        if (handle.viewportSize === 0 || !initialDoneRef.current) return;
         // 바닥 근처 여부 추적 (append 추적 판단의 소스). 공식 Chat 예제 공식.
         stickToBottomRef.current =
           offset - handle.scrollSize + handle.viewportSize >= -1.5;
