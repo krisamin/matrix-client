@@ -51,6 +51,11 @@ body {
   .app-titlebar {
     -webkit-app-region: drag;
     app-region: drag;
+    /* OS 창 컨트롤(타이틀바) 높이에 헤더를 정확히 맞춤.
+       env(titlebar-area-height)는 WCO가 넘겨주는 실제 px → 고정값 대신 동적 매칭.
+       이 규칙은 unlayered라 Tailwind h-12(@layer utilities)를 항상 이김. */
+    height: env(titlebar-area-height, 3rem);
+    min-height: env(titlebar-area-height, 3rem);
   }
   /* 헤더 안의 인터랙티브 요소는 드래그에서 제외 (클릭 정상 동작) */
   .app-titlebar a,
