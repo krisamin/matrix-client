@@ -220,7 +220,7 @@ export function useRoomTimeline(client: MatrixClient, roomId: string) {
         tlSetRef.current?.getLiveTimeline() ?? room.getLiveTimeline();
       const more = await client.paginateEventTimeline(timeline, {
         backwards: true,
-        limit: 30,
+        limit: 60,
       });
       if (gen !== genRef.current) return false; // await 사이 방 전환됨
       setHasMore(more);

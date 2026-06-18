@@ -54,8 +54,10 @@ interface TimelineProps {
   unreadMarkerId?: string | null;
 }
 
-/** 위로 이 오프셋(px) 안으로 올라오면 과거 로드 (여유 있게 미리) */
-const LOAD_TRIGGER_PX = 400;
+/** 위로 이 오프셋(px) 안으로 올라오면 과거 로드 (여유 있게 미리).
+ *  넉넉히(1.5화면) 잡아 fling으로 top 벽에 닿기 전에 미리 로드 시작 →
+ *  trigger 멈칫(로드 끝날 때까지 top=0에 박혀있던 부자연스러움)을 없앤다. */
+const LOAD_TRIGGER_PX = 1500;
 
 /** 타임라인 스크롤 영역 — 룸/스레드 100% 동일.
  *

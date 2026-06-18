@@ -136,7 +136,7 @@ export function useThreadTimeline(
       // 호출 시점의 liveTimeline 사용 (리셋 이후의 현재 타임라인)
       const more = await client.paginateEventTimeline(thread.liveTimeline, {
         backwards: true,
-        limit: 50,
+        limit: 60,
       });
       setHasMore(more);
       setEvents(visibleThreadEvents(client, thread.events));
