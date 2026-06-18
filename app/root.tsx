@@ -59,7 +59,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           content="black-translucent"
         />
         <meta name="apple-mobile-web-app-title" content="matrix-client" />
-        <meta name="theme-color" content="#0c0c0e" />
+        <meta name="theme-color" content="#111113" />
         <Meta />
         <Links />
       </head>
