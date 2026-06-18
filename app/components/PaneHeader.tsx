@@ -10,7 +10,7 @@ export function PaneHeader({
   actions?: ReactNode;
 }) {
   return (
-    <header className="app-titlebar flex h-12 shrink-0 items-center gap-2.5 border-b border-line px-5">
+    <header className="app-titlebar flex h-12 shrink-0 items-center gap-2.5 border-b border-line bg-bg-1 px-5">
       {children}
       {actions && (
         <div className="ml-auto flex items-center gap-0.5 text-fg-2">
