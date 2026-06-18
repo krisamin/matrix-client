@@ -36,6 +36,10 @@ export const links: Route.LinksFunction = () => [
     rel: "stylesheet",
     href: "https://cdn.jsdelivr.net/gh/toss/tossface/dist/tossface.css",
   },
+  // PWA: 설치형 앱 (macOS Safari "Dock에 추가" / iOS "홈 화면에 추가")
+  { rel: "manifest", href: "/manifest.webmanifest" },
+  { rel: "icon", href: "/icon-192.png", type: "image/png" },
+  { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -43,7 +47,19 @@ export function Layout({ children }: { children: React.ReactNode }) {
     <html lang="ko">
       <head>
         <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1, viewport-fit=cover"
+        />
+        {/* PWA: standalone 앱 외형 (Safari/iOS) */}
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta
+          name="apple-mobile-web-app-status-bar-style"
+          content="black-translucent"
+        />
+        <meta name="apple-mobile-web-app-title" content="matrix-client" />
+        <meta name="theme-color" content="#0c0c0e" />
         <Meta />
         <Links />
       </head>
