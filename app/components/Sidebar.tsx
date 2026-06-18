@@ -240,8 +240,8 @@ export function Sidebar({ client }: { client: MatrixClient }) {
 
   return (
     <aside className="flex w-64 shrink-0 flex-col border-r border-line bg-bg-1">
-      {/* 헤더: 48px */}
-      <div className="flex h-12 shrink-0 items-center gap-2 border-b border-line px-4">
+      {/* 헤더: 48px (PWA WCO 시 창 드래그 + 신호등 버튼 회피) */}
+      <div className="app-titlebar app-titlebar-lead flex h-12 shrink-0 items-center gap-2 border-b border-line px-4">
         <Link to="/" className="flex min-w-0 flex-1 items-center gap-2">
           <span className="truncate font-medium text-fg-0">{localpart}</span>
         </Link>
