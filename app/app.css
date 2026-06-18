@@ -70,6 +70,15 @@ body {
   .app-titlebar-lead {
     padding-left: max(1rem, env(titlebar-area-x, 0px));
   }
+  /* 우상단: 맨 오른쪽 패널 헤더만 OS 창 컨트롤(닫기/메뉴 등) 오버레이를 피함.
+     우측 예약영역 폭 = 창너비 - 좌예약(x) - 안전영역(width).
+     분할뷰(방+스레드)에선 마지막 패널만 창 우측 끝에 닿으므로 :last-child로 한정. */
+  .app-pane-row > :last-child .app-titlebar {
+    padding-right: max(
+      1.25rem,
+      calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw))
+    );
+  }
 }
 
 /* ── 스크롤바 ── */

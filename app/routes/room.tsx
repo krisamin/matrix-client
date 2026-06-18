@@ -143,7 +143,7 @@ export default function RoomView() {
   }
 
   return (
-    <div className="flex min-h-0 min-w-0 flex-1">
+    <div className="app-pane-row flex min-h-0 min-w-0 flex-1">
       {/* 채팅 페인 — 스레드 풀 화면일 땐 숨김 */}
       {!threadFull && (
         <DropZone
