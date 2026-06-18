@@ -256,7 +256,7 @@ export function Sidebar({ client }: { client: MatrixClient }) {
       </div>
 
       {/* 트리 */}
-      <nav className="flex-1 select-none overflow-y-auto p-3">
+      <nav className="flex-1 select-none overflow-y-auto p-2">
         {invites.length > 0 && (
           <>
             <SectionLabel>Invites</SectionLabel>
