@@ -10,6 +10,7 @@ import {
 } from "react";
 import { Virtualizer, type VirtualizerHandle } from "virtua";
 import { groupTimeline } from "../lib/group";
+import { useTypingMembers } from "../lib/typing";
 import { DateDivider, UnreadDivider } from "./DateDivider";
 import { EventLine } from "./EventLine";
 
@@ -24,6 +25,7 @@ export interface TimelineHandle {
 type Row =
   | { kind: "top"; key: string }
   | { kind: "start"; key: string }
+  | { kind: "typing"; key: string; names: string[] }
   | {
       kind: "event";
       key: string;
@@ -101,6 +103,8 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
     const initialDoneRef = useRef(false);
     // append 추적용: 직전 마지막 행 key (끝이 바뀌었는지 판단).
     const prevLastKeyRef = useRef<string | null>(null);
+    // 직전 displayRows 길이 — typing 행 등장/소멸 감지(바닥추적 트리거).
+    const prevDisplayLenRef = useRef(0);
     // 프로그램적 바닥 스크롤 중 플래그 — 바닥으로 미는 과정의 onScroll이
     // stick=false로 오판해 바닥 추적이 영구 차단되는 걸 막는다.
     const programmaticRef = useRef(false);
@@ -141,6 +145,19 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
       return out;
     }, [events, topSlot, hasMore, unreadMarkerId]);
 
+    // 상대 타이핑 표시. 판정(prepend/append)은 events 기준 rows로만 하고,
+    // typing 행은 렌더용 displayRows에만 덧붙인다 → typing 등장/소멸이
+    // append/prepend 감지를 절대 흔들지 않는다(lastKey/firstKey 불변).
+    // typing 행 자체의 바닥추적은 아래 ResizeObserver(contentGrew)가 처리.
+    const typingNames = useTypingMembers(client, room);
+    const displayRows = useMemo<Row[]>(() => {
+      if (typingNames.length === 0) return rows;
+      return [
+        ...rows,
+        { kind: "typing", key: "__typing__", names: typingNames },
+      ];
+    }, [rows, typingNames]);
+
     const firstKey = rows.length > 0 ? rows[0].key : null;
     const lastKey = rows.length > 0 ? rows[rows.length - 1].key : null;
 
@@ -165,6 +182,7 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
       initialDoneRef.current = false;
       stickToBottomRef.current = true;
       prevLastKeyRef.current = null;
+      prevDisplayLenRef.current = 0;
       prevFirstKeyRef.current = null;
       prevLenRef.current = 0;
     }, [room.roomId]);
@@ -174,9 +192,15 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
     useEffect(() => {
       const handle = vRef.current;
       if (!handle || rows.length === 0) return;
-      const lastIdx = rows.length - 1;
+      // 스크롤 타겟은 실제 렌더 리스트(displayRows)의 마지막 — typing 행이
+      // 있으면 그 행까지 보이게. 트리거 판정(endChanged/isPrepend)은 events
+      // 기준 rows로만 한다(typing이 append 판정을 흔들지 않게).
+      const lastIdx = displayRows.length - 1;
       const endChanged = lastKey !== prevLastKeyRef.current;
+      const displayLenChanged =
+        displayRows.length !== prevDisplayLenRef.current;
       prevLastKeyRef.current = lastKey;
+      prevDisplayLenRef.current = displayRows.length;
 
       if (!initialScheduledRef.current) {
         // 초기 진입: rAF로 미뤄 측정 완료 후 맨 아래로(측정 전 호출은 부정확).
@@ -186,11 +210,17 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
           vRef.current?.scrollToIndex(lastIdx, { align: "end" });
           initialDoneRef.current = true;
         });
-      } else if (!isPrepend && endChanged && stickToBottomRef.current) {
-        // append(끝 바뀜) + 바닥 근처였으면 바닥 추적
+      } else if (
+        !isPrepend &&
+        (endChanged || displayLenChanged) &&
+        stickToBottomRef.current
+      ) {
+        // append(events 끝 바뀜) 또는 typing 행 등장/소멸(displayLenChanged) +
+        // 바닥 근처였으면 바닥 추적. typing 행은 RO(contentGrew)만으론 virtua
+        // 측정 타이밍상 끝까지 안 닿아(실측 24px 부족) → 여기서 직접 처리.
         handle.scrollToIndex(lastIdx, { align: "end" });
       }
-    }, [rows.length, lastKey, isPrepend]);
+    }, [rows.length, lastKey, isPrepend, displayRows.length]);
 
     // 높이 변화 추적 — React 신호로는 못 잡는 두 경우를 ResizeObserver로 커버.
     //  (A) 콘텐츠(virtua 루트)가 커짐: 반응/이미지로드/링크프리뷰/수정 등. 반응은
@@ -318,10 +348,24 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
             shift={isPrepend}
             onScroll={onScroll}
           >
-            {rows.map((row) => {
+            {displayRows.map((row) => {
               if (row.kind === "top") return <div key={row.key}>{topSlot}</div>;
               if (row.kind === "start")
                 return <DateDivider key={row.key} label="대화의 시작" />;
+              if (row.kind === "typing")
+                return (
+                  <div
+                    key={row.key}
+                    className="msg-in flex items-center gap-1.5 px-5 pt-1 pb-0.5 text-[12px] text-fg-2"
+                  >
+                    <span className="flex gap-0.5">
+                      <span className="typing-dot h-1 w-1 rounded-full bg-fg-2" />
+                      <span className="typing-dot h-1 w-1 rounded-full bg-fg-2" />
+                      <span className="typing-dot h-1 w-1 rounded-full bg-fg-2" />
+                    </span>
+                    {row.names.join(", ")} 입력 중
+                  </div>
+                );
               return (
                 <div key={row.key}>
                   {row.dateDivider && <DateDivider label={row.dateDivider} />}

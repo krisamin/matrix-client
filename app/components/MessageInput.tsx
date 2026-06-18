@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { uploadAndSendFile } from "../lib/media";
 import { type Mention, searchMembers } from "../lib/mention";
 import { quotePreview } from "../lib/reply";
-import { useSendTyping, useTypingMembers } from "../lib/typing";
+import { useSendTyping } from "../lib/typing";
 import { Avatar } from "./Avatar";
 import { EmojiPicker } from "./EmojiPicker";
 
@@ -43,7 +43,6 @@ export function MessageInput({
   const [uploading, setUploading] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textInputRef = useRef<HTMLTextAreaElement>(null);
-  const typingNames = useTypingMembers(client, room);
   const { notifyTyping, clearTyping } = useSendTyping(client, room.roomId);
   // 멘션: 자동완성 상태 + 본문에 삽입된 멘션 누적 (전송 시 content 빌드용)
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
@@ -201,23 +200,15 @@ export function MessageInput({
           ))}
         </div>
       )}
-      {/* 상태 줄: 타이핑/업로드/에러 — 입력 바 위 오버레이 (레이아웃 영향 없음) */}
-      {(error || uploading || typingNames.length > 0) && (
+      {/* 상태 줄: 업로드/에러 — 입력 바 위 오버레이 (레이아웃 영향 없음).
+          타이핑 표시는 Timeline 맨 아래 행으로 옮겨 메시지를 안 가린다. */}
+      {(error || uploading) && (
         <div className="pointer-events-none absolute inset-x-0 bottom-full z-10 flex justify-start px-4 pb-1">
           <span className="msg-in flex items-center gap-1.5 rounded-full border border-line bg-bg-2/95 px-2.5 py-0.5 text-[11px] text-fg-2 shadow-lg backdrop-blur">
             {error ? (
               <span className="text-red-400">⚠ {error}</span>
-            ) : uploading ? (
-              <span className="animate-pulse">{uploading}</span>
             ) : (
-              <>
-                <span className="flex gap-0.5">
-                  <span className="typing-dot h-1 w-1 rounded-full bg-fg-2" />
-                  <span className="typing-dot h-1 w-1 rounded-full bg-fg-2" />
-                  <span className="typing-dot h-1 w-1 rounded-full bg-fg-2" />
-                </span>
-                {typingNames.join(", ")} 입력 중
-              </>
+              <span className="animate-pulse">{uploading}</span>
             )}
           </span>
         </div>
