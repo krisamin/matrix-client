@@ -5,6 +5,7 @@ import {
   LogOut,
   MessageSquareText,
   PenSquare,
+  Plus,
   ShieldCheck,
   X,
 } from "lucide-react";
@@ -19,6 +20,7 @@ import { clearSession } from "../lib/session";
 import { buildRoomTree, type SpaceNode } from "../lib/spaces";
 import { RoomAvatar } from "./Avatar";
 import { NewDmModal } from "./NewDmModal";
+import { NewRoomModal } from "./NewRoomModal";
 
 /** 방 하나의 트리 노드 — 클릭 시 이동, 스레드 자식 노드 펼침 */
 function RoomNode({
@@ -191,6 +193,7 @@ export function Sidebar({ client }: { client: MatrixClient }) {
   const { rooms, invites, syncState } = useRooms(client);
   const [inviteBusy, setInviteBusy] = useState<string | null>(null);
   const [newDmOpen, setNewDmOpen] = useState(false);
+  const [newRoomOpen, setNewRoomOpen] = useState(false);
   const userId = client.getUserId() ?? "";
   const localpart = userId.replace(/^@/, "").split(":")[0];
 
@@ -255,6 +258,14 @@ export function Sidebar({ client }: { client: MatrixClient }) {
           title="새 대화 시작"
         >
           <PenSquare className="h-[15px] w-[15px]" />
+        </button>
+        <button
+          type="button"
+          className="rounded-md p-1.5 text-fg-2 hover:bg-bg-2 hover:text-fg-0"
+          onClick={() => setNewRoomOpen(true)}
+          title="새 방 만들기"
+        >
+          <Plus className="h-[15px] w-[15px]" />
         </button>
         <button
           type="button"
@@ -347,6 +358,16 @@ export function Sidebar({ client }: { client: MatrixClient }) {
           onClose={() => setNewDmOpen(false)}
           onStarted={(roomId) => {
             setNewDmOpen(false);
+            navigate(`/room/${encodeURIComponent(roomId)}`);
+          }}
+        />
+      )}
+      {newRoomOpen && (
+        <NewRoomModal
+          client={client}
+          onClose={() => setNewRoomOpen(false)}
+          onCreated={(roomId) => {
+            setNewRoomOpen(false);
             navigate(`/room/${encodeURIComponent(roomId)}`);
           }}
         />

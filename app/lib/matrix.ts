@@ -229,6 +229,44 @@ export async function startDirectMessage(
   return roomId;
 }
 
+/**
+ * 일반 그룹 방을 생성한다.
+ * - name: 방 이름 (필수)
+ * - topic: 방 주제 (선택)
+ * - encrypted: E2EE 켤지 (기본 true)
+ * - invite: 초대할 userId 목록 (선택)
+ * 반환: 생성된 roomId
+ */
+export async function createGroupRoom(
+  client: MatrixClient,
+  opts: {
+    name: string;
+    topic?: string;
+    encrypted?: boolean;
+    invite?: string[];
+  },
+): Promise<string> {
+  const encrypted = opts.encrypted ?? true;
+  const { room_id: roomId } = await client.createRoom({
+    name: opts.name.trim(),
+    ...(opts.topic?.trim() ? { topic: opts.topic.trim() } : {}),
+    preset: Preset.PrivateChat,
+    ...(opts.invite?.length ? { invite: opts.invite } : {}),
+    ...(encrypted
+      ? {
+          initial_state: [
+            {
+              type: EventType.RoomEncryption,
+              state_key: "",
+              content: { algorithm: "m.megolm.v1.aes-sha2" },
+            },
+          ],
+        }
+      : {}),
+  });
+  return roomId;
+}
+
 /** 사용자 디렉토리 검색 결과 1건 */
 export interface UserDirectoryResult {
   userId: string;
