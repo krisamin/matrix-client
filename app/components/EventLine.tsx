@@ -1,4 +1,5 @@
 import {
+  Forward,
   MessageSquarePlus,
   MessageSquareText,
   Pencil,
@@ -20,6 +21,7 @@ import { mentionsUser } from "../lib/mention";
 import { quotePreview, thumbnailSource } from "../lib/reply";
 import { MEDIA_MSGTYPES } from "../lib/timeline";
 import { EmojiPicker } from "./EmojiPicker";
+import { ForwardModal } from "./ForwardModal";
 import { MediaView } from "./MediaView";
 import { MessageBody } from "./MessageBody";
 import { QuoteThumbnail } from "./QuoteThumbnail";
@@ -95,6 +97,8 @@ const EventLineInner = function EventLine({
   const [pickerAnchor, setPickerAnchor] = useState<DOMRect | null>(null);
   // 발신자 프로필 카드 (이름 클릭)
   const [profileAnchor, setProfileAnchor] = useState<DOMRect | null>(null);
+  // 전달 모달 열림 여부
+  const [forwarding, setForwarding] = useState(false);
   // 마운트 시점에 "방금 도착한" 이벤트(5초 이내 / local echo)만 등장 애니메이션.
   // 단 한 이벤트당 최초 1회만 — 가상 스크롤 재마운트 때마다 떠오르는 잔상 방지.
   const [animateIn] = useState(() => {
@@ -144,6 +148,11 @@ const EventLineInner = function EventLine({
   const canModify =
     mine && !ev.isRedacted() && ev.getType() === EventType.RoomMessage;
   const canEdit = canModify && !isMedia;
+  // 전달 가능: 일반 메시지(텍스트/미디어) + 삭제/복호화중 아님 (내 메시지 아니어도 가능)
+  const canForward =
+    !ev.isRedacted() &&
+    placeholder === null &&
+    ev.getType() === EventType.RoomMessage;
 
   function startEdit() {
     // 현재(수정 반영된) 본문에서 시작
@@ -311,6 +320,16 @@ const EventLineInner = function EventLine({
               <MessageSquarePlus className="h-3.5 w-3.5" />
             </button>
           )}
+          {canForward && (
+            <button
+              type="button"
+              className={actionBtn}
+              onClick={() => setForwarding(true)}
+              title="전달"
+            >
+              <Forward className="h-3.5 w-3.5" />
+            </button>
+          )}
           {canEdit && (
             <button
               type="button"
@@ -349,6 +368,15 @@ const EventLineInner = function EventLine({
           userId={ev.getSender()!}
           anchor={profileAnchor}
           onClose={() => setProfileAnchor(null)}
+        />
+      )}
+      {/* 전달 모달 */}
+      {forwarding && (
+        <ForwardModal
+          client={client}
+          event={ev}
+          onClose={() => setForwarding(false)}
+          onDone={() => setForwarding(false)}
         />
       )}
 

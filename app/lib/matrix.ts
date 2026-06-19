@@ -5,12 +5,14 @@ import {
   Filter,
   IndexedDBStore,
   type MatrixClient,
+  type MatrixEvent,
   OidcTokenRefresher,
   Preset,
   PushRuleActionName,
   type Room,
   RoomType,
 } from "matrix-js-sdk";
+import type { RoomMessageEventContent } from "matrix-js-sdk/lib/@types/events";
 import {
   decodeRecoveryKey,
   deriveRecoveryKeyFromPassphrase,
@@ -472,6 +474,32 @@ export async function toggleMute(
   const next = !isMuted(client, room);
   await client.setRoomMutePushRule("global", room.roomId, next);
   return next;
+}
+
+/** 메시지를 다른 방으로 전달.
+ *  원본 content를 복사하되 관계 메타(답장/수정/스레드)는 제거해
+ *  독립된 새 메시지로 보냄. 암호화 방이면 SDK가 알아서 암호화.
+ *  미디어는 같은 홈서버 media repo의 mxc/file 키를 그대로 재사용. */
+export async function forwardEvent(
+  client: MatrixClient,
+  ev: MatrixEvent,
+  targetRoomId: string,
+): Promise<void> {
+  const src = ev.getContent();
+  // 수정된 메시지면 최신 본문(m.new_content)을 우선 사용
+  const base =
+    (src["m.new_content"] as Record<string, unknown> | undefined) ?? src;
+  // 관계/fallback 메타 제거 — 전달본은 독립 메시지
+  const {
+    "m.relates_to": _relates,
+    "m.new_content": _newContent,
+    ...clean
+  } = base as Record<string, unknown>;
+  await client.sendEvent(
+    targetRoomId,
+    EventType.RoomMessage,
+    clean as unknown as RoomMessageEventContent,
+  );
 }
 
 /**
