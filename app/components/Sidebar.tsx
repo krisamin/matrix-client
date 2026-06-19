@@ -1,4 +1,5 @@
 import {
+  BellOff,
   Check,
   ChevronDown,
   ChevronRight,
@@ -9,14 +10,21 @@ import {
   PenSquare,
   Plus,
   ShieldCheck,
+  Star,
   X,
 } from "lucide-react";
 import type { MatrixClient, Room } from "matrix-js-sdk";
 import { NotificationCountType } from "matrix-js-sdk";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { useRooms } from "../hooks/useRooms";
-import { resetClient } from "../lib/matrix";
+import {
+  isFavourite,
+  isMuted,
+  resetClient,
+  toggleFavourite,
+  toggleMute,
+} from "../lib/matrix";
 import { quotePreview } from "../lib/reply";
 import { clearSession } from "../lib/session";
 import { buildRoomTree, type SpaceNode } from "../lib/spaces";
@@ -26,7 +34,8 @@ import { NewRoomModal } from "./NewRoomModal";
 import { NewSpaceModal } from "./NewSpaceModal";
 import { ProfileEditModal } from "./ProfileEditModal";
 
-/** 방 하나의 트리 노드 — 클릭 시 이동, 스레드 자식 노드 펼침 */
+/** 방 하나의 트리 노드 — 클릭 시 이동, 스레드 자식 노드 펼침.
+ *  우클릭 시 컨텍스트 메뉴(즐겨찾기/음소거 토글). */
 function RoomNode({
   client,
   room,
@@ -44,16 +53,47 @@ function RoomNode({
   const hasThreads = threads.length > 0;
   // 활성 방은 기본 펼침
   const [expanded, setExpanded] = useState(active);
+  // 태그/푸시룰 변화 → 리렌더용 tick
+  const [, force] = useState(0);
+  // 컨텍스트 메뉴 위치 (null=닫힘)
+  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
   const unread = room.getUnreadNotificationCount(NotificationCountType.Total);
   const highlight = room.getUnreadNotificationCount(
     NotificationCountType.Highlight,
   );
+  const fav = isFavourite(room);
+  const muted = isMuted(client, room);
 
   const showChildren = hasThreads && (expanded || active);
 
+  async function onFav() {
+    setMenu(null);
+    try {
+      await toggleFavourite(client, room);
+      force((n) => n + 1);
+    } catch (e) {
+      console.warn("즐겨찾기 토글 실패:", e);
+    }
+  }
+  async function onMute() {
+    setMenu(null);
+    try {
+      await toggleMute(client, room);
+      force((n) => n + 1);
+    } catch (e) {
+      console.warn("음소거 토글 실패:", e);
+    }
+  }
+
   return (
     <div>
-      <div className={`tree-row ${active && !activeThreadId ? "active" : ""}`}>
+      <div
+        className={`tree-row ${active && !activeThreadId ? "active" : ""}`}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          setMenu({ x: e.clientX, y: e.clientY });
+        }}
+      >
         {hasThreads ? (
           <button
             type="button"
@@ -81,17 +121,34 @@ function RoomNode({
             showPresence={showPresence}
           />
           <span
-            className={`min-w-0 flex-1 truncate ${unread > 0 ? "font-semibold text-fg-0" : ""}`}
+            className={`min-w-0 flex-1 truncate ${unread > 0 && !muted ? "font-semibold text-fg-0" : ""}`}
           >
             {room.name}
           </span>
+          {fav && (
+            <Star className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400" />
+          )}
+          {muted && <BellOff className="h-3 w-3 shrink-0 text-fg-3" />}
           {unread > 0 && (
-            <span className={`badge ${highlight > 0 ? "badge-hl" : ""}`}>
+            <span
+              className={`badge ${highlight > 0 && !muted ? "badge-hl" : ""} ${muted ? "opacity-40" : ""}`}
+            >
               {unread > 99 ? "99+" : unread}
             </span>
           )}
         </Link>
       </div>
+      {menu && (
+        <RoomContextMenu
+          x={menu.x}
+          y={menu.y}
+          fav={fav}
+          muted={muted}
+          onFav={onFav}
+          onMute={onMute}
+          onClose={() => setMenu(null)}
+        />
+      )}
       {showChildren && (
         <div className="tree-children">
           {threads.map((thread) => {
@@ -110,6 +167,68 @@ function RoomNode({
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+/** 방 우클릭 컨텍스트 메뉴 — 커서 위치에 고정, 바깥 클릭/Esc로 닫힘 */
+function RoomContextMenu({
+  x,
+  y,
+  fav,
+  muted,
+  onFav,
+  onMute,
+  onClose,
+}: {
+  x: number;
+  y: number;
+  fav: boolean;
+  muted: boolean;
+  onFav: () => void;
+  onMute: () => void;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const close = () => onClose();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    // 다음 틱부터 바깥 클릭 감지 (현재 우클릭이 바로 닫지 않게)
+    const id = setTimeout(() => window.addEventListener("click", close), 0);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      clearTimeout(id);
+      window.removeEventListener("click", close);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed z-50 min-w-[160px] overflow-hidden rounded-lg border border-line bg-bg-1 py-1 shadow-2xl"
+      style={{ left: x, top: y }}
+      onClick={(e) => e.stopPropagation()}
+      role="presentation"
+    >
+      <button
+        type="button"
+        className="flex w-full items-center gap-2.5 px-3 py-1.5 text-left text-[13px] text-fg-1 hover:bg-bg-2 hover:text-fg-0"
+        onClick={onFav}
+      >
+        <Star
+          className={`h-3.5 w-3.5 shrink-0 ${fav ? "fill-amber-400 text-amber-400" : "text-fg-3"}`}
+        />
+        {fav ? "즐겨찾기 해제" : "즐겨찾기"}
+      </button>
+      <button
+        type="button"
+        className="flex w-full items-center gap-2.5 px-3 py-1.5 text-left text-[13px] text-fg-1 hover:bg-bg-2 hover:text-fg-0"
+        onClick={onMute}
+      >
+        <BellOff className="h-3.5 w-3.5 shrink-0 text-fg-3" />
+        {muted ? "알림 켜기" : "알림 끄기"}
+      </button>
     </div>
   );
 }

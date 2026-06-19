@@ -7,6 +7,7 @@ import {
   type MatrixClient,
   OidcTokenRefresher,
   Preset,
+  PushRuleActionName,
   type Room,
   RoomType,
 } from "matrix-js-sdk";
@@ -434,6 +435,43 @@ export function ensureStarted(client: MatrixClient): void {
   if (!client.clientRunning) {
     client.startClient({ initialSyncLimit: 20, threadSupport: true });
   }
+}
+
+/** 방이 즐겨찾기(m.favourite 태그)인지. */
+export function isFavourite(room: Room): boolean {
+  return Boolean(room.tags?.["m.favourite"]);
+}
+
+/** 즐겨찾기 토글 — m.favourite 룸 태그 추가/삭제. 반환: 새 상태. */
+export async function toggleFavourite(
+  client: MatrixClient,
+  room: Room,
+): Promise<boolean> {
+  const next = !isFavourite(room);
+  if (next) {
+    await client.setRoomTag(room.roomId, "m.favourite", {});
+  } else {
+    await client.deleteRoomTag(room.roomId, "m.favourite");
+  }
+  return next;
+}
+
+/** 방이 음소거 상태인지 (방 단위 push rule 존재 여부로 판단). */
+export function isMuted(client: MatrixClient, room: Room): boolean {
+  const rule = client.getRoomPushRule("global", room.roomId);
+  // 음소거 룰 = actions에 notify가 없음(또는 dont_notify). 룰 존재 + notify 없음으로 판단.
+  if (!rule) return false;
+  return !rule.actions.includes(PushRuleActionName.Notify);
+}
+
+/** 음소거 토글 — 방 단위 mute push rule 설정/해제. 반환: 새 상태. */
+export async function toggleMute(
+  client: MatrixClient,
+  room: Room,
+): Promise<boolean> {
+  const next = !isMuted(client, room);
+  await client.setRoomMutePushRule("global", room.roomId, next);
+  return next;
 }
 
 /**
