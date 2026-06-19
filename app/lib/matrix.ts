@@ -502,6 +502,52 @@ export async function forwardEvent(
   );
 }
 
+/** 방의 고정 메시지 id 목록 (m.room.pinned_events). */
+export function getPinnedEventIds(room: Room): string[] {
+  const ev = room.currentState.getStateEvents(EventType.RoomPinnedEvents, "");
+  const pinned = ev?.getContent()?.pinned;
+  return Array.isArray(pinned) ? pinned : [];
+}
+
+/** 이벤트가 고정되어 있는지. */
+export function isPinned(room: Room, eventId: string): boolean {
+  return getPinnedEventIds(room).includes(eventId);
+}
+
+/** 고정 토글 — m.room.pinned_events 상태 이벤트 갱신. 반환: 새 상태(고정됨 여부). */
+export async function togglePin(
+  client: MatrixClient,
+  room: Room,
+  eventId: string,
+): Promise<boolean> {
+  const current = getPinnedEventIds(room);
+  const has = current.includes(eventId);
+  const next = has
+    ? current.filter((id) => id !== eventId)
+    : [...current, eventId];
+  await client.sendStateEvent(
+    room.roomId,
+    EventType.RoomPinnedEvents,
+    { pinned: next },
+    "",
+  );
+  return !has;
+}
+
+/** eventId로 방 타임라인에서 이벤트를 찾아 미리보기 텍스트 생성.
+ *  타임라인에 아직 없으면 빈 문자열 (배너는 폴백 텍스트 표시). */
+export function quotePreviewById(room: Room, eventId: string): string {
+  const ev = room.findEventById(eventId);
+  if (!ev) return "";
+  // 삭제된 메시지
+  if (ev.isRedacted()) return "삭제된 메시지";
+  const body = ev.getContent()?.body;
+  if (typeof body !== "string") return "";
+  // 한 줄로 정리 + 길이 제한
+  const oneline = body.replace(/\s+/g, " ").trim();
+  return oneline.length > 120 ? `${oneline.slice(0, 120)}…` : oneline;
+}
+
 /**
  * 메인 타임라인용 "스레드 답글 제외" 필터드 timelineSet.
  * MSC3874 (not_rel_types) — Synapse experimental_features.msc3874_enabled=true 필요.

@@ -17,6 +17,7 @@ import { RoomAvatar } from "../components/Avatar";
 import { DropZone } from "../components/DropZone";
 import { MessageInput } from "../components/MessageInput";
 import { PaneHeader, PaneHeaderButton } from "../components/PaneHeader";
+import { PinnedBanner } from "../components/PinnedBanner";
 import { RoomInfoPane } from "../components/RoomInfoPane";
 import { SearchPane } from "../components/SearchPane";
 import { SpaceView } from "../components/SpaceView";
@@ -186,6 +187,7 @@ export default function RoomView() {
               <Lock className="h-3.5 w-3.5 shrink-0 text-fg-3" />
             )}
           </PaneHeader>
+          <PinnedBanner client={client} room={room} onJumpTo={jumpTo} />
           <Timeline
             ref={timelineRef}
             client={client}

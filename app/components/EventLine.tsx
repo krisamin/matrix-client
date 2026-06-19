@@ -3,6 +3,8 @@ import {
   MessageSquarePlus,
   MessageSquareText,
   Pencil,
+  Pin,
+  PinOff,
   Reply,
   SmilePlus,
   Trash2,
@@ -17,6 +19,7 @@ import {
   type Room,
 } from "matrix-js-sdk";
 import { memo, useState } from "react";
+import { isPinned, togglePin } from "../lib/matrix";
 import { mentionsUser } from "../lib/mention";
 import { quotePreview, thumbnailSource } from "../lib/reply";
 import { MEDIA_MSGTYPES } from "../lib/timeline";
@@ -153,6 +156,13 @@ const EventLineInner = function EventLine({
     !ev.isRedacted() &&
     placeholder === null &&
     ev.getType() === EventType.RoomMessage;
+  // 고정 가능: 일반 메시지 + 삭제 아님 + state event 전송 권한 보유
+  const canPin =
+    !ev.isRedacted() &&
+    placeholder === null &&
+    ev.getType() === EventType.RoomMessage &&
+    room.currentState.maySendStateEvent(EventType.RoomPinnedEvents, myUserId);
+  const pinned = canPin && isPinned(room, ev.getId() ?? "");
 
   function startEdit() {
     // 현재(수정 반영된) 본문에서 시작
@@ -194,6 +204,18 @@ const EventLineInner = function EventLine({
       await client.redactEvent(room.roomId, ev.getId()!);
     } catch (e) {
       console.warn("삭제 실패:", e);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function pin() {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await togglePin(client, room, ev.getId()!);
+    } catch (e) {
+      console.warn("고정 토글 실패:", e);
     } finally {
       setBusy(false);
     }
@@ -328,6 +350,20 @@ const EventLineInner = function EventLine({
               title="전달"
             >
               <Forward className="h-3.5 w-3.5" />
+            </button>
+          )}
+          {canPin && (
+            <button
+              type="button"
+              className={actionBtn}
+              onClick={pin}
+              title={pinned ? "고정 해제" : "고정"}
+            >
+              {pinned ? (
+                <PinOff className="h-3.5 w-3.5" />
+              ) : (
+                <Pin className="h-3.5 w-3.5" />
+              )}
             </button>
           )}
           {canEdit && (
