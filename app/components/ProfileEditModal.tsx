@@ -173,10 +173,10 @@ export function ProfileEditModal({
 
             {error && <p className="text-[12px] text-red-400">{error}</p>}
 
-            <div className="flex justify-end gap-2">
+            <div className="mt-1 flex justify-end gap-2">
               <button
                 type="button"
-                className="rounded-lg border border-line px-3 py-2 text-[13px] text-fg-2 hover:bg-bg-2"
+                className="rounded-lg px-3 py-1.5 text-[13px] text-fg-2 hover:bg-bg-2 hover:text-fg-0"
                 onClick={onClose}
               >
                 취소
@@ -185,10 +185,9 @@ export function ProfileEditModal({
                 type="button"
                 disabled={busy || !dirty}
                 onClick={save}
-                className="flex items-center gap-1.5 rounded-lg bg-bg-3 px-3 py-2 text-[13px] font-medium text-fg-0 hover:bg-line-strong disabled:opacity-50"
+                className="rounded-lg bg-bg-3 px-3 py-1.5 text-[13px] font-medium text-fg-0 hover:bg-line-strong disabled:opacity-50"
               >
-                {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                저장
+                {busy ? "저장 중…" : "저장"}
               </button>
             </div>
           </div>
