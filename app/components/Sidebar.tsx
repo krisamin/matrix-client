@@ -24,6 +24,7 @@ import { RoomAvatar } from "./Avatar";
 import { NewDmModal } from "./NewDmModal";
 import { NewRoomModal } from "./NewRoomModal";
 import { NewSpaceModal } from "./NewSpaceModal";
+import { ProfileEditModal } from "./ProfileEditModal";
 
 /** 방 하나의 트리 노드 — 클릭 시 이동, 스레드 자식 노드 펼침 */
 function RoomNode({
@@ -212,6 +213,7 @@ export function Sidebar({ client }: { client: MatrixClient }) {
   const [newRoomOpen, setNewRoomOpen] = useState(false);
   const [newSpaceOpen, setNewSpaceOpen] = useState(false);
   const [createMenuOpen, setCreateMenuOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const userId = client.getUserId() ?? "";
   const localpart = userId.replace(/^@/, "").split(":")[0];
 
@@ -266,9 +268,14 @@ export function Sidebar({ client }: { client: MatrixClient }) {
     <aside className="flex w-64 shrink-0 flex-col border-r border-line bg-bg-1">
       {/* 헤더: 48px (PWA WCO 시 창 드래그 + 신호등 버튼 회피) */}
       <div className="app-titlebar app-titlebar-lead flex h-12 shrink-0 items-center gap-2 border-b border-line px-4">
-        <Link to="/" className="flex min-w-0 flex-1 items-center gap-2">
+        <button
+          type="button"
+          className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 py-0.5 text-left hover:bg-bg-2"
+          onClick={() => setProfileOpen(true)}
+          title="프로필 편집"
+        >
           <span className="truncate font-medium text-fg-0">{localpart}</span>
-        </Link>
+        </button>
         <div className="relative">
           <button
             type="button"
@@ -435,6 +442,12 @@ export function Sidebar({ client }: { client: MatrixClient }) {
             setNewSpaceOpen(false);
             // Space는 폴더라 따로 이동하지 않음 — 사이드바 트리에 자동 등장
           }}
+        />
+      )}
+      {profileOpen && (
+        <ProfileEditModal
+          client={client}
+          onClose={() => setProfileOpen(false)}
         />
       )}
     </aside>
