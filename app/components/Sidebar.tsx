@@ -2,6 +2,8 @@ import {
   Check,
   ChevronDown,
   ChevronRight,
+  FolderPlus,
+  Hash,
   LogOut,
   MessageSquareText,
   PenSquare,
@@ -21,6 +23,7 @@ import { buildRoomTree, type SpaceNode } from "../lib/spaces";
 import { RoomAvatar } from "./Avatar";
 import { NewDmModal } from "./NewDmModal";
 import { NewRoomModal } from "./NewRoomModal";
+import { NewSpaceModal } from "./NewSpaceModal";
 
 /** 방 하나의 트리 노드 — 클릭 시 이동, 스레드 자식 노드 펼침 */
 function RoomNode({
@@ -194,6 +197,8 @@ export function Sidebar({ client }: { client: MatrixClient }) {
   const [inviteBusy, setInviteBusy] = useState<string | null>(null);
   const [newDmOpen, setNewDmOpen] = useState(false);
   const [newRoomOpen, setNewRoomOpen] = useState(false);
+  const [newSpaceOpen, setNewSpaceOpen] = useState(false);
+  const [createMenuOpen, setCreateMenuOpen] = useState(false);
   const userId = client.getUserId() ?? "";
   const localpart = userId.replace(/^@/, "").split(":")[0];
 
@@ -251,22 +256,59 @@ export function Sidebar({ client }: { client: MatrixClient }) {
         <Link to="/" className="flex min-w-0 flex-1 items-center gap-2">
           <span className="truncate font-medium text-fg-0">{localpart}</span>
         </Link>
-        <button
-          type="button"
-          className="rounded-md p-1.5 text-fg-2 hover:bg-bg-2 hover:text-fg-0"
-          onClick={() => setNewDmOpen(true)}
-          title="새 대화 시작"
-        >
-          <PenSquare className="h-[15px] w-[15px]" />
-        </button>
-        <button
-          type="button"
-          className="rounded-md p-1.5 text-fg-2 hover:bg-bg-2 hover:text-fg-0"
-          onClick={() => setNewRoomOpen(true)}
-          title="새 방 만들기"
-        >
-          <Plus className="h-[15px] w-[15px]" />
-        </button>
+        <div className="relative">
+          <button
+            type="button"
+            className="rounded-md p-1.5 text-fg-2 hover:bg-bg-2 hover:text-fg-0"
+            onClick={() => setCreateMenuOpen((v) => !v)}
+            title="새로 만들기"
+          >
+            <Plus className="h-[15px] w-[15px]" />
+          </button>
+          {createMenuOpen && (
+            <>
+              {/* 바깥 클릭 닫기 */}
+              <button
+                type="button"
+                aria-label="메뉴 닫기"
+                className="fixed inset-0 z-10 cursor-default"
+                onClick={() => setCreateMenuOpen(false)}
+              />
+              <div className="absolute right-0 z-20 mt-1 w-44 overflow-hidden rounded-lg border border-line bg-bg-2 py-1 shadow-2xl">
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] text-fg-1 hover:bg-bg-3 hover:text-fg-0"
+                  onClick={() => {
+                    setCreateMenuOpen(false);
+                    setNewDmOpen(true);
+                  }}
+                >
+                  <PenSquare className="h-4 w-4 shrink-0 text-fg-3" />새 대화
+                </button>
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] text-fg-1 hover:bg-bg-3 hover:text-fg-0"
+                  onClick={() => {
+                    setCreateMenuOpen(false);
+                    setNewRoomOpen(true);
+                  }}
+                >
+                  <Hash className="h-4 w-4 shrink-0 text-fg-3" />새 방
+                </button>
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] text-fg-1 hover:bg-bg-3 hover:text-fg-0"
+                  onClick={() => {
+                    setCreateMenuOpen(false);
+                    setNewSpaceOpen(true);
+                  }}
+                >
+                  <FolderPlus className="h-4 w-4 shrink-0 text-fg-3" />새 Space
+                </button>
+              </div>
+            </>
+          )}
+        </div>
         <button
           type="button"
           className="rounded-md p-1.5 text-fg-2 hover:bg-bg-2 hover:text-fg-0"
@@ -369,6 +411,16 @@ export function Sidebar({ client }: { client: MatrixClient }) {
           onCreated={(roomId) => {
             setNewRoomOpen(false);
             navigate(`/room/${encodeURIComponent(roomId)}`);
+          }}
+        />
+      )}
+      {newSpaceOpen && (
+        <NewSpaceModal
+          client={client}
+          onClose={() => setNewSpaceOpen(false)}
+          onCreated={() => {
+            setNewSpaceOpen(false);
+            // Space는 폴더라 따로 이동하지 않음 — 사이드바 트리에 자동 등장
           }}
         />
       )}

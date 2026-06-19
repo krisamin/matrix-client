@@ -8,6 +8,7 @@ import {
   OidcTokenRefresher,
   Preset,
   type Room,
+  RoomType,
 } from "matrix-js-sdk";
 import {
   decodeRecoveryKey,
@@ -235,6 +236,7 @@ export async function startDirectMessage(
  * - topic: 방 주제 (선택)
  * - encrypted: E2EE 켤지 (기본 true)
  * - invite: 초대할 userId 목록 (선택)
+ * - parentSpaceId: 지정 시 생성 후 그 Space의 자식으로 연결 (m.space.child/parent)
  * 반환: 생성된 roomId
  */
 export async function createGroupRoom(
@@ -244,6 +246,7 @@ export async function createGroupRoom(
     topic?: string;
     encrypted?: boolean;
     invite?: string[];
+    parentSpaceId?: string;
   },
 ): Promise<string> {
   const encrypted = opts.encrypted ?? true;
@@ -264,7 +267,100 @@ export async function createGroupRoom(
         }
       : {}),
   });
+  if (opts.parentSpaceId) {
+    await addRoomToSpace(client, opts.parentSpaceId, roomId);
+  }
   return roomId;
+}
+
+/** userId/roomId에서 서버 도메인 추출 (@u:server → server, !r:server → server) */
+function serverNameOf(id: string): string {
+  const i = id.indexOf(":");
+  return i >= 0 ? id.slice(i + 1) : "";
+}
+
+/** 방을 다른 사용자에게 노출할 때 거치는 서버 도메인 목록(via) 추정.
+ *  현재 멤버들의 서버 도메인을 모아 빈도순으로. m.space.child/parent에 필요. */
+function viaServers(client: MatrixClient, roomId: string): string[] {
+  const room = client.getRoom(roomId);
+  const counts = new Map<string, number>();
+  if (room) {
+    for (const m of room.getJoinedMembers()) {
+      const s = serverNameOf(m.userId);
+      if (s) counts.set(s, (counts.get(s) ?? 0) + 1);
+    }
+  }
+  // 내 서버는 항상 포함 (방금 만든 방이라 멤버가 나뿐일 수 있음)
+  const mine = serverNameOf(client.getUserId() ?? "");
+  if (mine && !counts.has(mine)) counts.set(mine, 0);
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([s]) => s)
+    .slice(0, 3);
+}
+
+/**
+ * Space와 방을 양방향 연결한다 (Matrix 정석).
+ * - 부모 Space에 m.space.child (state_key=roomId)
+ * - 자식 방에 m.space.parent (state_key=spaceId)
+ * via(서버 도메인) 없으면 다른 서버에서 못 찾으므로 둘 다 채운다.
+ * (자식 방의 parent 쓰기 권한이 없으면 child만 성공해도 트리 표시는 됨 —
+ *  buildRoomTree가 child만 신뢰하므로)
+ */
+export async function addRoomToSpace(
+  client: MatrixClient,
+  spaceId: string,
+  roomId: string,
+): Promise<void> {
+  const childVia = viaServers(client, roomId);
+  await client.sendStateEvent(
+    spaceId,
+    EventType.SpaceChild,
+    { via: childVia.length ? childVia : [serverNameOf(roomId)] },
+    roomId,
+  );
+  // parent는 권한 없을 수 있으니 실패해도 무시 (child가 본질)
+  try {
+    const parentVia = viaServers(client, spaceId);
+    await client.sendStateEvent(
+      roomId,
+      EventType.SpaceParent,
+      {
+        via: parentVia.length ? parentVia : [serverNameOf(spaceId)],
+        canonical: true,
+      },
+      spaceId,
+    );
+  } catch (e) {
+    console.warn("m.space.parent 설정 실패(권한?) — child만으로 진행:", e);
+  }
+}
+
+/**
+ * 새 Space를 생성한다 (m.space 타입 방).
+ * - name: Space 이름 (필수)
+ * - topic: 설명 (선택)
+ * 반환: 생성된 spaceId
+ */
+export async function createSpace(
+  client: MatrixClient,
+  opts: { name: string; topic?: string },
+): Promise<string> {
+  const { room_id: spaceId } = await client.createRoom({
+    name: opts.name.trim(),
+    ...(opts.topic?.trim() ? { topic: opts.topic.trim() } : {}),
+    preset: Preset.PrivateChat,
+    creation_content: { type: RoomType.Space },
+    // Space는 메시지 방이 아니므로 암호화하지 않는다
+  });
+  return spaceId;
+}
+
+/** 참여중인 Space 목록 (생성/이동 UI의 드롭다운 소스) */
+export function getJoinedSpaces(client: MatrixClient): Room[] {
+  return client
+    .getRooms()
+    .filter((r) => r.isSpaceRoom() && r.getMyMembership() === "join");
 }
 
 /** 사용자 디렉토리 검색 결과 1건 */
