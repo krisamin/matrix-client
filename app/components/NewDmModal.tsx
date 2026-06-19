@@ -1,11 +1,8 @@
 import type { MatrixClient } from "matrix-js-sdk";
 import { useEffect, useRef, useState } from "react";
-import {
-  searchUserDirectory,
-  startDirectMessage,
-  type UserDirectoryResult,
-} from "../lib/matrix";
-import { Avatar } from "./Avatar";
+import { looksLikeUserId, useUserSearch } from "../hooks/useUserSearch";
+import { startDirectMessage } from "../lib/matrix";
+import { UserResultRow } from "./UserResultRow";
 
 /** 새 DM 시작 모달.
  *  - 사용자 디렉토리 검색(디바운스 250ms) + 직접 @user:server 입력 지원
@@ -21,11 +18,10 @@ export function NewDmModal({
   onStarted: (roomId: string) => void;
 }) {
   const [term, setTerm] = useState("");
-  const [results, setResults] = useState<UserDirectoryResult[]>([]);
-  const [searching, setSearching] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { results, searching } = useUserSearch(client, term);
 
   // 마운트 시 포커스
   useEffect(() => {
@@ -40,28 +36,6 @@ export function NewDmModal({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
-
-  // 검색 디바운스 (250ms)
-  useEffect(() => {
-    const q = term.trim();
-    if (!q) {
-      setResults([]);
-      setSearching(false);
-      return;
-    }
-    setSearching(true);
-    const id = setTimeout(async () => {
-      const res = await searchUserDirectory(client, q);
-      setResults(res);
-      setSearching(false);
-    }, 250);
-    return () => clearTimeout(id);
-  }, [term, client]);
-
-  /** @user:server 형태의 완전한 MXID인지 (직접 입력 허용용) */
-  function looksLikeUserId(s: string): boolean {
-    return /^@[^:\s]+:[^:\s]+$/.test(s.trim());
-  }
 
   async function start(userId: string) {
     if (busy) return;
@@ -109,7 +83,7 @@ export function NewDmModal({
           {error && <p className="mt-2 text-[12px] text-red-400">{error}</p>}
           <div className="mt-2 max-h-[40vh] overflow-y-auto">
             {directEntry && (
-              <ResultRow
+              <UserResultRow
                 client={client}
                 userId={directEntry}
                 displayName={undefined}
@@ -119,7 +93,7 @@ export function NewDmModal({
               />
             )}
             {results.map((r) => (
-              <ResultRow
+              <UserResultRow
                 key={r.userId}
                 client={client}
                 userId={r.userId}
@@ -146,46 +120,5 @@ export function NewDmModal({
         </div>
       </div>
     </div>
-  );
-}
-
-/** 검색 결과 한 줄 — 아바타 + 표시이름 + MXID */
-function ResultRow({
-  client,
-  userId,
-  displayName,
-  avatarUrl,
-  busy,
-  onClick,
-}: {
-  client: MatrixClient;
-  userId: string;
-  displayName?: string;
-  avatarUrl?: string;
-  busy: boolean;
-  onClick: () => void;
-}) {
-  const name = displayName || userId.slice(1).split(":")[0];
-  return (
-    <button
-      type="button"
-      disabled={busy}
-      onClick={onClick}
-      className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left hover:bg-bg-2 disabled:opacity-50"
-    >
-      <Avatar
-        client={client}
-        mxcUrl={avatarUrl}
-        name={name}
-        shape="round"
-        size={32}
-      />
-      <span className="min-w-0 flex-1">
-        <span className="block truncate font-medium text-fg-0">{name}</span>
-        <span className="block truncate font-mono text-[11px] text-fg-3">
-          {userId}
-        </span>
-      </span>
-    </button>
   );
 }

@@ -10,11 +10,13 @@ import {
 } from "lucide-react";
 import type { MatrixClient, Room, RoomMember } from "matrix-js-sdk";
 import { RoomMemberEvent, RoomStateEvent } from "matrix-js-sdk";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { looksLikeUserId, useUserSearch } from "../hooks/useUserSearch";
 import { getDmUserId } from "../lib/matrix";
 import { Avatar, RoomAvatar } from "./Avatar";
 import { PaneHeader, PaneHeaderButton } from "./PaneHeader";
 import { roleLabel, UserProfileCard } from "./UserProfileCard";
+import { UserResultRow } from "./UserResultRow";
 
 function MemberRow({
   client,
@@ -75,7 +77,7 @@ export function RoomInfoPane({
   const [copied, setCopied] = useState(false);
   // 초대 폼 상태
   const [inviteOpen, setInviteOpen] = useState(false);
-  const [inviteId, setInviteId] = useState("");
+  const [inviteTerm, setInviteTerm] = useState("");
   const [inviteBusy, setInviteBusy] = useState(false);
   const [inviteMsg, setInviteMsg] = useState<string | null>(null);
   // 나가기 (2단계 확인)
@@ -115,6 +117,20 @@ export function RoomInfoPane({
     (a, b) => b.powerLevel - a.powerLevel || a.name.localeCompare(b.name, "ko"),
   );
 
+  // 초대 검색: 이미 방에 있거나(join) 초대 대기중(invite)인 사람은 후보에서 제외
+  const excludeIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const m of room.getMembersWithMembership("join")) ids.add(m.userId);
+    for (const m of room.getMembersWithMembership("invite")) ids.add(m.userId);
+    return ids;
+    // members 리스너 tick으로 리렌더되므로 room 참조만으로 충분
+  }, [room]);
+  const { results: inviteResults, searching: inviteSearching } = useUserSearch(
+    client,
+    inviteTerm,
+    excludeIds,
+  );
+
   async function copyRoomId() {
     try {
       await navigator.clipboard.writeText(room.roomId);
@@ -125,20 +141,19 @@ export function RoomInfoPane({
     }
   }
 
-  async function invite() {
-    const target = inviteId.trim();
+  async function invite(target: string) {
+    if (inviteBusy) return;
     // 형식 검증: @local:server
-    if (!/^@[^:]+:.+/.test(target)) {
+    if (!looksLikeUserId(target)) {
       setInviteMsg("형식: @user:server");
       return;
     }
-    if (inviteBusy) return;
     setInviteBusy(true);
     setInviteMsg(null);
     try {
       await client.invite(room.roomId, target);
       setInviteMsg(`${target} 초대함`);
-      setInviteId("");
+      setInviteTerm("");
     } catch (e) {
       setInviteMsg(e instanceof Error ? e.message : String(e));
     } finally {
@@ -235,34 +250,65 @@ export function RoomInfoPane({
               </button>
             )}
           </div>
-          {/* 초대 폼 */}
+          {/* 초대 폼 — 디렉토리 검색 + 직접 @user:server 입력 */}
           {inviteOpen && (
-            <form
-              className="mx-1 mb-2 flex flex-col gap-1.5 rounded-lg border border-line p-2"
-              onSubmit={(e) => {
-                e.preventDefault();
-                invite();
-              }}
-            >
+            <div className="mx-1 mb-2 flex flex-col gap-1.5 rounded-lg border border-line p-2">
               <input
-                className="w-full rounded-md border border-line bg-bg-2 px-2 py-1.5 font-mono text-[12px] text-fg-0 outline-none placeholder:text-fg-3 focus:border-line-strong"
-                placeholder="@user:krisam.in"
-                value={inviteId}
+                className="w-full rounded-md border border-line bg-bg-2 px-2 py-1.5 text-[12px] text-fg-0 outline-none placeholder:text-fg-3 focus:border-line-strong"
+                placeholder="이름 또는 @user:server 검색"
+                value={inviteTerm}
                 autoFocus
-                onChange={(e) => setInviteId(e.target.value)}
+                onChange={(e) => setInviteTerm(e.target.value)}
               />
               {inviteMsg && (
                 <p className="px-1 text-[11px] text-fg-2">{inviteMsg}</p>
               )}
-              <button
-                type="submit"
-                className="flex items-center justify-center gap-1.5 rounded-md bg-bg-3 py-1.5 text-[12px] font-medium text-fg-0 hover:bg-line-strong disabled:opacity-50"
-                disabled={inviteBusy || !inviteId.trim()}
-              >
-                {inviteBusy && <Loader2 className="h-3 w-3 animate-spin" />}
-                초대 보내기
-              </button>
-            </form>
+              {(() => {
+                const trimmed = inviteTerm.trim();
+                const directEntry =
+                  looksLikeUserId(trimmed) &&
+                  !inviteResults.some((r) => r.userId === trimmed) &&
+                  !excludeIds.has(trimmed)
+                    ? trimmed
+                    : null;
+                return (
+                  <div className="max-h-[30vh] overflow-y-auto">
+                    {directEntry && (
+                      <UserResultRow
+                        client={client}
+                        userId={directEntry}
+                        busy={inviteBusy}
+                        onClick={() => invite(directEntry)}
+                      />
+                    )}
+                    {inviteResults.map((r) => (
+                      <UserResultRow
+                        key={r.userId}
+                        client={client}
+                        userId={r.userId}
+                        displayName={r.displayName}
+                        avatarUrl={r.avatarUrl}
+                        busy={inviteBusy}
+                        onClick={() => invite(r.userId)}
+                      />
+                    ))}
+                    {inviteSearching && (
+                      <p className="px-2 py-3 text-center text-[12px] text-fg-3">
+                        검색 중…
+                      </p>
+                    )}
+                    {!inviteSearching &&
+                      !directEntry &&
+                      inviteResults.length === 0 &&
+                      trimmed.length > 0 && (
+                        <p className="px-2 py-3 text-center text-[12px] text-fg-3">
+                          결과 없음. @user:server로 직접 입력 가능
+                        </p>
+                      )}
+                  </div>
+                );
+              })()}
+            </div>
           )}
           <ul>
             {members.map((m) => (
