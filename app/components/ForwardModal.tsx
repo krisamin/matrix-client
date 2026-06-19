@@ -1,5 +1,6 @@
 import type { MatrixClient, MatrixEvent } from "matrix-js-sdk";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { forwardEvent } from "../lib/matrix";
 import { quotePreview } from "../lib/reply";
 import { RoomAvatar } from "./Avatar";
@@ -64,7 +65,7 @@ export function ForwardModal({
     }
   }
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 pt-[15vh]"
       onClick={onClose}
@@ -117,6 +118,7 @@ export function ForwardModal({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
