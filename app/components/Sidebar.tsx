@@ -4,6 +4,7 @@ import {
   ChevronRight,
   LogOut,
   MessageSquareText,
+  PenSquare,
   ShieldCheck,
   X,
 } from "lucide-react";
@@ -17,6 +18,7 @@ import { quotePreview } from "../lib/reply";
 import { clearSession } from "../lib/session";
 import { buildRoomTree, type SpaceNode } from "../lib/spaces";
 import { RoomAvatar } from "./Avatar";
+import { NewDmModal } from "./NewDmModal";
 
 /** 방 하나의 트리 노드 — 클릭 시 이동, 스레드 자식 노드 펼침 */
 function RoomNode({
@@ -188,6 +190,7 @@ export function Sidebar({ client }: { client: MatrixClient }) {
   const params = useParams<{ roomId?: string; threadId?: string }>();
   const { rooms, invites, syncState } = useRooms(client);
   const [inviteBusy, setInviteBusy] = useState<string | null>(null);
+  const [newDmOpen, setNewDmOpen] = useState(false);
   const userId = client.getUserId() ?? "";
   const localpart = userId.replace(/^@/, "").split(":")[0];
 
@@ -245,6 +248,14 @@ export function Sidebar({ client }: { client: MatrixClient }) {
         <Link to="/" className="flex min-w-0 flex-1 items-center gap-2">
           <span className="truncate font-medium text-fg-0">{localpart}</span>
         </Link>
+        <button
+          type="button"
+          className="rounded-md p-1.5 text-fg-2 hover:bg-bg-2 hover:text-fg-0"
+          onClick={() => setNewDmOpen(true)}
+          title="새 대화 시작"
+        >
+          <PenSquare className="h-[15px] w-[15px]" />
+        </button>
         <button
           type="button"
           className="rounded-md p-1.5 text-fg-2 hover:bg-bg-2 hover:text-fg-0"
@@ -329,6 +340,17 @@ export function Sidebar({ client }: { client: MatrixClient }) {
         <span className="ml-auto font-mono">E2EE</span>
         <ShieldCheck className="h-3.5 w-3.5" />
       </div>
+
+      {newDmOpen && (
+        <NewDmModal
+          client={client}
+          onClose={() => setNewDmOpen(false)}
+          onStarted={(roomId) => {
+            setNewDmOpen(false);
+            navigate(`/room/${encodeURIComponent(roomId)}`);
+          }}
+        />
+      )}
     </aside>
   );
 }

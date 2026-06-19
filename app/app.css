@@ -55,6 +55,10 @@ body {
        컨트롤 영역에 가려지지 않게 라인 두께만큼 더 줌 → 하단 구분선까지 보임. */
     height: calc(env(titlebar-area-height, 3rem) + 1px);
     min-height: calc(env(titlebar-area-height, 3rem) + 1px);
+    /* 위 +1px는 border 노출용이라 콘텐츠 정렬 박스만 1px 작아져(콘텐츠가 0.5px
+       위로). OS 컨트롤은 헤더 전체 높이 기준 중앙이므로, padding-top 1px로
+       콘텐츠 정렬 영역을 헤더 전체 중앙에 맞춰 세로 정렬을 OS 컨트롤과 일치시킴. */
+    padding-top: 1px;
   }
   /* 헤더 안의 인터랙티브 요소는 드래그에서 제외 (클릭 정상 동작) */
   .app-titlebar a,

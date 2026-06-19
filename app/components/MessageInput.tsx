@@ -11,6 +11,11 @@ import { EmojiPicker } from "./EmojiPicker";
 /** 입력창 최대 높이(px). 이 높이를 넘으면 textarea 내부 스크롤. */
 const MAX_INPUT_PX = 200;
 
+/** 방/스레드별 작성 중 draft 보존 키 (localStorage). */
+function draftKey(roomId: string, threadId?: string): string {
+  return `mx-draft:${roomId}:${threadId ?? ""}`;
+}
+
 /** 메시지 입력창 — 룸/스레드 100% 동일 (005 디자인).
  *  타이핑 표시(수신/발신), 파일 첨부(버튼/붙여넣기), 답장 인용,
  *  @멘션 자동완성 (↑↓/Tab/Enter 선택, Esc 닫기).
@@ -43,6 +48,15 @@ export function MessageInput({
   const [uploading, setUploading] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textInputRef = useRef<HTMLTextAreaElement>(null);
+  // 현재 방/스레드의 draft 보존 키. 방 전환 시 아래 effect에서 갱신된다.
+  const draftKeyRef = useRef(draftKey(room.roomId, threadId));
+  // 방/스레드 전환 시 저장된 draft 복원. 저장은 onDraftChange/send에서 직접
+  // 하므로(키 전환 race 회피) 여기선 로드만 한다.
+  useEffect(() => {
+    const key = draftKey(room.roomId, threadId);
+    draftKeyRef.current = key;
+    setDraft(localStorage.getItem(key) ?? "");
+  }, [room.roomId, threadId]);
   const { notifyTyping, clearTyping } = useSendTyping(client, room.roomId);
   // 멘션: 자동완성 상태 + 본문에 삽입된 멘션 누적 (전송 시 content 빌드용)
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
@@ -86,6 +100,9 @@ export function MessageInput({
 
   function onDraftChange(value: string) {
     setDraft(value);
+    // 작성 중 draft 보존(방별). 빈 값이면 키 제거해 localStorage 청소.
+    if (value) localStorage.setItem(draftKeyRef.current, value);
+    else localStorage.removeItem(draftKeyRef.current);
     if (value) notifyTyping();
     const cursor = textInputRef.current?.selectionStart ?? value.length;
     const m = detectMention(value, cursor);
@@ -103,6 +120,7 @@ export function MessageInput({
     const next = draft.slice(0, m.at) + inserted + draft.slice(cursor);
     mentionsRef.current.push({ userId, name });
     setDraft(next);
+    localStorage.setItem(draftKeyRef.current, next);
     setMentionQuery(null);
     requestAnimationFrame(() => {
       input?.focus();
@@ -117,6 +135,7 @@ export function MessageInput({
     const pos = input?.selectionStart ?? draft.length;
     const next = draft.slice(0, pos) + emoji + draft.slice(pos);
     setDraft(next);
+    localStorage.setItem(draftKeyRef.current, next);
     requestAnimationFrame(() => {
       input?.focus();
       const p = pos + emoji.length;
@@ -131,6 +150,7 @@ export function MessageInput({
     try {
       await onSend(draft, mentionsRef.current);
       setDraft("");
+      localStorage.removeItem(draftKeyRef.current);
       mentionsRef.current = [];
       setMentionQuery(null);
       clearTyping();

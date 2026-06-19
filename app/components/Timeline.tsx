@@ -1,3 +1,4 @@
+import { ChevronDown } from "lucide-react";
 import type { MatrixClient, MatrixEvent, Room } from "matrix-js-sdk";
 import {
   forwardRef,
@@ -7,6 +8,7 @@ import {
   useLayoutEffect,
   useMemo,
   useRef,
+  useState,
 } from "react";
 import { Virtualizer, type VirtualizerHandle } from "virtua";
 import { groupTimeline } from "../lib/group";
@@ -97,6 +99,9 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
     const vRef = useRef<VirtualizerHandle>(null);
     // 직전에 바닥 근처였는지 — append 시 바닥 추적 판단의 소스.
     const stickToBottomRef = useRef(true);
+    // 바닥 도달 여부(렌더 트리거용 state). stickToBottomRef는 ref라
+    // 리렌더를 안 일으켜 "새 메시지 ↓" 버튼 표시 토글에 못 쓴다 → state로 미러.
+    const [atBottom, setAtBottom] = useState(true);
     // 초기 바닥 정렬: scheduled(중복 스케줄 방지) / done(onScroll 허용 시점).
     // rAF로 정렬이 끝난 뒤 done=true → 측정 전 onScroll의 loadOlder 폭주 차단.
     const initialScheduledRef = useRef(false);
@@ -181,6 +186,7 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
       initialScheduledRef.current = false;
       initialDoneRef.current = false;
       stickToBottomRef.current = true;
+      setAtBottom(true);
       prevLastKeyRef.current = null;
       prevDisplayLenRef.current = 0;
       prevFirstKeyRef.current = null;
@@ -311,7 +317,10 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
         const el = scrollRef.current;
         if (el) {
           const domDist = el.scrollHeight - el.scrollTop - el.clientHeight;
-          stickToBottomRef.current = domDist <= 2;
+          const stick = domDist <= 2;
+          stickToBottomRef.current = stick;
+          // 버튼 표시 state는 값이 바뀔 때만 갱신(불필요 리렌더 방지).
+          setAtBottom((prev) => (prev !== stick ? stick : prev));
         }
         // 위로 충분히 올라오면 과거 로드. prepend는 다음 렌더에서 key 변화로
         // 감지돼 shift가 자동으로 켜진다(flag 불필요 — async를 못 버텼음).
@@ -321,6 +330,15 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
       },
       [loadingOlder, hasMore, loadOlder],
     );
+
+    // "맨 아래로" 버튼: 마지막 행으로 스크롤 + stick 복구.
+    const scrollToBottom = useCallback(() => {
+      const lastIdx = displayRows.length - 1;
+      if (lastIdx < 0) return;
+      stickToBottomRef.current = true;
+      setAtBottom(true);
+      vRef.current?.scrollToIndex(lastIdx, { align: "end" });
+    }, [displayRows.length]);
 
     return (
       <div className="relative flex min-h-0 flex-1 flex-col">
@@ -387,6 +405,18 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
             })}
           </Virtualizer>
         </div>
+        {/* "맨 아래로" 버튼 — 바닥에서 벗어났을 때만. 입력창 바로 위 우측. */}
+        {!atBottom && (
+          <button
+            type="button"
+            onClick={scrollToBottom}
+            title="맨 아래로"
+            aria-label="맨 아래로"
+            className="absolute right-5 bottom-4 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-line bg-bg-2 text-fg-1 shadow-xl transition-colors hover:bg-bg-3 hover:text-fg-0"
+          >
+            <ChevronDown className="h-5 w-5" />
+          </button>
+        )}
       </div>
     );
   },

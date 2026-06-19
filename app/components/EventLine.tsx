@@ -37,6 +37,19 @@ function formatTime(ts: number): string {
   });
 }
 
+/** 호버 툴팁용 전체 날짜·시간 (예: "2026년 6월 18일 (목) 오후 2:35:07") */
+function formatFullTime(ts: number): string {
+  return new Date(ts).toLocaleString("ko-KR", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
+
 /** 등장 애니메이션을 이미 재생한 이벤트 id 집합 (모듈 레벨).
  *  가상 스크롤에서 행이 재마운트될 때마다 msg-in이 재생되면 메시지가
  *  떠오르며 잔상처럼 보인다. 한 이벤트당 최초 1회만 애니메이션하도록 기록. */
@@ -246,7 +259,10 @@ const EventLineInner = function EventLine({
           >
             {senderName}
           </button>
-          <span className="font-mono text-[11px] text-fg-3">
+          <span
+            className="font-mono text-[11px] text-fg-3"
+            title={formatFullTime(ev.getTs())}
+          >
             {formatTime(ev.getTs())}
           </span>
           {ev.replacingEvent() && (
