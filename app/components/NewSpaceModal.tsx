@@ -64,17 +64,17 @@ export function NewSpaceModal({
       role="presentation"
     >
       <div
-        className="w-[420px] max-w-[90vw] overflow-hidden rounded-xl border border-line bg-bg-1 shadow-2xl"
+        className="w-[420px] max-w-[90vw] overflow-hidden rounded-lg border border-line bg-bg-1 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
         role="presentation"
       >
-        <div className="border-b border-line px-4 py-3">
+        <div className="border-b border-line px-4 py-2.5">
           <h2 className="font-semibold text-fg-0">새 Space 만들기</h2>
           <p className="mt-0.5 text-[12px] text-fg-3">
             Space는 방을 묶는 폴더예요. 메시지는 주고받지 않아요.
           </p>
         </div>
-        <div className="flex flex-col gap-3 p-4">
+        <div className="flex flex-col gap-2.5 p-3">
           <label className="flex flex-col gap-1">
             <span className="text-[12px] text-fg-2">Space 이름</span>
             <input
@@ -86,7 +86,7 @@ export function NewSpaceModal({
                 if (e.key === "Enter") create();
               }}
               placeholder="예: 업무"
-              className="w-full rounded-md border border-line bg-bg-2 px-3 py-2 text-fg-0 outline-none transition-colors placeholder:text-fg-3 focus:bg-bg-3"
+              className="w-full rounded-md border border-line bg-bg-2 px-2.5 py-1.5 text-[13px] text-fg-0 outline-none transition-colors placeholder:text-fg-3 focus:bg-bg-3"
             />
           </label>
           <label className="flex flex-col gap-1">
@@ -99,7 +99,7 @@ export function NewSpaceModal({
                 if (e.key === "Enter") create();
               }}
               placeholder="Space 설명"
-              className="w-full rounded-md border border-line bg-bg-2 px-3 py-2 text-fg-0 outline-none transition-colors placeholder:text-fg-3 focus:bg-bg-3"
+              className="w-full rounded-md border border-line bg-bg-2 px-2.5 py-1.5 text-[13px] text-fg-0 outline-none transition-colors placeholder:text-fg-3 focus:bg-bg-3"
             />
           </label>
           {spaces.length > 0 && (
@@ -108,7 +108,7 @@ export function NewSpaceModal({
               <select
                 value={parentSpaceId}
                 onChange={(e) => setParentSpaceId(e.target.value)}
-                className="w-full rounded-md border border-line bg-bg-2 px-3 py-2 text-fg-0 outline-none transition-colors focus:bg-bg-3"
+                className="w-full rounded-md border border-line bg-bg-2 px-2.5 py-1.5 text-[13px] text-fg-0 outline-none transition-colors focus:bg-bg-3"
               >
                 <option value="">없음 (최상위 Space)</option>
                 {spaces.map((s) => (
@@ -124,7 +124,7 @@ export function NewSpaceModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg px-3 py-1.5 text-[13px] text-fg-2 hover:bg-bg-2 hover:text-fg-0"
+              className="rounded-md px-3 py-1.5 text-[13px] text-fg-2 hover:bg-bg-2 hover:text-fg-0"
             >
               취소
             </button>
@@ -132,7 +132,7 @@ export function NewSpaceModal({
               type="button"
               onClick={create}
               disabled={busy || !name.trim()}
-              className="rounded-lg bg-bg-3 px-3 py-1.5 text-[13px] font-medium text-fg-0 hover:bg-line-strong disabled:opacity-50"
+              className="rounded-md bg-bg-3 px-3 py-1.5 text-[13px] font-medium text-fg-0 hover:bg-line-strong disabled:opacity-50"
             >
               {busy ? "만드는 중…" : "만들기"}
             </button>

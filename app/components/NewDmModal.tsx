@@ -64,11 +64,11 @@ export function NewDmModal({
       role="presentation"
     >
       <div
-        className="w-[420px] max-w-[90vw] overflow-hidden rounded-xl border border-line bg-bg-1 shadow-2xl"
+        className="w-[420px] max-w-[90vw] overflow-hidden rounded-lg border border-line bg-bg-1 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
         role="presentation"
       >
-        <div className="border-b border-line px-4 py-3">
+        <div className="border-b border-line px-4 py-2.5">
           <h2 className="font-semibold text-fg-0">새 대화 시작</h2>
         </div>
         <div className="p-3">
@@ -78,7 +78,7 @@ export function NewDmModal({
             value={term}
             onChange={(e) => setTerm(e.target.value)}
             placeholder="이름 또는 @user:server 검색"
-            className="w-full rounded-md border border-line bg-bg-2 px-3 py-2 text-fg-0 outline-none transition-colors placeholder:text-fg-3 focus:bg-bg-3"
+            className="w-full rounded-md border border-line bg-bg-2 px-2.5 py-1.5 text-[13px] text-fg-0 outline-none transition-colors placeholder:text-fg-3 focus:bg-bg-3"
           />
           {error && <p className="mt-2 text-[12px] text-red-400">{error}</p>}
           <div className="mt-2 max-h-[40vh] overflow-y-auto">

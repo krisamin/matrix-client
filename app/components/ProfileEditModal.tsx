@@ -108,11 +108,11 @@ export function ProfileEditModal({
       role="presentation"
     >
       <div
-        className="w-[400px] max-w-[90vw] overflow-hidden rounded-xl border border-line bg-bg-1 shadow-2xl"
+        className="w-[400px] max-w-[90vw] overflow-hidden rounded-lg border border-line bg-bg-1 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
         role="presentation"
       >
-        <div className="border-b border-line px-4 py-3">
+        <div className="border-b border-line px-4 py-2.5">
           <h2 className="font-semibold text-fg-0">프로필 편집</h2>
         </div>
         {loading ? (
@@ -120,7 +120,7 @@ export function ProfileEditModal({
             <Loader2 className="h-5 w-5 animate-spin" />
           </div>
         ) : (
-          <div className="flex flex-col gap-4 p-4">
+          <div className="flex flex-col gap-2.5 p-3">
             {/* 아바타 */}
             <div className="flex flex-col items-center gap-2">
               <button
@@ -167,7 +167,7 @@ export function ProfileEditModal({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder={localpart}
-                className="w-full rounded-md border border-line bg-bg-2 px-3 py-2 text-fg-0 outline-none transition-colors placeholder:text-fg-3 focus:bg-bg-3"
+                className="w-full rounded-md border border-line bg-bg-2 px-2.5 py-1.5 text-[13px] text-fg-0 outline-none transition-colors placeholder:text-fg-3 focus:bg-bg-3"
               />
             </label>
 
@@ -176,7 +176,7 @@ export function ProfileEditModal({
             <div className="mt-1 flex justify-end gap-2">
               <button
                 type="button"
-                className="rounded-lg px-3 py-1.5 text-[13px] text-fg-2 hover:bg-bg-2 hover:text-fg-0"
+                className="rounded-md px-3 py-1.5 text-[13px] text-fg-2 hover:bg-bg-2 hover:text-fg-0"
                 onClick={onClose}
               >
                 취소
@@ -185,7 +185,7 @@ export function ProfileEditModal({
                 type="button"
                 disabled={busy || !dirty}
                 onClick={save}
-                className="rounded-lg bg-bg-3 px-3 py-1.5 text-[13px] font-medium text-fg-0 hover:bg-line-strong disabled:opacity-50"
+                className="rounded-md bg-bg-3 px-3 py-1.5 text-[13px] font-medium text-fg-0 hover:bg-line-strong disabled:opacity-50"
               >
                 {busy ? "저장 중…" : "저장"}
               </button>
