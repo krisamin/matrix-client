@@ -254,7 +254,7 @@ export function RoomInfoPane({
           {inviteOpen && (
             <div className="mx-1 mb-2 flex flex-col gap-1.5 rounded-lg border border-line p-2">
               <input
-                className="w-full rounded-md border border-line bg-bg-2 px-2 py-1.5 text-[12px] text-fg-0 outline-none placeholder:text-fg-3 focus:border-line-strong"
+                className="w-full rounded-md border border-line bg-bg-2 px-2 py-1.5 text-[12px] text-fg-0 outline-none transition-colors placeholder:text-fg-3 focus:bg-bg-3"
                 placeholder="이름 또는 @user:server 검색"
                 value={inviteTerm}
                 autoFocus

@@ -78,7 +78,7 @@ export function NewDmModal({
             value={term}
             onChange={(e) => setTerm(e.target.value)}
             placeholder="이름 또는 @user:server 검색"
-            className="w-full rounded-lg border border-line bg-bg-2 px-3 py-2 text-fg-0 outline-none placeholder:text-fg-3 focus:border-line-strong"
+            className="w-full rounded-md border border-line bg-bg-2 px-3 py-2 text-fg-0 outline-none transition-colors placeholder:text-fg-3 focus:bg-bg-3"
           />
           {error && <p className="mt-2 text-[12px] text-red-400">{error}</p>}
           <div className="mt-2 max-h-[40vh] overflow-y-auto">

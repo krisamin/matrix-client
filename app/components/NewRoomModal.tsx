@@ -85,7 +85,7 @@ export function NewRoomModal({
                 if (e.key === "Enter") create();
               }}
               placeholder="예: 팀 잡담"
-              className="w-full rounded-lg border border-line bg-bg-2 px-3 py-2 text-fg-0 outline-none placeholder:text-fg-3 focus:border-line-strong"
+              className="w-full rounded-md border border-line bg-bg-2 px-3 py-2 text-fg-0 outline-none transition-colors placeholder:text-fg-3 focus:bg-bg-3"
             />
           </label>
           <label className="flex flex-col gap-1">
@@ -98,7 +98,7 @@ export function NewRoomModal({
                 if (e.key === "Enter") create();
               }}
               placeholder="방 설명"
-              className="w-full rounded-lg border border-line bg-bg-2 px-3 py-2 text-fg-0 outline-none placeholder:text-fg-3 focus:border-line-strong"
+              className="w-full rounded-md border border-line bg-bg-2 px-3 py-2 text-fg-0 outline-none transition-colors placeholder:text-fg-3 focus:bg-bg-3"
             />
           </label>
           {spaces.length > 0 && (
@@ -107,7 +107,7 @@ export function NewRoomModal({
               <select
                 value={parentSpaceId}
                 onChange={(e) => setParentSpaceId(e.target.value)}
-                className="w-full rounded-lg border border-line bg-bg-2 px-3 py-2 text-fg-0 outline-none focus:border-line-strong"
+                className="w-full rounded-md border border-line bg-bg-2 px-3 py-2 text-fg-0 outline-none transition-colors focus:bg-bg-3"
               >
                 <option value="">없음 (최상위 방)</option>
                 {spaces.map((s) => (

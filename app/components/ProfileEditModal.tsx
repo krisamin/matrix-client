@@ -167,7 +167,7 @@ export function ProfileEditModal({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder={localpart}
-                className="w-full rounded-lg border border-line bg-bg-2 px-3 py-2 text-fg-0 outline-none placeholder:text-fg-3 focus:border-line-strong"
+                className="w-full rounded-md border border-line bg-bg-2 px-3 py-2 text-fg-0 outline-none transition-colors placeholder:text-fg-3 focus:bg-bg-3"
               />
             </label>
 
