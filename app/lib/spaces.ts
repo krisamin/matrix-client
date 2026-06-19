@@ -21,7 +21,7 @@ export interface RoomTree {
 
 /** Space 방의 m.space.child state → 자식 roomId 목록.
  *  content가 빈 이벤트는 "관계 해제"를 뜻하므로 제외 (스펙). */
-function childRoomIds(space: Room): string[] {
+export function childRoomIds(space: Room): string[] {
   return space.currentState
     .getStateEvents(EventType.SpaceChild)
     .filter((ev) => {

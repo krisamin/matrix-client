@@ -19,6 +19,7 @@ import { MessageInput } from "../components/MessageInput";
 import { PaneHeader, PaneHeaderButton } from "../components/PaneHeader";
 import { RoomInfoPane } from "../components/RoomInfoPane";
 import { SearchPane } from "../components/SearchPane";
+import { SpaceView } from "../components/SpaceView";
 import { Timeline, type TimelineHandle } from "../components/Timeline";
 import {
   useReadReceipt,
@@ -111,6 +112,12 @@ export default function RoomView() {
         </span>
       </div>
     );
+  }
+
+  // Space room이면 타임라인 대신 Space 홈(방 목록/설명)을 보여준다.
+  // (Space는 메시지 방이 아니라 폴더 — 타임라인 렌더 시 빈 화면이 됨)
+  if (room.isSpaceRoom()) {
+    return <SpaceView client={client} space={room} />;
   }
 
   async function send(text: string, mentions: Mention[]) {

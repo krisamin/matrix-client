@@ -113,7 +113,8 @@ function RoomNode({
   );
 }
 
-/** Space 트리 노드 — 접을 수 있는 부모, 아래 하위 Space/방 재귀 렌더 */
+/** Space 트리 노드 — 접을 수 있는 부모, 아래 하위 Space/방 재귀 렌더.
+ *  chevron 클릭=펼치기/접기, 이름 클릭=Space 홈으로 이동 */
 function SpaceTreeNode({
   client,
   node,
@@ -125,31 +126,43 @@ function SpaceTreeNode({
   activeRoomId?: string;
   activeThreadId?: string;
 }) {
+  const navigate = useNavigate();
   /** 이 Space 서브트리에 활성 방이 들어있는지 (있으면 자동 펼침 유지) */
   const containsActive = (n: SpaceNode): boolean =>
     n.rooms.some((r) => r.roomId === activeRoomId) ||
     n.children.some(containsActive);
   const [collapsed, setCollapsed] = useState(false);
   const expanded = !collapsed || containsActive(node);
+  const active = activeRoomId === node.space.roomId;
 
   return (
     <div>
-      <button
-        type="button"
-        className="tree-row"
-        onClick={() => setCollapsed((v) => !v)}
-        title={expanded ? "접기" : "펼치기"}
-      >
-        {expanded ? (
-          <ChevronDown className="h-3.5 w-3.5 shrink-0 text-fg-3" />
-        ) : (
-          <ChevronRight className="h-3.5 w-3.5 shrink-0 text-fg-3" />
-        )}
-        <RoomAvatar client={client} room={node.space} size={16} />
-        <span className="min-w-0 flex-1 truncate font-medium text-fg-0">
-          {node.space.name}
-        </span>
-      </button>
+      <div className={`tree-row ${active ? "active" : ""}`}>
+        <button
+          type="button"
+          className="shrink-0 text-fg-3 hover:text-fg-1"
+          onClick={() => setCollapsed((v) => !v)}
+          title={expanded ? "접기" : "펼치기"}
+        >
+          {expanded ? (
+            <ChevronDown className="h-3.5 w-3.5" />
+          ) : (
+            <ChevronRight className="h-3.5 w-3.5" />
+          )}
+        </button>
+        <button
+          type="button"
+          className="flex min-w-0 flex-1 items-center gap-1.5"
+          onClick={() =>
+            navigate(`/room/${encodeURIComponent(node.space.roomId)}`)
+          }
+        >
+          <RoomAvatar client={client} room={node.space} size={16} />
+          <span className="min-w-0 flex-1 truncate text-left font-medium text-fg-0">
+            {node.space.name}
+          </span>
+        </button>
+      </div>
       {expanded && (
         <div className="tree-children">
           {node.children.map((child) => (
