@@ -343,11 +343,12 @@ export async function addRoomToSpace(
  * 새 Space를 생성한다 (m.space 타입 방).
  * - name: Space 이름 (필수)
  * - topic: 설명 (선택)
+ * - parentSpaceId: 지정 시 생성 후 그 Space의 자식으로 연결 (Space 중첩)
  * 반환: 생성된 spaceId
  */
 export async function createSpace(
   client: MatrixClient,
-  opts: { name: string; topic?: string },
+  opts: { name: string; topic?: string; parentSpaceId?: string },
 ): Promise<string> {
   const { room_id: spaceId } = await client.createRoom({
     name: opts.name.trim(),
@@ -356,6 +357,9 @@ export async function createSpace(
     creation_content: { type: RoomType.Space },
     // Space는 메시지 방이 아니므로 암호화하지 않는다
   });
+  if (opts.parentSpaceId) {
+    await addRoomToSpace(client, opts.parentSpaceId, spaceId);
+  }
   return spaceId;
 }
 

@@ -5,10 +5,11 @@ import { useNavigate } from "react-router";
 import { childRoomIds } from "../lib/spaces";
 import { RoomAvatar } from "./Avatar";
 import { NewRoomModal } from "./NewRoomModal";
+import { NewSpaceModal } from "./NewSpaceModal";
 import { PaneHeader } from "./PaneHeader";
 
 /** Space 홈 — 메시지 타임라인 대신 보여주는 화면.
- *  Space 이름/설명 + 자식 방 목록(클릭 이동) + "여기에 방 추가". */
+ *  Space 이름/설명 + 하위 Space + 자식 방 목록(클릭 이동) + 추가 버튼. */
 export function SpaceView({
   client,
   space,
@@ -18,6 +19,7 @@ export function SpaceView({
 }) {
   const navigate = useNavigate();
   const [newRoomOpen, setNewRoomOpen] = useState(false);
+  const [newSpaceOpen, setNewSpaceOpen] = useState(false);
 
   const topic =
     space.currentState.getStateEvents("m.room.topic", "")?.getContent()
@@ -50,11 +52,21 @@ export function SpaceView({
           )}
 
           {/* 하위 Space */}
-          {childSpaces.length > 0 && (
-            <section className="mb-6">
-              <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-fg-3">
-                하위 Space
+          <section className="mb-6">
+            <div className="mb-2 flex items-center justify-between">
+              <h2 className="text-[11px] font-semibold uppercase tracking-widest text-fg-3">
+                하위 Space {childSpaces.length > 0 && `(${childSpaces.length})`}
               </h2>
+              <button
+                type="button"
+                onClick={() => setNewSpaceOpen(true)}
+                className="flex items-center gap-1 rounded-md px-2 py-1 text-[12px] text-fg-2 hover:bg-bg-2 hover:text-fg-0"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                하위 Space
+              </button>
+            </div>
+            {childSpaces.length > 0 && (
               <ul className="flex flex-col gap-0.5">
                 {childSpaces.map((r) => (
                   <li key={r.roomId}>
@@ -73,8 +85,8 @@ export function SpaceView({
                   </li>
                 ))}
               </ul>
-            </section>
-          )}
+            )}
+          </section>
 
           {/* 방 목록 */}
           <section>
@@ -131,6 +143,17 @@ export function SpaceView({
           onCreated={(roomId) => {
             setNewRoomOpen(false);
             navigate(`/room/${encodeURIComponent(roomId)}`);
+          }}
+        />
+      )}
+      {newSpaceOpen && (
+        <NewSpaceModal
+          client={client}
+          defaultSpaceId={space.roomId}
+          onClose={() => setNewSpaceOpen(false)}
+          onCreated={(spaceId) => {
+            setNewSpaceOpen(false);
+            navigate(`/room/${encodeURIComponent(spaceId)}`);
           }}
         />
       )}

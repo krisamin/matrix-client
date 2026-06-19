@@ -1,25 +1,32 @@
 import type { MatrixClient } from "matrix-js-sdk";
-import { useEffect, useRef, useState } from "react";
-import { createSpace } from "../lib/matrix";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createSpace, getJoinedSpaces } from "../lib/matrix";
 
 /** 새 Space 만들기 모달.
- *  - 이름(필수) + 설명(선택)
+ *  - 이름(필수) + 설명(선택) + 상위 Space(선택, Space 중첩)
  *  - 생성 시 onCreated(spaceId) 콜백
- *  - 백드롭/Esc로 닫힘 */
+ *  - 백드롭/Esc로 닫힘
+ *  - defaultSpaceId: Space 홈에서 "하위 Space 추가"로 열 때 미리 선택 */
 export function NewSpaceModal({
   client,
   onClose,
   onCreated,
+  defaultSpaceId,
 }: {
   client: MatrixClient;
   onClose: () => void;
   onCreated: (spaceId: string) => void;
+  defaultSpaceId?: string;
 }) {
   const [name, setName] = useState("");
   const [topic, setTopic] = useState("");
+  const [parentSpaceId, setParentSpaceId] = useState(defaultSpaceId ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // 참여중 Space 목록 (드롭다운 소스)
+  const spaces = useMemo(() => getJoinedSpaces(client), [client]);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -38,7 +45,11 @@ export function NewSpaceModal({
     setBusy(true);
     setError(null);
     try {
-      const spaceId = await createSpace(client, { name, topic });
+      const spaceId = await createSpace(client, {
+        name,
+        topic,
+        parentSpaceId: parentSpaceId || undefined,
+      });
       onCreated(spaceId);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -91,6 +102,23 @@ export function NewSpaceModal({
               className="w-full rounded-lg border border-line bg-bg-2 px-3 py-2 text-fg-0 outline-none placeholder:text-fg-3 focus:border-line-strong"
             />
           </label>
+          {spaces.length > 0 && (
+            <label className="flex flex-col gap-1">
+              <span className="text-[12px] text-fg-2">상위 Space (선택)</span>
+              <select
+                value={parentSpaceId}
+                onChange={(e) => setParentSpaceId(e.target.value)}
+                className="w-full rounded-lg border border-line bg-bg-2 px-3 py-2 text-fg-0 outline-none focus:border-line-strong"
+              >
+                <option value="">없음 (최상위 Space)</option>
+                {spaces.map((s) => (
+                  <option key={s.roomId} value={s.roomId}>
+                    {s.name || s.roomId}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           {error && <p className="text-[12px] text-red-400">{error}</p>}
           <div className="mt-1 flex justify-end gap-2">
             <button
