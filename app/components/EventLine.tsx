@@ -23,6 +23,7 @@ import { isPinned, togglePin } from "../lib/matrix";
 import { mentionsUser } from "../lib/mention";
 import { quotePreview, thumbnailSource } from "../lib/reply";
 import { MEDIA_MSGTYPES } from "../lib/timeline";
+import { extractPreviewUrls } from "../lib/url-preview";
 import { EmojiPicker } from "./EmojiPicker";
 import { ForwardModal } from "./ForwardModal";
 import { MediaView } from "./MediaView";
@@ -32,6 +33,7 @@ import { ReactionBar } from "./ReactionBar";
 import { ReadReceipts } from "./ReadReceipts";
 import { getReplyToId, ReplyQuote } from "./ReplyQuote";
 import { ToolCallChip } from "./ToolCallChip";
+import { UrlPreviews } from "./UrlPreview";
 import { UserProfileCard } from "./UserProfileCard";
 
 function formatTime(ts: number): string {
@@ -163,6 +165,16 @@ const EventLineInner = function EventLine({
     ev.getType() === EventType.RoomMessage &&
     room.currentState.maySendStateEvent(EventType.RoomPinnedEvents, myUserId);
   const pinned = canPin && isPinned(room, ev.getId() ?? "");
+  // URL 미리보기 대상 — 일반 텍스트 메시지 본문에서 추출 (미디어/삭제/툴진행 제외)
+  const previewUrls =
+    !ev.isRedacted() &&
+    placeholder === null &&
+    !isMedia &&
+    !isToolProgress &&
+    ev.getType() === EventType.RoomMessage &&
+    typeof content.body === "string"
+      ? extractPreviewUrls(content.body)
+      : [];
 
   function startEdit() {
     // 현재(수정 반영된) 본문에서 시작
@@ -482,6 +494,11 @@ const EventLineInner = function EventLine({
         <div className={isPending || isFailed ? "opacity-60" : ""}>
           <MessageBody client={client} ev={ev} />
         </div>
+      )}
+
+      {/* URL 미리보기 (텍스트 메시지에 링크가 있을 때) */}
+      {!editing && previewUrls.length > 0 && (
+        <UrlPreviews client={client} urls={previewUrls} />
       )}
 
       {/* 전송 상태 */}
