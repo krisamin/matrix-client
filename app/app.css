@@ -29,6 +29,39 @@ body {
   height: 100%;
   overflow: hidden;
   overscroll-behavior: none;
+  /* 네이티브 앱 느낌 — 기본은 텍스트 선택 차단. 채팅 본문/인풋만 예외 */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* 텍스트 선택 허용 영역:
+ *  - 메시지 본문 (.message-body, 마크다운 변환 결과)
+ *  - 인용/답장 미리보기 (.reply-quote)
+ *  - 코드블록 (pre/code, 자동 — 코드는 항상 복사할 수 있어야)
+ *  - 모든 입력 폼 (input, textarea, contenteditable)
+ *  - .selectable로 명시적으로 마킹된 영역 (방 토픽, userId 등) */
+.message-body,
+.message-body *,
+.reply-quote,
+.reply-quote *,
+pre,
+code,
+input,
+textarea,
+[contenteditable="true"],
+.selectable,
+.selectable * {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* 네이티브 우클릭 메뉴 차단 — body 전역.
+ *  허용 영역만 oncontextmenu 핸들러에서 stopPropagation으로 살린다
+ *  (위 selectable 영역은 컴포넌트 단위로 자체 oncontextmenu 처리 X →
+ *   전역 prevent가 그대로 적용되어 깔끔). 단, 마로가 본문 텍스트를 복사할
+ *  때 우클릭→복사가 필요하므로 아래 .message-body 류는 허용. */
+body {
+  /* 전역 차단 위해 기본 css는 그대로 두고, JS에서 contextmenu 이벤트 처리 */
 }
 
 /* 내부 스크롤 영역도 끝에서 body로 체이닝 안 되게 */

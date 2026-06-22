@@ -206,7 +206,7 @@ export function RoomInfoPane({
               {room.name}
             </p>
             {topic && (
-              <p className="max-w-full whitespace-pre-wrap break-words text-center text-[12px] leading-relaxed text-fg-2">
+              <p className="selectable max-w-full whitespace-pre-wrap break-words text-center text-[12px] leading-relaxed text-fg-2">
                 {topic}
               </p>
             )}

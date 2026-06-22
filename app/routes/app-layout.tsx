@@ -45,6 +45,29 @@ export default function AppLayout() {
     });
   }, [navigate]);
 
+  // 네이티브 우클릭 메뉴 차단 — 단, 텍스트 선택이 가능한 영역(메시지 본문/
+  // 코드블록/입력폼/.selectable로 마킹된 영역)에선 native 메뉴를 살려
+  // 마로가 텍스트 복사·붙여넣기를 할 수 있게 한다. RoomNode 같은 자체 우클릭
+  // 메뉴 컴포넌트는 React onContextMenu에서 e.preventDefault를 이미 호출하므로,
+  // defaultPrevented가 true면 그대로 통과시킨다 (이중 prevent 무해).
+  useEffect(() => {
+    function isAllowedTarget(el: Element | null): boolean {
+      if (!el) return false;
+      // closest로 가장 가까운 허용 마커 검색
+      return !!el.closest(
+        ".message-body, .reply-quote, pre, code, input, textarea, [contenteditable='true'], .selectable",
+      );
+    }
+    function onContextMenu(e: MouseEvent) {
+      // 컴포넌트가 이미 처리(자체 메뉴 띄움)했으면 그대로
+      if (e.defaultPrevented) return;
+      if (isAllowedTarget(e.target as Element)) return;
+      e.preventDefault();
+    }
+    document.addEventListener("contextmenu", onContextMenu);
+    return () => document.removeEventListener("contextmenu", onContextMenu);
+  }, []);
+
   if (!client) {
     return (
       <div className="flex h-screen items-center justify-center">
