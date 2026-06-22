@@ -64,6 +64,14 @@ function RoomNode({
   const fav = isFavourite(room);
   const muted = isMuted(client, room);
 
+  // 스레드 최신 활동순 정렬 — lastReply().ts(없으면 rootEvent.ts) 내림차순.
+  // 새 스레드/답글이 오면 자연스럽게 맨 위로 올라오고, SDK 기본(생성순)을 덮어씀.
+  const sortedThreads = [...threads].sort((a, b) => {
+    const tsA = a.lastReply()?.getTs() ?? a.rootEvent?.getTs() ?? 0;
+    const tsB = b.lastReply()?.getTs() ?? b.rootEvent?.getTs() ?? 0;
+    return tsB - tsA;
+  });
+
   const showChildren = hasThreads && (expanded || active);
 
   async function onFav() {
@@ -151,9 +159,18 @@ function RoomNode({
       )}
       {showChildren && (
         <div className="tree-children">
-          {threads.map((thread) => {
+          {sortedThreads.map((thread) => {
             const root = thread.rootEvent;
             const title = root ? quotePreview(root) : thread.id;
+            // 스레드별 안 읽음 카운트 (SDK 공식 API).
+            const tUnread = room.getThreadUnreadNotificationCount(
+              thread.id,
+              NotificationCountType.Total,
+            );
+            const tHighlight = room.getThreadUnreadNotificationCount(
+              thread.id,
+              NotificationCountType.Highlight,
+            );
             return (
               <Link
                 key={thread.id}
@@ -161,7 +178,18 @@ function RoomNode({
                 className={`tree-row ${activeThreadId === thread.id ? "active" : ""}`}
               >
                 <MessageSquareText className="h-3.5 w-3.5 shrink-0 text-fg-3" />
-                <span className="min-w-0 flex-1 truncate">{title}</span>
+                <span
+                  className={`min-w-0 flex-1 truncate ${tUnread > 0 && !muted ? "font-semibold text-fg-0" : ""}`}
+                >
+                  {title}
+                </span>
+                {tUnread > 0 && (
+                  <span
+                    className={`badge ${tHighlight > 0 && !muted ? "badge-hl" : ""} ${muted ? "opacity-40" : ""}`}
+                  >
+                    {tUnread > 99 ? "99+" : tUnread}
+                  </span>
+                )}
               </Link>
             );
           })}
