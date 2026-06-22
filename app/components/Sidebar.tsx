@@ -385,20 +385,22 @@ export function Sidebar({ client }: { client: MatrixClient }) {
 
   return (
     <aside className="flex w-64 shrink-0 flex-col border-r border-line bg-bg-1">
-      {/* 헤더: 48px (PWA WCO 시 창 드래그 + 신호등 버튼 회피) */}
-      <div className="app-titlebar app-titlebar-lead flex h-12 shrink-0 items-center gap-2 border-b border-line px-4">
+      {/* 헤더: 48px (PWA WCO 시 창 드래그 + 신호등 버튼 회피).
+          PaneHeader와 동일 톤 — 좌측 콘텐츠는 페인 좌측 padding 안에서 위아래 꽉,
+          우측 버튼들은 정사각(aspect-square h-full)으로 헤더 우측 끝에 밀착. */}
+      <div className="app-titlebar app-titlebar-lead flex h-12 shrink-0 items-center border-b border-line">
         <button
           type="button"
-          className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 py-0.5 text-left hover:bg-bg-2"
+          className="flex min-w-0 flex-1 items-center gap-2 self-stretch px-4 text-left hover:bg-bg-2"
           onClick={() => setProfileOpen(true)}
           title="프로필 편집"
         >
           <span className="truncate font-medium text-fg-0">{localpart}</span>
         </button>
-        <div className="relative">
+        <div className="relative flex h-full">
           <button
             type="button"
-            className="rounded-md p-1.5 text-fg-2 hover:bg-bg-2 hover:text-fg-0"
+            className="flex aspect-square h-full shrink-0 items-center justify-center text-fg-2 hover:bg-bg-2 hover:text-fg-0"
             onClick={() => setCreateMenuOpen((v) => !v)}
             title="새로 만들기"
           >
@@ -413,7 +415,7 @@ export function Sidebar({ client }: { client: MatrixClient }) {
                 className="fixed inset-0 z-10 cursor-default"
                 onClick={() => setCreateMenuOpen(false)}
               />
-              <div className="absolute right-0 z-20 mt-1 flex w-44 flex-col divide-y divide-line overflow-hidden rounded-md border border-line bg-bg-1 shadow-2xl">
+              <div className="absolute right-0 top-full z-20 mt-1 flex w-44 flex-col divide-y divide-line overflow-hidden rounded-md border border-line bg-bg-1 shadow-2xl">
                 <button
                   type="button"
                   className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] text-fg-1 hover:bg-bg-2 hover:text-fg-0"
@@ -450,7 +452,7 @@ export function Sidebar({ client }: { client: MatrixClient }) {
         </div>
         <button
           type="button"
-          className="rounded-md p-1.5 text-fg-2 hover:bg-bg-2 hover:text-fg-0"
+          className="flex aspect-square h-full shrink-0 items-center justify-center text-fg-2 hover:bg-bg-2 hover:text-fg-0"
           onClick={logout}
           title="로그아웃"
         >

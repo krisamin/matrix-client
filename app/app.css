@@ -58,12 +58,9 @@ body {
        위로). OS 컨트롤은 헤더 전체 높이 기준 중앙이므로, padding-top 1px로
        콘텐츠 정렬 영역을 헤더 전체 중앙에 맞춰 세로 정렬을 OS 컨트롤과 일치시킴. */
     padding-top: 1px;
-    /* tailwind px-* 무력화 — WCO에선 헤더가 OS 영역에 종속돼 높이가 작아지므로
-       (~28-30px) 위아래 시각 inset이 거의 0. 좌우도 그 비율에 맞춰 작게(0.75rem)
-       두어 사방 균형. 좌상단 신호등 / 우상단 OS controls가 더 크면 아래 규칙의
-       max(...)로 그쪽이 자동으로 이김. */
-    padding-left: 0.75rem;
-    padding-right: 0.75rem;
+    /* 좌우 padding은 컴포넌트(PaneHeader pl-5 / Sidebar app-titlebar-lead)가
+       관리한다. WCO 환경에선 그 위에 .app-titlebar-lead 규칙(신호등 폭)과
+       :last-child 우측 규칙(OS 컨트롤 폭)이 추가로 들여씀. */
   }
   /* 헤더 안의 인터랙티브 요소는 드래그에서 제외 (클릭 정상 동작) */
   .app-titlebar a,
@@ -82,14 +79,10 @@ body {
   /* 우상단: 맨 오른쪽 패널 헤더만 OS 창 컨트롤(닫기/메뉴 등) 오버레이를 피함.
      우측 예약영역 폭 = 창너비 - 좌예약(x) - 안전영역(width).
      분할뷰(방+스레드)에선 마지막 패널만 창 우측 끝에 닿으므로 :last-child로 한정.
-     OS 컨트롤 없는 환경에선 기본 0.75rem 유지.
-     좌측엔 OS 컨트롤이 없으므로(사이드바가 좌측 신호등 영역을 이미 가림)
-     좌측은 헤더 기본 0.75rem 그대로 두고, 우측만 OS 컨트롤 폭만큼 들임 →
-     콘텐츠 가용 영역은 양쪽 대칭(좌측 콘텐츠 시작점 = 사이드바 우측 끝). */
+     OS 컨트롤 없는 환경에선 0 → 헤더 버튼이 페인 우측 끝에 정확히 밀착. */
   .app-pane-row > :last-child .app-titlebar {
-    padding-right: max(
-      0.75rem,
-      calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw))
+    padding-right: calc(
+      100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw)
     );
   }
 }
