@@ -74,17 +74,22 @@ export function isToolProgressEvent(ev: MatrixEvent): boolean {
   const body = (content.body ?? "").trim();
   if (!body) return false;
   // edit fallback("* ..." 접두)이 있을 수 있어 제거
-  const head =
-    body
-      .replace(/^\*\s+/, "")
-      .split("\n")[0]
-      ?.trim() ?? "";
+  const noEditPrefix = body.replace(/^\*\s+/, "");
+  // 줄 단위로 보고, 코드펜스(```) / 빈 줄 / 마크다운 장식만으로 된 줄은 건너뛰어
+  // 첫 "의미 있는" 줄을 찾는다. 게이트웨이는 보통 헤더 줄을 가장 먼저 두지만
+  // edit/m.replace 경로에서 펜스가 앞에 붙는 변종이 관찰됨.
+  let head = "";
+  for (const raw of noEditPrefix.split("\n")) {
+    const line = raw.trim();
+    if (!line) continue;
+    if (line.startsWith("```")) continue; // 코드펜스 열기/닫기
+    head = line;
+    break;
+  }
   if (!head) return false;
-  // 첫 토큰을 도구 이름으로 분리:
-  //   "{이모지}<공백 1+>{tool_name}<...>"
-  // 첫 공백까지가 이모지(또는 prefix). 그 뒤가 도구 이름 후보.
-  // 이모지가 두 글자(예: ⚙️)인 경우도 있어 공백 기준이 안전.
-  const m = head.match(/^\S+\s+([a-z_][a-z0-9_]*)(?:\s*\.\.\.|\s*:\s*"|\s*\()/);
+  // 패턴: `<공백 없는 prefix(이모지 등)> <tool_name>` — 뒤에 뭐가 오든(없어도) 됨.
+  // 화이트리스트가 게이트라 정규식은 느슨해도 안전.
+  const m = head.match(/^\S+\s+([a-z_][a-z0-9_]*)\b/);
   if (!m) return false;
   return KNOWN_TOOL_NAMES.has(m[1]);
 }
