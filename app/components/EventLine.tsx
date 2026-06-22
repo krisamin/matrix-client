@@ -32,7 +32,7 @@ import { QuoteThumbnail } from "./QuoteThumbnail";
 import { ReactionBar } from "./ReactionBar";
 import { ReadReceipts } from "./ReadReceipts";
 import { getReplyToId, ReplyQuote } from "./ReplyQuote";
-import { ToolCallChip } from "./ToolCallChip";
+import { isToolProgressEvent, ToolCallChip } from "./ToolCallChip";
 import { UrlPreviews } from "./UrlPreview";
 import { UserProfileCard } from "./UserProfileCard";
 
@@ -123,12 +123,14 @@ const EventLineInner = function EventLine({
   const mentioned =
     !mine && mentionsUser(content as Record<string, unknown>, myUserId, myName);
   const replyToId = getReplyToId(ev);
-  // 게이트웨이가 tool-progress 버블에 단 마커 (m.notice + tool_progress 필드).
+  // 게이트웨이가 tool-progress 버블에 단 마커 (m.notice + tool_progress 필드)
+  // 또는 본문 모양으로 식별된 도구 진행 메시지. hermes update로 패치가 풀려
+  // 마커가 사라져도 본문 패턴(`{emoji} {tool_name}: "..."`)으로 잡아낸다.
   // 일반 채팅 대신 접힌 칩으로 렌더 — 삭제/복호화중/미디어는 제외.
   const isToolProgress =
-    content.tool_progress === true &&
     ev.getType() === EventType.RoomMessage &&
-    !ev.isRedacted();
+    !ev.isRedacted() &&
+    isToolProgressEvent(ev);
   const thread = ev.isThreadRoot ? ev.getThread() : null;
   const threadLength = thread?.length ?? 0;
   const isMedia =
