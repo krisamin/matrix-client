@@ -117,8 +117,14 @@ export default function RoomView() {
 
   // Space room이면 타임라인 대신 Space 홈(방 목록/설명)을 보여준다.
   // (Space는 메시지 방이 아니라 폴더 — 타임라인 렌더 시 빈 화면이 됨)
+  // app-pane-row 래퍼로 감싸야 우상단 OS 창 컨트롤(신호등 등) 영역을 비켜
+  // PaneHeader actions(⚙ 설정)이 가려지지 않는다.
   if (room.isSpaceRoom()) {
-    return <SpaceView client={client} space={room} />;
+    return (
+      <div className="app-pane-row flex min-h-0 min-w-0 flex-1">
+        <SpaceView client={client} space={room} />
+      </div>
+    );
   }
 
   async function send(text: string, mentions: Mention[]) {
