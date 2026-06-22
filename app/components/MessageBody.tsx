@@ -285,14 +285,27 @@ export function MessageBody({
       const useHtml =
         content.format === "org.matrix.custom.html" &&
         typeof content.formatted_body === "string";
-      // 답장 메시지의 평문 fallback 인용부는 ReplyQuote가 따로 그리므로 제거
+      // 답장 메시지의 평문 fallback 인용부는 ReplyQuote가 따로 그리므로 제거.
+      // 양 끝 공백/빈 줄(\n, 보이지 않는 whitespace)도 트림 — 게이트웨이가 가끔
+      // 메시지 앞뒤로 줄바꿈을 여러 개 붙여 보내, 칩 다음 답이 큰 공백으로
+      // 시작하거나 끝나는 시각적 이슈가 있었음.
       const isReply = getReplyToId(ev) != null;
-      const plainBody = isReply
-        ? stripPlainReplyFallback(content.body ?? "")
-        : (content.body ?? "");
+      const plainBody = (
+        isReply
+          ? stripPlainReplyFallback(content.body ?? "")
+          : (content.body ?? "")
+      ).trim();
+      // HTML formatted body는 앞뒤 공백/`<br>`/`<br/>`/`<p></p>` 같은 빈
+      // 블록을 정리해 양 끝 시각적 공백 제거.
+      const trimmedFormatted =
+        useHtml && typeof content.formatted_body === "string"
+          ? content.formatted_body
+              .replace(/^(?:\s|<br\s*\/?>|<p>\s*<\/p>)+/i, "")
+              .replace(/(?:\s|<br\s*\/?>|<p>\s*<\/p>)+$/i, "")
+          : "";
       const raw = useHtml
         ? stripInterTagNewlines(
-            convertMxcUrls(client, stripMxReply(content.formatted_body)),
+            convertMxcUrls(client, stripMxReply(trimmedFormatted)),
           )
         : linkifyPlain(plainBody);
       const clean = DOMPurify.sanitize(raw, {
