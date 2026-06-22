@@ -67,10 +67,14 @@ export function isToolProgressEvent(ev: MatrixEvent): boolean {
     body?: string;
     tool_progress?: boolean;
   };
-  // 레거시 마커 우선
+  // 레거시 마커 우선 (패치 적용 상태)
   if (content.tool_progress === true) return true;
-  // m.notice 만 — 일반 채팅 텍스트는 m.text라 영향 없음
-  if (content.msgtype !== "m.notice") return false;
+  // m.notice(패치 상태) 또는 m.text(패치 풀린 상태) 둘 다 검사.
+  // 패치가 풀리면 게이트웨이가 m.text로 진행 메시지를 보내므로 m.text도 포함해야
+  // 평문으로 노출되는 회귀를 막을 수 있다. 일반 채팅도 m.text이지만 본문 패턴
+  // (`<이모지> <도구이름>`) + KNOWN_TOOL_NAMES 화이트리스트가 오탐을 막는다.
+  if (content.msgtype !== "m.notice" && content.msgtype !== "m.text")
+    return false;
   const body = (content.body ?? "").trim();
   if (!body) return false;
   // edit fallback("* ..." 접두)이 있을 수 있어 제거
