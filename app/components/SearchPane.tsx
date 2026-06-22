@@ -56,7 +56,7 @@ function ResultRow({
   return (
     <button
       type="button"
-      className="w-full rounded-lg px-3 py-2 text-left hover:bg-bg-2"
+      className="w-full px-5 py-2 text-left hover:bg-bg-2"
       onClick={() => onJump(ev.getId()!)}
     >
       <span className="flex items-baseline gap-2">
@@ -212,28 +212,35 @@ export function SearchPane({
         />
       </PaneHeader>
 
-      <div className="min-h-0 flex-1 overflow-y-auto p-2">
+      <div className="min-h-0 flex-1 overflow-y-auto bg-bg-0">
         {/* 결과 카운트 */}
         {!localMode && serverHits && (
-          <p className="px-3 pb-1 pt-1 font-mono text-[11px] text-fg-3">
-            “{searched}” — {serverCount}건
+          <p className="px-5 py-2 font-mono text-[11px] text-fg-3">
+            "{searched}" — {serverCount}건
           </p>
         )}
         {localMode && query.trim() && (
-          <p className="px-3 pb-1 pt-1 font-mono text-[11px] text-fg-3">
+          <p className="px-5 py-2 font-mono text-[11px] text-fg-3">
             로드된 {events.length}개 중 {localHits.length}건
             {localHits.length >= 200 && " (최대 200)"}
           </p>
         )}
 
-        {hits.map((ev) => (
-          <ResultRow
-            key={ev.getId()}
-            ev={ev}
-            query={localMode ? query.trim() : searched}
-            onJump={onJump}
-          />
-        ))}
+        {hits.length > 0 && (
+          <div className="m-3 mt-0 overflow-hidden rounded-md border border-line bg-bg-1">
+            <ul className="flex flex-col divide-y divide-line">
+              {hits.map((ev) => (
+                <li key={ev.getId()}>
+                  <ResultRow
+                    ev={ev}
+                    query={localMode ? query.trim() : searched}
+                    onJump={onJump}
+                  />
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {showEmpty && (
           <div className="flex flex-col items-center gap-2 py-10 text-fg-3">
@@ -252,7 +259,7 @@ export function SearchPane({
         {!busy && !localMode && serverResultsRef.current?.next_batch && (
           <button
             type="button"
-            className="mt-1 flex w-full items-center justify-center gap-1.5 rounded-lg border border-line py-2 text-[12px] text-fg-2 hover:bg-bg-2 hover:text-fg-0"
+            className="mx-3 mb-3 flex w-[calc(100%-1.5rem)] items-center justify-center gap-1.5 rounded-md border border-line bg-bg-1 py-2.5 text-[13px] text-fg-2 hover:bg-bg-2 hover:text-fg-0"
             onClick={moreServer}
           >
             <ChevronDown className="h-3.5 w-3.5" />
@@ -262,7 +269,7 @@ export function SearchPane({
         {!busy && localMode && query.trim() && hasMore && (
           <button
             type="button"
-            className="mt-1 flex w-full items-center justify-center gap-1.5 rounded-lg border border-line py-2 text-[12px] text-fg-2 hover:bg-bg-2 hover:text-fg-0"
+            className="mx-3 mb-3 flex w-[calc(100%-1.5rem)] items-center justify-center gap-1.5 rounded-md border border-line bg-bg-1 py-2.5 text-[13px] text-fg-2 hover:bg-bg-2 hover:text-fg-0"
             onClick={deepenLocal}
           >
             <History className="h-3.5 w-3.5" />
@@ -272,7 +279,7 @@ export function SearchPane({
 
         {/* 로컬 모드 안내 (첫 진입) */}
         {localMode && !query.trim() && (
-          <p className="px-3 py-4 text-[12px] leading-relaxed text-fg-3">
+          <p className="px-5 py-6 text-[12px] leading-relaxed text-fg-3">
             {scope === "thread"
               ? "스레드 검색은 이 기기에 로드된 답글에서 찾아. 범위가 부족하면 아래 버튼으로 과거 답글을 더 불러올 수 있어."
               : "암호화 방은 서버가 내용을 읽을 수 없어 이 기기에 로드된 메시지에서 검색해. 범위가 부족하면 아래 버튼으로 과거를 더 불러올 수 있어."}

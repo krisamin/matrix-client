@@ -1,4 +1,6 @@
 import {
+  Check,
+  Copy,
   Forward,
   MessageSquarePlus,
   MessageSquareText,
@@ -104,6 +106,7 @@ const EventLineInner = function EventLine({
   const [profileAnchor, setProfileAnchor] = useState<DOMRect | null>(null);
   // 전달 모달 열림 여부
   const [forwarding, setForwarding] = useState(false);
+  const [copied, setCopied] = useState(false);
   // 마운트 시점에 "방금 도착한" 이벤트(5초 이내 / local echo)만 등장 애니메이션.
   // 단 한 이벤트당 최초 1회만 — 가상 스크롤 재마운트 때마다 떠오르는 잔상 방지.
   const [animateIn] = useState(() => {
@@ -286,6 +289,17 @@ const EventLineInner = function EventLine({
     }
   }
 
+  async function copyMarkdown() {
+    try {
+      const body = (ev.getContent().body as string) ?? "";
+      await navigator.clipboard.writeText(body);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1200);
+    } catch (e) {
+      console.warn("메시지 복사 실패:", e);
+    }
+  }
+
   const actionBtn =
     "p-2 text-fg-1 hover:bg-bg-2 hover:text-fg-0 transition-colors";
 
@@ -330,9 +344,9 @@ const EventLineInner = function EventLine({
         <span className="sr-only">수정됨</span>
       )}
 
-      {/* hover 플로팅 액션 툴바 */}
+      {/* hover 플로팅 액션 툴바 — B-final 톤 (rounded-md, shadow-2xl) */}
       {!editing && !ev.isRedacted() && (
-        <div className="absolute -top-3 right-5 z-10 hidden items-center overflow-hidden rounded-lg border border-line bg-bg-3 shadow-xl group-hover:flex">
+        <div className="absolute -top-3 right-5 z-10 hidden items-center overflow-hidden rounded-md border border-line bg-bg-1 shadow-2xl group-hover:flex">
           <button
             type="button"
             className={actionBtn}
@@ -375,6 +389,18 @@ const EventLineInner = function EventLine({
               <Forward className="h-3.5 w-3.5" />
             </button>
           )}
+          <button
+            type="button"
+            className={actionBtn}
+            onClick={copyMarkdown}
+            title={copied ? "복사됨" : "마크다운 원본 복사"}
+          >
+            {copied ? (
+              <Check className="h-3.5 w-3.5 text-green-400" />
+            ) : (
+              <Copy className="h-3.5 w-3.5" />
+            )}
+          </button>
           {canPin && (
             <button
               type="button"
