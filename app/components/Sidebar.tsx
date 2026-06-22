@@ -413,10 +413,10 @@ export function Sidebar({ client }: { client: MatrixClient }) {
                 className="fixed inset-0 z-10 cursor-default"
                 onClick={() => setCreateMenuOpen(false)}
               />
-              <div className="absolute right-0 z-20 mt-1 w-44 overflow-hidden rounded-lg border border-line bg-bg-2 py-1 shadow-2xl">
+              <div className="absolute right-0 z-20 mt-1 flex w-44 flex-col divide-y divide-line overflow-hidden rounded-md border border-line bg-bg-1 shadow-2xl">
                 <button
                   type="button"
-                  className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] text-fg-1 hover:bg-bg-3 hover:text-fg-0"
+                  className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] text-fg-1 hover:bg-bg-2 hover:text-fg-0"
                   onClick={() => {
                     setCreateMenuOpen(false);
                     setNewDmOpen(true);
@@ -426,7 +426,7 @@ export function Sidebar({ client }: { client: MatrixClient }) {
                 </button>
                 <button
                   type="button"
-                  className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] text-fg-1 hover:bg-bg-3 hover:text-fg-0"
+                  className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] text-fg-1 hover:bg-bg-2 hover:text-fg-0"
                   onClick={() => {
                     setCreateMenuOpen(false);
                     setNewRoomOpen(true);
@@ -436,7 +436,7 @@ export function Sidebar({ client }: { client: MatrixClient }) {
                 </button>
                 <button
                   type="button"
-                  className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] text-fg-1 hover:bg-bg-3 hover:text-fg-0"
+                  className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] text-fg-1 hover:bg-bg-2 hover:text-fg-0"
                   onClick={() => {
                     setCreateMenuOpen(false);
                     setNewSpaceOpen(true);

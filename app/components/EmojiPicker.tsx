@@ -122,7 +122,7 @@ export function EmojiPicker({
   const emojiBtn =
     // overflow-hidden: 미지원 ZWJ 조합이 글리프 여러 개로 깨져 셀보다 넓게
     // 렌더되는 경우 클립 (안 하면 스크롤 영역이 늘어나 가로 스크롤 생김)
-    "flex h-8 items-center justify-center overflow-hidden rounded-md text-[18px] hover:bg-bg-3";
+    "flex h-8 items-center justify-center overflow-hidden rounded-md text-[18px] hover:bg-bg-2";
 
   return createPortal(
     <>
@@ -135,7 +135,7 @@ export function EmojiPicker({
         }}
       />
       <div
-        className="msg-in fixed z-50 flex flex-col overflow-hidden rounded-lg border border-line bg-bg-2 shadow-xl"
+        className="msg-in fixed z-50 flex flex-col overflow-hidden rounded-md border border-line bg-bg-1 shadow-2xl"
         style={{ left: x, top: y, width: W, height: H }}
         onKeyDown={(e) => {
           if (e.key === "Escape") onClose();
@@ -157,7 +157,7 @@ export function EmojiPicker({
         <div className="flex h-9 shrink-0 items-center justify-between border-b border-line px-2">
           <button
             type="button"
-            className="flex h-7 w-7 items-center justify-center rounded-md text-fg-2 hover:bg-bg-3 hover:text-fg-0"
+            className="flex h-7 w-7 items-center justify-center rounded-md text-fg-2 hover:bg-bg-2 hover:text-fg-0"
             title={recents.length > 0 ? "최근 사용" : "자주 사용"}
             onClick={() => jumpTo("recent")}
           >
@@ -167,7 +167,7 @@ export function EmojiPicker({
             <button
               key={g.slug}
               type="button"
-              className="flex h-7 w-7 items-center justify-center rounded-md text-[15px] grayscale hover:bg-bg-3 hover:grayscale-0"
+              className="flex h-7 w-7 items-center justify-center rounded-md text-[15px] grayscale hover:bg-bg-2 hover:grayscale-0"
               title={GROUP_META[g.slug]?.label ?? g.name}
               onClick={() => jumpTo(g.slug)}
             >
@@ -207,7 +207,7 @@ export function EmojiPicker({
                   sectionRefs.current.recent = el;
                 }}
               >
-                <p className="sticky top-0 bg-bg-2 px-1 pb-1 pt-2 text-[11px] font-medium text-fg-2">
+                <p className="sticky top-0 bg-bg-1 px-1 pb-1 pt-2 text-[11px] font-medium text-fg-2">
                   {recents.length > 0 ? "최근 사용" : "자주 사용"}
                 </p>
                 <div className="grid grid-cols-8 gap-0.5">
@@ -230,7 +230,7 @@ export function EmojiPicker({
                     sectionRefs.current[g.slug] = el;
                   }}
                 >
-                  <p className="sticky top-0 bg-bg-2 px-1 pb-1 pt-2 text-[11px] font-medium text-fg-2">
+                  <p className="sticky top-0 bg-bg-1 px-1 pb-1 pt-2 text-[11px] font-medium text-fg-2">
                     {GROUP_META[g.slug]?.label ?? g.name}
                   </p>
                   <div className="grid grid-cols-8 gap-0.5">
