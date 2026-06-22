@@ -62,23 +62,32 @@ export function SpaceView({
             </p>
           )}
 
-          {/* 하위 Space */}
-          <section className="mb-6">
-            <div className="mb-2 flex items-center justify-between">
-              <h2 className="text-[11px] font-semibold uppercase tracking-widest text-fg-3">
-                하위 Space {childSpaces.length > 0 && `(${childSpaces.length})`}
+          {/* 하위 Space — 카드 컨테이너 + divide-y 그리드 (B-final 톤) */}
+          <section className="mb-4 overflow-hidden rounded-md border border-line bg-bg-1">
+            <div className="flex h-10 items-center border-b border-line bg-bg-2/30 pl-5">
+              <h2 className="flex-1 text-[12px] font-medium text-fg-2">
+                하위 Space
+                {childSpaces.length > 0 && (
+                  <span className="ml-1.5 font-mono text-[11px] text-fg-3">
+                    {childSpaces.length}
+                  </span>
+                )}
               </h2>
               <button
                 type="button"
                 onClick={() => setNewSpaceOpen(true)}
-                className="flex items-center gap-1 rounded-md px-2 py-1 text-[12px] text-fg-2 hover:bg-bg-2 hover:text-fg-0"
+                className="flex aspect-square h-full shrink-0 items-center justify-center text-fg-2 hover:bg-bg-2 hover:text-fg-0"
+                title="하위 Space 추가"
               >
                 <Plus className="h-3.5 w-3.5" />
-                하위 Space
               </button>
             </div>
-            {childSpaces.length > 0 && (
-              <ul className="flex flex-col gap-0.5">
+            {childSpaces.length === 0 ? (
+              <p className="px-5 py-4 text-center text-[12px] text-fg-3">
+                아직 하위 Space가 없어요.
+              </p>
+            ) : (
+              <ul className="flex flex-col divide-y divide-line">
                 {childSpaces.map((r) => (
                   <li key={r.roomId}>
                     <button
@@ -86,10 +95,10 @@ export function SpaceView({
                       onClick={() =>
                         navigate(`/room/${encodeURIComponent(r.roomId)}`)
                       }
-                      className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left hover:bg-bg-2"
+                      className="flex w-full items-center gap-2.5 px-5 py-2 text-left hover:bg-bg-2"
                     >
-                      <RoomAvatar client={client} room={r} size={28} />
-                      <span className="min-w-0 flex-1 truncate font-medium text-fg-0">
+                      <RoomAvatar client={client} room={r} size={24} />
+                      <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-fg-0">
                         {r.name}
                       </span>
                     </button>
@@ -100,25 +109,31 @@ export function SpaceView({
           </section>
 
           {/* 방 목록 */}
-          <section>
-            <div className="mb-2 flex items-center justify-between">
-              <h2 className="text-[11px] font-semibold uppercase tracking-widest text-fg-3">
-                방 {childRooms.length > 0 && `(${childRooms.length})`}
+          <section className="overflow-hidden rounded-md border border-line bg-bg-1">
+            <div className="flex h-10 items-center border-b border-line bg-bg-2/30 pl-5">
+              <h2 className="flex-1 text-[12px] font-medium text-fg-2">
+                방
+                {childRooms.length > 0 && (
+                  <span className="ml-1.5 font-mono text-[11px] text-fg-3">
+                    {childRooms.length}
+                  </span>
+                )}
               </h2>
               <button
                 type="button"
                 onClick={() => setNewRoomOpen(true)}
-                className="flex items-center gap-1 rounded-md px-2 py-1 text-[12px] text-fg-2 hover:bg-bg-2 hover:text-fg-0"
+                className="flex aspect-square h-full shrink-0 items-center justify-center text-fg-2 hover:bg-bg-2 hover:text-fg-0"
+                title="방 추가"
               >
-                <Plus className="h-3.5 w-3.5" />방 추가
+                <Plus className="h-3.5 w-3.5" />
               </button>
             </div>
             {childRooms.length === 0 ? (
-              <p className="rounded-lg border border-dashed border-line px-4 py-8 text-center text-[13px] text-fg-3">
-                아직 방이 없어요. “방 추가”로 첫 방을 만들어 보세요.
+              <p className="px-5 py-6 text-center text-[13px] text-fg-3">
+                아직 방이 없어요. 우측 + 버튼으로 첫 방을 만들어 보세요.
               </p>
             ) : (
-              <ul className="flex flex-col gap-0.5">
+              <ul className="flex flex-col divide-y divide-line">
                 {childRooms.map((r) => (
                   <li key={r.roomId}>
                     <button
@@ -126,11 +141,11 @@ export function SpaceView({
                       onClick={() =>
                         navigate(`/room/${encodeURIComponent(r.roomId)}`)
                       }
-                      className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left hover:bg-bg-2"
+                      className="flex w-full items-center gap-2.5 px-5 py-2 text-left hover:bg-bg-2"
                     >
-                      <RoomAvatar client={client} room={r} size={28} />
+                      <RoomAvatar client={client} room={r} size={24} />
                       <span className="flex min-w-0 flex-1 items-center gap-1.5">
-                        <span className="truncate font-medium text-fg-0">
+                        <span className="truncate text-[13px] font-medium text-fg-0">
                           {r.name}
                         </span>
                         {r.hasEncryptionStateEvent() && (

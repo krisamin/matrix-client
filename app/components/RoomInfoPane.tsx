@@ -36,7 +36,7 @@ function MemberRow({
     <li>
       <button
         type="button"
-        className="flex h-9 w-full items-center gap-2.5 rounded-lg px-3 text-left hover:bg-bg-2"
+        className="flex h-9 w-full items-center gap-2.5 rounded-md px-3 text-left hover:bg-bg-2"
         title={member.userId}
         onClick={(e) => onClick(e.currentTarget.getBoundingClientRect())}
       >

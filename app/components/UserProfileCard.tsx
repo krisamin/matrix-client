@@ -70,14 +70,14 @@ export function UserProfileCard({
         }}
       />
       <div
-        className="msg-in fixed z-50 overflow-hidden rounded-lg border border-line bg-bg-2 shadow-xl"
+        className="msg-in fixed z-50 overflow-hidden rounded-md border border-line bg-bg-1 shadow-2xl"
         style={{ left: x, top: y, width: W }}
         onKeyDown={(e) => {
           if (e.key === "Escape") onClose();
         }}
       >
-        {/* 상단: 아바타 + 이름 */}
-        <div className="flex flex-col items-center gap-2 border-b border-line px-4 pb-4 pt-5">
+        {/* 상단: 아바타 + 이름 (모달 헤더 톤과 같은 살짝 어두운 띠) */}
+        <div className="flex flex-col items-center gap-2 border-b border-line bg-bg-2/30 px-5 py-5">
           <Avatar
             client={client}
             mxcUrl={member?.getMxcAvatarUrl()}
@@ -91,7 +91,7 @@ export function UserProfileCard({
           </p>
           <button
             type="button"
-            className="flex max-w-full items-center gap-1.5 rounded-md px-2 py-1 font-mono text-[11px] text-fg-3 hover:bg-bg-3 hover:text-fg-1"
+            className="flex max-w-full items-center gap-1.5 rounded-md px-2 py-1 font-mono text-[11px] text-fg-3 hover:bg-bg-2 hover:text-fg-1"
             title="userId 복사"
             onClick={copyUserId}
           >
@@ -104,21 +104,21 @@ export function UserProfileCard({
           </button>
         </div>
 
-        {/* 이 방에서의 상태 */}
-        <div className="flex flex-col gap-1 px-4 py-3 text-[12px] text-fg-2">
-          <span className="flex items-center justify-between">
-            <span className="text-fg-3">역할</span>
-            <span className="flex items-center gap-1 text-fg-1">
+        {/* 이 방에서의 상태 — divide-y 그리드 (모달 row 패턴과 동일) */}
+        <div className="flex flex-col divide-y divide-line">
+          <div className="flex items-center gap-3 px-5 py-2.5">
+            <span className="w-16 shrink-0 text-[12px] text-fg-3">역할</span>
+            <span className="flex flex-1 items-center gap-1 text-[13px] text-fg-1">
               {role && <ShieldCheck className="h-3 w-3" />}
               {role ?? "멤버"}
-              <span className="ml-1 font-mono text-[10px] text-fg-3">
+              <span className="ml-auto font-mono text-[11px] text-fg-3">
                 PL{member?.powerLevel ?? 0}
               </span>
             </span>
-          </span>
-          <span className="flex items-center justify-between">
-            <span className="text-fg-3">상태</span>
-            <span className="text-fg-1">
+          </div>
+          <div className="flex items-center gap-3 px-5 py-2.5">
+            <span className="w-16 shrink-0 text-[12px] text-fg-3">상태</span>
+            <span className="flex-1 text-[13px] text-fg-1">
               {member?.membership === "join"
                 ? "참여 중"
                 : member?.membership === "invite"
@@ -129,15 +129,15 @@ export function UserProfileCard({
                       ? "차단됨"
                       : "알 수 없음"}
             </span>
-          </span>
+          </div>
           {presence && (
-            <span className="flex items-center justify-between">
-              <span className="text-fg-3">접속</span>
-              <span className="flex items-center gap-1.5 text-fg-1">
+            <div className="flex items-center gap-3 px-5 py-2.5">
+              <span className="w-16 shrink-0 text-[12px] text-fg-3">접속</span>
+              <span className="flex flex-1 items-center gap-1.5 text-[13px] text-fg-1">
                 <PresenceDot presence={presence} size={8} />
                 {PRESENCE_LABEL[presence]}
               </span>
-            </span>
+            </div>
           )}
         </div>
       </div>
