@@ -82,12 +82,16 @@ body {
   /* 우상단: 맨 오른쪽 패널 헤더만 OS 창 컨트롤(닫기/메뉴 등) 오버레이를 피함.
      우측 예약영역 폭 = 창너비 - 좌예약(x) - 안전영역(width).
      분할뷰(방+스레드)에선 마지막 패널만 창 우측 끝에 닿으므로 :last-child로 한정.
-     OS 컨트롤 없는 환경에선 기본 0.75rem 유지. */
+     OS 컨트롤 없는 환경에선 기본 0.75rem 유지.
+     좌측에도 동일 값 적용해 콘텐츠/헤더 양쪽 시각 inset이 대칭되게 한다
+     (한쪽 OS 컨트롤 폭으로 양쪽을 통일 → 콘텐츠가 한쪽으로 몰리는 비대칭 제거). */
   .app-pane-row > :last-child .app-titlebar {
-    padding-right: max(
+    --titlebar-edge: max(
       0.75rem,
       calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw))
     );
+    padding-left: var(--titlebar-edge);
+    padding-right: var(--titlebar-edge);
   }
 }
 
