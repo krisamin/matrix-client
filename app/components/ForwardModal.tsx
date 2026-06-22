@@ -5,10 +5,7 @@ import { forwardEvent } from "../lib/matrix";
 import { quotePreview } from "../lib/reply";
 import { RoomAvatar } from "./Avatar";
 
-/** 메시지 전달 모달.
- *  - 참여중인 방 목록에서 대상 선택 (이름 검색)
- *  - 선택 시 원본 content를 복사해 그 방으로 전송 후 onDone
- *  - 백드롭/Esc로 닫힘 */
+/** 메시지 전달 모달 (B-final 톤). */
 export function ForwardModal({
   client,
   event,
@@ -37,7 +34,6 @@ export function ForwardModal({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  // 참여중인 방(스페이스 제외) — 이름순. 검색어로 필터.
   const rooms = useMemo(() => {
     const all = client
       .getRooms()
@@ -49,7 +45,6 @@ export function ForwardModal({
     return filtered.sort((a, b) => a.name.localeCompare(b.name, "ko"));
   }, [client, term]);
 
-  // 전달 대상 미리보기 텍스트
   const preview = quotePreview(event);
 
   async function forward(roomId: string) {
@@ -72,50 +67,57 @@ export function ForwardModal({
       role="presentation"
     >
       <div
-        className="w-[420px] max-w-[90vw] overflow-hidden rounded-lg border border-line bg-bg-1 shadow-2xl"
+        className="w-[420px] max-w-[90vw] overflow-hidden rounded-md border border-line bg-bg-1 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
         role="presentation"
       >
-        <div className="border-b border-line px-4 py-2.5">
+        <header className="flex h-12 items-center border-b border-line px-5">
           <h2 className="font-semibold text-fg-0">메시지 전달</h2>
-          {preview && (
-            <p className="mt-0.5 truncate text-[12px] text-fg-3">{preview}</p>
-          )}
-        </div>
-        <div className="p-3">
+        </header>
+        {preview && (
+          <p className="truncate border-b border-line bg-bg-2/40 px-5 py-2 text-[12px] text-fg-3">
+            {preview}
+          </p>
+        )}
+        <label className="flex items-center gap-3 border-b border-line px-5 py-2.5">
+          <span className="w-12 shrink-0 text-[12px] text-fg-3">검색</span>
           <input
             ref={inputRef}
             type="text"
             value={term}
             onChange={(e) => setTerm(e.target.value)}
-            placeholder="방 이름 검색"
-            className="w-full rounded-md border border-line bg-bg-2 px-2.5 py-1.5 text-[13px] text-fg-0 outline-none transition-colors placeholder:text-fg-3 focus:bg-bg-3"
+            placeholder="방 이름"
+            className="flex-1 bg-transparent text-[13px] text-fg-0 outline-none placeholder:text-fg-3"
           />
-          {error && <p className="mt-2 text-[12px] text-red-400">{error}</p>}
-          <div className="mt-2 max-h-[40vh] overflow-y-auto">
-            {rooms.map((r) => (
-              <button
-                key={r.roomId}
-                type="button"
-                disabled={busy !== null}
-                onClick={() => forward(r.roomId)}
-                className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left hover:bg-bg-2 disabled:opacity-50"
-              >
-                <RoomAvatar client={client} room={r} size={32} />
-                <span className="min-w-0 flex-1 truncate text-[14px] text-fg-0">
-                  {r.name}
-                </span>
-                {busy === r.roomId && (
-                  <span className="text-[12px] text-fg-3">전달 중…</span>
-                )}
-              </button>
-            ))}
-            {rooms.length === 0 && (
-              <p className="px-2 py-6 text-center text-[13px] text-fg-3">
-                일치하는 방이 없어
-              </p>
-            )}
-          </div>
+        </label>
+        {error && (
+          <p className="border-b border-line px-5 py-2 text-[12px] text-red-400">
+            {error}
+          </p>
+        )}
+        <div className="max-h-[40vh] overflow-y-auto">
+          {rooms.map((r) => (
+            <button
+              key={r.roomId}
+              type="button"
+              disabled={busy !== null}
+              onClick={() => forward(r.roomId)}
+              className="flex w-full items-center gap-2.5 border-b border-line px-5 py-2 text-left last:border-b-0 hover:bg-bg-2 disabled:opacity-50"
+            >
+              <RoomAvatar client={client} room={r} size={28} />
+              <span className="min-w-0 flex-1 truncate text-[13px] text-fg-0">
+                {r.name}
+              </span>
+              {busy === r.roomId && (
+                <span className="text-[12px] text-fg-3">전달 중…</span>
+              )}
+            </button>
+          ))}
+          {rooms.length === 0 && (
+            <p className="px-5 py-6 text-center text-[13px] text-fg-3">
+              일치하는 방이 없어
+            </p>
+          )}
         </div>
       </div>
     </div>,

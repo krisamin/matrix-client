@@ -4,10 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { getMyProfile, setMyAvatar, setMyDisplayName } from "../lib/matrix";
 import { Avatar } from "./Avatar";
 
-/** 내 프로필 편집 모달.
- *  - 표시이름 변경 + 아바타 이미지 업로드
- *  - 변경된 항목만 저장 (이름/아바타 각각 독립)
- *  - 백드롭/Esc로 닫힘 */
+/** 내 프로필 편집 모달 (B-final 톤). */
 export function ProfileEditModal({
   client,
   onClose,
@@ -19,7 +16,6 @@ export function ProfileEditModal({
   const [name, setName] = useState("");
   const [initialName, setInitialName] = useState("");
   const [avatarMxc, setAvatarMxc] = useState<string | undefined>(undefined);
-  // 새로 고른 파일의 로컬 미리보기 (objectURL)
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -27,7 +23,6 @@ export function ProfileEditModal({
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  // 현재 프로필 로드
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -43,7 +38,6 @@ export function ProfileEditModal({
     };
   }, [client]);
 
-  // Esc로 닫기
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -52,7 +46,6 @@ export function ProfileEditModal({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  // 미리보기 objectURL 정리
   useEffect(() => {
     if (!pendingFile) {
       setPreviewUrl(null);
@@ -81,12 +74,10 @@ export function ProfileEditModal({
     setBusy(true);
     setError(null);
     try {
-      // 이름 먼저 (바뀐 경우만)
       if (name.trim() !== initialName) {
         await setMyDisplayName(client, name.trim());
         setInitialName(name.trim());
       }
-      // 아바타 (새로 고른 경우만)
       if (pendingFile) {
         const mxc = await setMyAvatar(client, pendingFile);
         setAvatarMxc(mxc);
@@ -108,21 +99,21 @@ export function ProfileEditModal({
       role="presentation"
     >
       <div
-        className="w-[400px] max-w-[90vw] overflow-hidden rounded-lg border border-line bg-bg-1 shadow-2xl"
+        className="w-[400px] max-w-[90vw] overflow-hidden rounded-md border border-line bg-bg-1 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
         role="presentation"
       >
-        <div className="border-b border-line px-4 py-2.5">
+        <header className="flex h-12 items-center border-b border-line px-5">
           <h2 className="font-semibold text-fg-0">프로필 편집</h2>
-        </div>
+        </header>
         {loading ? (
           <div className="flex items-center justify-center py-12 text-fg-3">
             <Loader2 className="h-5 w-5 animate-spin" />
           </div>
         ) : (
-          <div className="flex flex-col gap-2.5 p-3">
-            {/* 아바타 */}
-            <div className="flex flex-col items-center gap-2">
+          <>
+            {/* 아바타 영역 — 카드 상단 */}
+            <div className="flex flex-col items-center gap-2 border-b border-line bg-bg-2/30 px-5 py-5">
               <button
                 type="button"
                 className="group relative rounded-full"
@@ -130,7 +121,6 @@ export function ProfileEditModal({
                 title="아바타 변경"
               >
                 {previewUrl ? (
-                  // 새로 고른 이미지 로컬 미리보기
                   <img
                     src={previewUrl}
                     alt="새 아바타 미리보기"
@@ -156,28 +146,34 @@ export function ProfileEditModal({
                 className="hidden"
                 onChange={pickFile}
               />
-              <span className="font-mono text-[11px] text-fg-3">{userId}</span>
+              <span className="text-[11px] text-fg-3">{userId}</span>
             </div>
 
-            {/* 표시이름 */}
-            <label className="flex flex-col gap-1">
-              <span className="text-[12px] text-fg-2">표시 이름</span>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder={localpart}
-                className="w-full rounded-md border border-line bg-bg-2 px-2.5 py-1.5 text-[13px] text-fg-0 outline-none transition-colors placeholder:text-fg-3 focus:bg-bg-3"
-              />
-            </label>
+            {/* 필드 */}
+            <div className="flex flex-col divide-y divide-line">
+              <label className="flex items-center gap-3 px-5 py-2.5">
+                <span className="w-20 shrink-0 text-[12px] text-fg-3">
+                  표시 이름
+                </span>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder={localpart}
+                  className="flex-1 bg-transparent text-[13px] text-fg-0 outline-none placeholder:text-fg-3"
+                />
+              </label>
+              {error && (
+                <p className="px-5 py-2.5 text-[12px] text-red-400">{error}</p>
+              )}
+            </div>
 
-            {error && <p className="text-[12px] text-red-400">{error}</p>}
-
-            <div className="mt-1 flex justify-end gap-2">
+            {/* 푸터 */}
+            <div className="flex border-t border-line">
               <button
                 type="button"
-                className="rounded-md px-3 py-1.5 text-[13px] text-fg-2 hover:bg-bg-2 hover:text-fg-0"
                 onClick={onClose}
+                className="flex-1 border-r border-line py-2.5 text-[13px] text-fg-2 hover:bg-bg-2 hover:text-fg-0"
               >
                 취소
               </button>
@@ -185,12 +181,12 @@ export function ProfileEditModal({
                 type="button"
                 disabled={busy || !dirty}
                 onClick={save}
-                className="rounded-md bg-bg-3 px-3 py-1.5 text-[13px] font-medium text-fg-0 hover:bg-line-strong disabled:opacity-50"
+                className="flex-1 bg-bg-2 py-2.5 text-[13px] font-medium text-fg-0 hover:bg-bg-3 disabled:opacity-50"
               >
                 {busy ? "저장 중…" : "저장"}
               </button>
             </div>
-          </div>
+          </>
         )}
       </div>
     </div>

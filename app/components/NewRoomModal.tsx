@@ -2,11 +2,7 @@ import type { MatrixClient } from "matrix-js-sdk";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createGroupRoom, getJoinedSpaces } from "../lib/matrix";
 
-/** 새 방 만들기 모달.
- *  - 방 이름(필수) + 주제(선택) + E2EE 토글 + 부모 Space(선택)
- *  - 생성 시 onCreated(roomId) 콜백
- *  - 백드롭/Esc로 닫힘
- *  - defaultSpaceId: Space 홈에서 "여기에 방 추가"로 열 때 미리 선택 */
+/** 새 방 만들기 모달 (B-final 톤: 빽빽한 그리드 + 풀폭 버튼). */
 export function NewRoomModal({
   client,
   onClose,
@@ -26,7 +22,6 @@ export function NewRoomModal({
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // 참여중 Space 목록 (드롭다운 소스)
   const spaces = useMemo(() => getJoinedSpaces(client), [client]);
 
   useEffect(() => {
@@ -66,16 +61,16 @@ export function NewRoomModal({
       role="presentation"
     >
       <div
-        className="w-[420px] max-w-[90vw] overflow-hidden rounded-lg border border-line bg-bg-1 shadow-2xl"
+        className="w-[420px] max-w-[90vw] overflow-hidden rounded-md border border-line bg-bg-1 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
         role="presentation"
       >
-        <div className="border-b border-line px-4 py-2.5">
+        <header className="flex h-12 items-center border-b border-line px-5">
           <h2 className="font-semibold text-fg-0">새 방 만들기</h2>
-        </div>
-        <div className="flex flex-col gap-2.5 p-3">
-          <label className="flex flex-col gap-1">
-            <span className="text-[12px] text-fg-2">방 이름</span>
+        </header>
+        <div className="flex flex-col divide-y divide-line">
+          <label className="flex items-center gap-3 px-5 py-2.5">
+            <span className="w-20 shrink-0 text-[12px] text-fg-3">방 이름</span>
             <input
               ref={inputRef}
               type="text"
@@ -85,11 +80,11 @@ export function NewRoomModal({
                 if (e.key === "Enter") create();
               }}
               placeholder="예: 팀 잡담"
-              className="w-full rounded-md border border-line bg-bg-2 px-2.5 py-1.5 text-[13px] text-fg-0 outline-none transition-colors placeholder:text-fg-3 focus:bg-bg-3"
+              className="flex-1 bg-transparent text-[13px] text-fg-0 outline-none placeholder:text-fg-3"
             />
           </label>
-          <label className="flex flex-col gap-1">
-            <span className="text-[12px] text-fg-2">주제 (선택)</span>
+          <label className="flex items-center gap-3 px-5 py-2.5">
+            <span className="w-20 shrink-0 text-[12px] text-fg-3">주제</span>
             <input
               type="text"
               value={topic}
@@ -97,17 +92,19 @@ export function NewRoomModal({
               onKeyDown={(e) => {
                 if (e.key === "Enter") create();
               }}
-              placeholder="방 설명"
-              className="w-full rounded-md border border-line bg-bg-2 px-2.5 py-1.5 text-[13px] text-fg-0 outline-none transition-colors placeholder:text-fg-3 focus:bg-bg-3"
+              placeholder="방 설명 (선택)"
+              className="flex-1 bg-transparent text-[13px] text-fg-0 outline-none placeholder:text-fg-3"
             />
           </label>
           {spaces.length > 0 && (
-            <label className="flex flex-col gap-1">
-              <span className="text-[12px] text-fg-2">상위 Space (선택)</span>
+            <label className="flex items-center gap-3 px-5 py-2.5">
+              <span className="w-20 shrink-0 text-[12px] text-fg-3">
+                상위 Space
+              </span>
               <select
                 value={parentSpaceId}
                 onChange={(e) => setParentSpaceId(e.target.value)}
-                className="w-full rounded-md border border-line bg-bg-2 px-2.5 py-1.5 text-[13px] text-fg-0 outline-none transition-colors focus:bg-bg-3"
+                className="flex-1 bg-transparent text-[13px] text-fg-0 outline-none"
               >
                 <option value="">없음 (최상위 방)</option>
                 {spaces.map((s) => (
@@ -118,33 +115,36 @@ export function NewRoomModal({
               </select>
             </label>
           )}
-          <label className="flex cursor-pointer items-center gap-2 text-[13px] text-fg-1">
+          <label className="flex cursor-pointer items-center gap-3 px-5 py-2.5">
+            <span className="w-20 shrink-0 text-[12px] text-fg-3">암호화</span>
             <input
               type="checkbox"
               checked={encrypted}
               onChange={(e) => setEncrypted(e.target.checked)}
               className="accent-fg-1"
             />
-            종단간 암호화 (E2EE)
+            <span className="text-[13px] text-fg-1">종단간 암호화 (E2EE)</span>
           </label>
-          {error && <p className="text-[12px] text-red-400">{error}</p>}
-          <div className="mt-1 flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-md px-3 py-1.5 text-[13px] text-fg-2 hover:bg-bg-2 hover:text-fg-0"
-            >
-              취소
-            </button>
-            <button
-              type="button"
-              onClick={create}
-              disabled={busy || !name.trim()}
-              className="rounded-md bg-bg-3 px-3 py-1.5 text-[13px] font-medium text-fg-0 hover:bg-line-strong disabled:opacity-50"
-            >
-              {busy ? "만드는 중…" : "만들기"}
-            </button>
-          </div>
+          {error && (
+            <p className="px-5 py-2.5 text-[12px] text-red-400">{error}</p>
+          )}
+        </div>
+        <div className="flex border-t border-line">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 border-r border-line py-2.5 text-[13px] text-fg-2 hover:bg-bg-2 hover:text-fg-0"
+          >
+            취소
+          </button>
+          <button
+            type="button"
+            onClick={create}
+            disabled={busy || !name.trim()}
+            className="flex-1 bg-bg-2 py-2.5 text-[13px] font-medium text-fg-0 hover:bg-bg-3 disabled:opacity-50"
+          >
+            {busy ? "만드는 중…" : "만들기"}
+          </button>
         </div>
       </div>
     </div>

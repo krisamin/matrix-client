@@ -252,16 +252,21 @@ export function RoomInfoPane({
           </div>
           {/* 초대 폼 — 디렉토리 검색 + 직접 @user:server 입력 */}
           {inviteOpen && (
-            <div className="mx-1 mb-2 flex flex-col gap-1.5 rounded-lg border border-line p-2">
-              <input
-                className="w-full rounded-md border border-line bg-bg-2 px-2 py-1.5 text-[12px] text-fg-0 outline-none transition-colors placeholder:text-fg-3 focus:bg-bg-3"
-                placeholder="이름 또는 @user:server 검색"
-                value={inviteTerm}
-                autoFocus
-                onChange={(e) => setInviteTerm(e.target.value)}
-              />
+            <div className="mx-1 mb-2 flex flex-col rounded-md border border-line">
+              <label className="flex items-center gap-2 border-b border-line px-2.5 py-2">
+                <span className="shrink-0 text-[11px] text-fg-3">검색</span>
+                <input
+                  className="flex-1 bg-transparent text-[12px] text-fg-0 outline-none placeholder:text-fg-3"
+                  placeholder="이름 또는 @user:server"
+                  value={inviteTerm}
+                  autoFocus
+                  onChange={(e) => setInviteTerm(e.target.value)}
+                />
+              </label>
               {inviteMsg && (
-                <p className="px-1 text-[11px] text-fg-2">{inviteMsg}</p>
+                <p className="border-b border-line px-2.5 py-1.5 text-[11px] text-fg-2">
+                  {inviteMsg}
+                </p>
               )}
               {(() => {
                 const trimmed = inviteTerm.trim();
