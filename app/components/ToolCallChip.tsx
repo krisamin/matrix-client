@@ -50,27 +50,37 @@ const KNOWN_TOOL_NAMES = new Set<string>([
   "x_search",
 ]);
 
-/** 한 줄에서 도구 이름 추출. 자연 채팅 텍스트와 구분되도록 두 가지 엄격 패턴만 인정:
+/** 한 줄에서 도구 이름 추출. 자연 채팅 텍스트와 구분되도록 엄격 패턴만 인정.
  *
- *  - `<prefix(이모지 등)> <tool_name>` — 마커 없이 단독이어도 OK
- *    (`💻 terminal` 줄 다음에 코드블록이 오는 verbose 변종)
- *  - `<tool_name>(...)` 또는 `<tool_name>: "..."` — prefix 없을 땐 명시적 마커 필수
+ *  Hermes 게이트웨이가 한 turn에서 같은 메시지에 여러 도구 호출을 누적할 때,
+ *  두 번째 이후 헤더는 이모지 prefix(`💻` 등) 없이 도구 이름 한 단어만 오기도
+ *  한다(예: `terminal\n\`\`\`\ncmd\n\`\`\``). 그래서 단독 도구이름 라인도
+ *  "다음 라인이 코드블록 시작이면" 헤더로 인정한다.
  *
- *  화이트리스트 통과는 필수. */
-function matchToolHeader(line: string): string | null {
+ *  - 패턴 A: `<prefix(이모지 등)> <tool_name>` — 마커 없이 단독이어도 OK
+ *  - 패턴 B: `<tool_name>(...)` 또는 `<tool_name>: "..."` 등 명시적 마커
+ *  - 패턴 C: `<tool_name>` 단독 + nextLine이 \`\`\` 로 시작 (휴리스틱)
+ *
+ *  화이트리스트 통과는 모든 패턴에 필수. */
+function matchToolHeader(line: string, nextLine?: string): string | null {
   // edit fallback("* ..." 접두) 제거
   const cleaned = line.replace(/^\*\s+/, "").trim();
   if (!cleaned) return null;
   if (cleaned.startsWith("```")) return null;
-  // 패턴 1: prefix(이모지 등) + 공백 + tool_name [+ 마커 없어도 OK]
+  // 패턴 A: prefix(이모지 등) + 공백 + tool_name [+ 마커 없어도 OK]
   let m = cleaned.match(
     /^\S+\s+([a-z_][a-z0-9_]*)(?:\s*\(|\s*:\s*"|\s*\.\.\.|\s*$)/,
   );
   if (m && KNOWN_TOOL_NAMES.has(m[1])) return m[1];
-  // 패턴 2: prefix 없이 tool_name — 마커(`(`, `: "`, `...`) 필수.
-  // 단독 도구 이름 단어("terminal" 한 줄)는 자연 채팅과 구분 못 해 거부.
+  // 패턴 B: prefix 없이 tool_name + 마커
   m = cleaned.match(/^([a-z_][a-z0-9_]*)(?:\s*\(|\s*:\s*"|\s*\.\.\.)/);
   if (m && KNOWN_TOOL_NAMES.has(m[1])) return m[1];
+  // 패턴 C: prefix 없이 tool_name 단독 라인 + 다음 줄이 코드블록 시작
+  // (hermes가 같은 m.replace 메시지에 도구 호출 누적할 때 두번째 헤더 케이스)
+  m = cleaned.match(/^([a-z_][a-z0-9_]*)$/);
+  if (m && KNOWN_TOOL_NAMES.has(m[1]) && nextLine?.trim().startsWith("```")) {
+    return m[1];
+  }
   return null;
 }
 
@@ -90,8 +100,9 @@ export function splitToolSections(rawBody: string): ToolSection[] {
   const lines = rawBody.split("\n");
   const sections: { tool: string; header: string; bodyLines: string[] }[] = [];
   let current: (typeof sections)[number] | null = null;
-  for (const raw of lines) {
-    const tool = matchToolHeader(raw);
+  for (let i = 0; i < lines.length; i++) {
+    const raw = lines[i];
+    const tool = matchToolHeader(raw, lines[i + 1]);
     if (tool) {
       if (current) sections.push(current);
       current = {

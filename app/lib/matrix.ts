@@ -140,6 +140,12 @@ export function getReadyClient(): Promise<MatrixClient> | null {
       useIndexedDB: true,
       cryptoDatabasePrefix: `matrix-client-crypto-${session.deviceId}`,
     });
+    // dev 디버깅: 콘솔에서 window.__mxc로 client 접근 가능.
+    // 프로덕션 영향 0(글로벌 한 변수 추가 뿐, 외부 노출 위험은 client가 이미
+    // 메모리에 인증 토큰 들고 있는 SPA 특성상 디버그 도구로만 의미 있음).
+    if (typeof window !== "undefined") {
+      (window as unknown as { __mxc: MatrixClient }).__mxc = client;
+    }
     return client;
   })();
   return clientPromise;
