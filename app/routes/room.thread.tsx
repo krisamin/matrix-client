@@ -50,19 +50,15 @@ export default function ThreadView() {
   const replyCount = room.getThread(threadId!)?.length ?? 0;
 
   async function sendReply(text: string, mentions: Mention[]) {
-    if (mentions.length > 0) {
-      await client.sendEvent(room.roomId, threadId!, EventType.RoomMessage, {
-        ...buildMentionContent(text, mentions),
-        "m.relates_to": {
-          rel_type: "m.thread",
-          event_id: threadId!,
-          is_falling_back: true,
-        },
-      } as never);
-    } else {
-      // threadId를 relation root로 — SDK가 m.thread 관계로 보냄
-      await client.sendTextMessage(room.roomId, threadId!, text);
-    }
+    // 멘션 유무와 무관하게 buildMentionContent로 통일 (마크다운 처리).
+    await client.sendEvent(room.roomId, threadId!, EventType.RoomMessage, {
+      ...buildMentionContent(text, mentions),
+      "m.relates_to": {
+        rel_type: "m.thread",
+        event_id: threadId!,
+        is_falling_back: true,
+      },
+    } as never);
   }
 
   function close() {

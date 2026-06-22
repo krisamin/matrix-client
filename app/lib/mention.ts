@@ -1,4 +1,5 @@
 import type { Room, RoomMember } from "matrix-js-sdk";
+import { hasMarkdown, markdownToMatrixHtml } from "./markdown";
 
 export interface Mention {
   userId: string;
@@ -34,32 +35,54 @@ function escapeHtml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-/** 멘션 포함 메시지 content 생성 (Matrix 스펙):
- *  - body: 평문 그대로 (표시이름)
- *  - formatted_body: 표시이름 → matrix.to 링크 (Element가 알약으로 렌더)
- *  - m.mentions.user_ids: 멘션 대상 (서버/클라 알림 라우팅용, MSC3952) */
+/** 멘션 포함 + 마크다운 처리 메시지 content 생성 (Matrix 스펙):
+ *  - body: 평문 원본 (마크다운 원문 그대로 → 봇/구식 클라이언트가 파싱 가능)
+ *  - formatted_body: 마크다운 → HTML 변환 후 표시이름을 matrix.to 링크로 치환
+ *  - m.mentions.user_ids: 멘션 대상 (MSC3952)
+ *
+ *  마크다운 없고 멘션도 없는 평문이면 formatted_body를 안 붙여 사이즈 절약. */
 export function buildMentionContent(
   text: string,
-  mentions: Mention[],
+  mentions: Mention[] = [],
 ): Record<string, unknown> {
-  // 전송 시점에 본문에 아직 남아있는 멘션만 유효
   const used = mentions.filter((m) => text.includes(m.name));
-  if (used.length === 0) return { msgtype: "m.text", body: text };
+  const md = hasMarkdown(text);
 
-  let html = escapeHtml(text).replace(/\n/g, "<br/>");
+  // 마크다운도 멘션도 없으면 평문만
+  if (!md && used.length === 0) {
+    return { msgtype: "m.text", body: text };
+  }
+
+  // HTML 빌드:
+  //  - 마크다운 있으면 marked로 변환 (자체 escape 처리됨)
+  //  - 없으면 escape 후 줄바꿈 → <br/>
+  let html = md
+    ? markdownToMatrixHtml(text)
+    : escapeHtml(text).replace(/\n/g, "<br/>");
+
+  // 멘션 표시이름을 matrix.to 링크로 치환. marked가 텍스트 노드를 자동 escape
+  // 하므로 escaped 형태로 찾아 바꿈. 코드블록 안에 멘션 표시이름이 들어가면
+  // 거기도 치환되는데(드문 케이스) 보내는 사람 의도가 멘션이라면 알림은
+  // m.mentions로 어차피 가니 큰 문제 없음.
   for (const m of used) {
     const escaped = escapeHtml(m.name);
     html = html
       .split(escaped)
       .join(`<a href="https://matrix.to/#/${m.userId}">${escaped}</a>`);
   }
-  return {
+
+  const content: Record<string, unknown> = {
     msgtype: "m.text",
     body: text,
     format: "org.matrix.custom.html",
     formatted_body: html,
-    "m.mentions": { user_ids: [...new Set(used.map((m) => m.userId))] },
   };
+  if (used.length > 0) {
+    content["m.mentions"] = {
+      user_ids: [...new Set(used.map((m) => m.userId))],
+    };
+  }
+  return content;
 }
 
 /** 이 이벤트가 나를 멘션하는지 (m.mentions 우선, 레거시 body 매칭 보조) */

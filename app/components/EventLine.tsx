@@ -20,7 +20,7 @@ import {
 } from "matrix-js-sdk";
 import { memo, useState } from "react";
 import { isPinned, togglePin } from "../lib/matrix";
-import { mentionsUser } from "../lib/mention";
+import { buildMentionContent, mentionsUser } from "../lib/mention";
 import { quotePreview, thumbnailSource } from "../lib/reply";
 import { MEDIA_MSGTYPES } from "../lib/timeline";
 import { extractPreviewUrls } from "../lib/url-preview";
@@ -193,16 +193,25 @@ const EventLineInner = function EventLine({
     }
     setBusy(true);
     try {
-      // m.replace: fallback(*표시)용 본문 + m.new_content (Element과 동일 구조)
+      // m.replace: fallback(*표시)용 본문 + m.new_content (Element과 동일 구조).
+      // buildMentionContent로 마크다운까지 처리한 new_content를 사용.
+      const newContent = buildMentionContent(text, []);
+      const newFormatted = newContent.formatted_body as string | undefined;
       await client.sendEvent(room.roomId, EventType.RoomMessage, {
         msgtype: MsgType.Text,
         body: `* ${text}`,
-        "m.new_content": { msgtype: MsgType.Text, body: text },
+        ...(newFormatted
+          ? {
+              format: "org.matrix.custom.html",
+              formatted_body: `* ${newFormatted}`,
+            }
+          : {}),
+        "m.new_content": newContent,
         "m.relates_to": {
           rel_type: RelationType.Replace,
           event_id: ev.getId()!,
         },
-      });
+      } as never);
       setEditing(false);
     } catch (e) {
       console.warn("수정 실패:", e);

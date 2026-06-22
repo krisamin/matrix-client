@@ -129,7 +129,8 @@ export default function RoomView() {
 
   async function send(text: string, mentions: Mention[]) {
     if (replyTo) {
-      // 답장: m.in_reply_to 관계 + 구식 클라용 fallback 인용문 (스펙 권장)
+      // 답장: m.in_reply_to 관계 + 구식 클라용 fallback 인용문 (스펙 권장).
+      // buildMentionContent가 마크다운+멘션을 모두 처리해 formatted_body를 만든다.
       const orig = replyTo.getContent().body ?? "";
       const fallbackQuote = orig
         .split("\n")
@@ -145,14 +146,13 @@ export default function RoomView() {
         },
       } as never);
       setReplyTo(null);
-    } else if (mentions.length > 0) {
+    } else {
+      // 일반 전송 — 멘션 유무와 무관하게 buildMentionContent 사용 (마크다운 처리).
       await client.sendEvent(
         roomId!,
         EventType.RoomMessage,
         buildMentionContent(text, mentions) as never,
       );
-    } else {
-      await client.sendTextMessage(roomId!, text);
     }
   }
 
