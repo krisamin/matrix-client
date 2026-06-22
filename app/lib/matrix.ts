@@ -3,7 +3,10 @@ import {
   type EventTimelineSet,
   EventType,
   Filter,
+  type GuestAccess,
+  type HistoryVisibility,
   IndexedDBStore,
+  type JoinRule,
   type MatrixClient,
   type MatrixEvent,
   OidcTokenRefresher,
@@ -11,6 +14,7 @@ import {
   PushRuleActionName,
   type Room,
   RoomType,
+  type Visibility,
 } from "matrix-js-sdk";
 import type { RoomMessageEventContent } from "matrix-js-sdk/lib/@types/events";
 import {
@@ -240,6 +244,9 @@ export async function startDirectMessage(
  * - encrypted: E2EE 켤지 (기본 true)
  * - invite: 초대할 userId 목록 (선택)
  * - parentSpaceId: 지정 시 생성 후 그 Space의 자식으로 연결 (m.space.child/parent)
+ * - visibility: 공개 방 디렉토리 노출 여부 (기본 Private)
+ * - aliasLocalpart: 별칭 localpart (예: "team-chat" → "#team-chat:server")
+ * - joinRule / guestAccess / historyVisibility: 명시 시 initial_state로 preset 덮어쓰기
  * 반환: 생성된 roomId
  */
 export async function createGroupRoom(
@@ -250,25 +257,53 @@ export async function createGroupRoom(
     encrypted?: boolean;
     invite?: string[];
     parentSpaceId?: string;
+    visibility?: Visibility;
+    aliasLocalpart?: string;
+    joinRule?: JoinRule;
+    guestAccess?: GuestAccess;
+    historyVisibility?: HistoryVisibility;
   },
 ): Promise<string> {
   const encrypted = opts.encrypted ?? true;
+  const initialState: { type: string; state_key: string; content: object }[] =
+    [];
+  if (encrypted) {
+    initialState.push({
+      type: EventType.RoomEncryption,
+      state_key: "",
+      content: { algorithm: "m.megolm.v1.aes-sha2" },
+    });
+  }
+  if (opts.joinRule) {
+    initialState.push({
+      type: EventType.RoomJoinRules,
+      state_key: "",
+      content: { join_rule: opts.joinRule },
+    });
+  }
+  if (opts.guestAccess) {
+    initialState.push({
+      type: EventType.RoomGuestAccess,
+      state_key: "",
+      content: { guest_access: opts.guestAccess },
+    });
+  }
+  if (opts.historyVisibility) {
+    initialState.push({
+      type: EventType.RoomHistoryVisibility,
+      state_key: "",
+      content: { history_visibility: opts.historyVisibility },
+    });
+  }
+  const aliasLp = opts.aliasLocalpart?.trim();
   const { room_id: roomId } = await client.createRoom({
     name: opts.name.trim(),
     ...(opts.topic?.trim() ? { topic: opts.topic.trim() } : {}),
     preset: Preset.PrivateChat,
     ...(opts.invite?.length ? { invite: opts.invite } : {}),
-    ...(encrypted
-      ? {
-          initial_state: [
-            {
-              type: EventType.RoomEncryption,
-              state_key: "",
-              content: { algorithm: "m.megolm.v1.aes-sha2" },
-            },
-          ],
-        }
-      : {}),
+    ...(opts.visibility ? { visibility: opts.visibility } : {}),
+    ...(aliasLp ? { room_alias_name: aliasLp } : {}),
+    ...(initialState.length ? { initial_state: initialState } : {}),
   });
   if (opts.parentSpaceId) {
     await addRoomToSpace(client, opts.parentSpaceId, roomId);
@@ -344,17 +379,49 @@ export async function addRoomToSpace(
  * - name: Space 이름 (필수)
  * - topic: 설명 (선택)
  * - parentSpaceId: 지정 시 생성 후 그 Space의 자식으로 연결 (Space 중첩)
+ * - visibility: 공개 방 디렉토리 노출 여부 (기본 Private)
+ * - aliasLocalpart: 별칭 localpart
+ * - joinRule / historyVisibility: 명시 시 initial_state로 preset 덮어쓰기
+ *   (Space에 guest_access/암호화는 무의미하므로 제외)
  * 반환: 생성된 spaceId
  */
 export async function createSpace(
   client: MatrixClient,
-  opts: { name: string; topic?: string; parentSpaceId?: string },
+  opts: {
+    name: string;
+    topic?: string;
+    parentSpaceId?: string;
+    visibility?: Visibility;
+    aliasLocalpart?: string;
+    joinRule?: JoinRule;
+    historyVisibility?: HistoryVisibility;
+  },
 ): Promise<string> {
+  const initialState: { type: string; state_key: string; content: object }[] =
+    [];
+  if (opts.joinRule) {
+    initialState.push({
+      type: EventType.RoomJoinRules,
+      state_key: "",
+      content: { join_rule: opts.joinRule },
+    });
+  }
+  if (opts.historyVisibility) {
+    initialState.push({
+      type: EventType.RoomHistoryVisibility,
+      state_key: "",
+      content: { history_visibility: opts.historyVisibility },
+    });
+  }
+  const aliasLp = opts.aliasLocalpart?.trim();
   const { room_id: spaceId } = await client.createRoom({
     name: opts.name.trim(),
     ...(opts.topic?.trim() ? { topic: opts.topic.trim() } : {}),
     preset: Preset.PrivateChat,
     creation_content: { type: RoomType.Space },
+    ...(opts.visibility ? { visibility: opts.visibility } : {}),
+    ...(aliasLp ? { room_alias_name: aliasLp } : {}),
+    ...(initialState.length ? { initial_state: initialState } : {}),
     // Space는 메시지 방이 아니므로 암호화하지 않는다
   });
   if (opts.parentSpaceId) {
@@ -608,4 +675,207 @@ export async function getNoThreadTimelineSet(
     console.warn("no-thread filtered timeline 생성 실패, fallback:", e);
     return null;
   }
+}
+
+/* ──────────────────── 방·Space 설정 편집 헬퍼 ──────────────────── */
+
+/** m.room.join_rules 변경 */
+export async function setRoomJoinRule(
+  client: MatrixClient,
+  roomId: string,
+  rule: JoinRule,
+): Promise<void> {
+  await client.sendStateEvent(
+    roomId,
+    EventType.RoomJoinRules,
+    { join_rule: rule },
+    "",
+  );
+}
+
+/** m.room.history_visibility 변경 */
+export async function setRoomHistoryVisibility(
+  client: MatrixClient,
+  roomId: string,
+  visibility: HistoryVisibility,
+): Promise<void> {
+  await client.sendStateEvent(
+    roomId,
+    EventType.RoomHistoryVisibility,
+    { history_visibility: visibility },
+    "",
+  );
+}
+
+/** m.room.guest_access 변경 (client.setGuestAccess의 얇은 래퍼) */
+export async function setRoomGuestAccess(
+  client: MatrixClient,
+  roomId: string,
+  access: GuestAccess,
+): Promise<void> {
+  await client.setGuestAccess(roomId, {
+    allowJoin: access === "can_join",
+    allowRead: false,
+  });
+}
+
+/** 공개 디렉토리 노출 토글 (홈서버 방 목록).
+ *  PUT /_matrix/client/v3/directory/list/room/{roomId} */
+export async function setRoomDirectoryVisibility(
+  client: MatrixClient,
+  roomId: string,
+  visibility: Visibility,
+): Promise<void> {
+  await client.setRoomDirectoryVisibility(roomId, visibility);
+}
+
+/** 현재 공개 디렉토리 노출 여부 조회 */
+export async function getRoomDirectoryVisibility(
+  client: MatrixClient,
+  roomId: string,
+): Promise<Visibility> {
+  const res = await client.getRoomDirectoryVisibility(roomId);
+  return (res.visibility as Visibility) ?? ("private" as Visibility);
+}
+
+/** Canonical alias 설정.
+ *  1) 디렉토리 등록 (PUT /directory/room/{alias} → roomId 매핑)
+ *  2) m.room.canonical_alias 상태 이벤트 (방 메타에 박음)
+ *  alias 형식: "#name:server" (전체). null로 호출하면 canonical 해제. */
+export async function setRoomCanonicalAlias(
+  client: MatrixClient,
+  roomId: string,
+  alias: string | null,
+): Promise<void> {
+  if (alias) {
+    // 디렉토리에 등록 — 이미 존재하면 에러나지만 같은 roomId 매핑이면 무시 가능
+    try {
+      await client.createAlias(alias, roomId);
+    } catch (e) {
+      // M_UNKNOWN(이미 존재) 등은 무시하고 진행 — 본인 방으로 매핑된 경우
+      const msg = e instanceof Error ? e.message : String(e);
+      if (!msg.toLowerCase().includes("already")) throw e;
+    }
+  }
+  await client.sendStateEvent(
+    roomId,
+    EventType.RoomCanonicalAlias,
+    alias ? { alias } : {},
+    "",
+  );
+}
+
+/** 현재 power_levels content (없으면 SDK 기본 동등 객체). */
+export function getRoomPowerLevels(room: Room): {
+  ban: number;
+  events: Record<string, number>;
+  events_default: number;
+  invite: number;
+  kick: number;
+  redact: number;
+  state_default: number;
+  users: Record<string, number>;
+  users_default: number;
+} {
+  const ev = room.currentState.getStateEvents(EventType.RoomPowerLevels, "");
+  const c = (ev?.getContent() ?? {}) as Record<string, unknown>;
+  return {
+    ban: typeof c.ban === "number" ? c.ban : 50,
+    events: (c.events as Record<string, number>) ?? {},
+    events_default: typeof c.events_default === "number" ? c.events_default : 0,
+    invite: typeof c.invite === "number" ? c.invite : 0,
+    kick: typeof c.kick === "number" ? c.kick : 50,
+    redact: typeof c.redact === "number" ? c.redact : 50,
+    state_default: typeof c.state_default === "number" ? c.state_default : 50,
+    users: (c.users as Record<string, number>) ?? {},
+    users_default: typeof c.users_default === "number" ? c.users_default : 0,
+  };
+}
+
+/** 멤버 한 명의 PL을 변경. SDK의 setPowerLevel은 내부적으로 기존 content를
+ *  머지해서 전체 이벤트를 다시 보내준다. */
+export async function setUserPowerLevel(
+  client: MatrixClient,
+  roomId: string,
+  userId: string,
+  level: number,
+): Promise<void> {
+  await client.setPowerLevel(roomId, userId, level);
+}
+
+/** 권한 컨텐츠 전체를 다시 쓴다 (기본 PL/이벤트별 PL 일괄 편집용). */
+export async function setRoomPowerLevelsContent(
+  client: MatrixClient,
+  roomId: string,
+  content: Record<string, unknown>,
+): Promise<void> {
+  await client.sendStateEvent(roomId, EventType.RoomPowerLevels, content, "");
+}
+
+/** 방 아바타 변경 (mxc URL). 빈 문자열이면 제거. */
+export async function setRoomAvatar(
+  client: MatrixClient,
+  roomId: string,
+  mxcUrl: string,
+): Promise<void> {
+  await client.sendStateEvent(
+    roomId,
+    EventType.RoomAvatar,
+    mxcUrl ? { url: mxcUrl } : {},
+    "",
+  );
+}
+
+/** 방 이름·주제 한꺼번에 변경 (둘 다 바뀐 경우만 호출). */
+export async function setRoomNameAndTopic(
+  client: MatrixClient,
+  roomId: string,
+  opts: { name?: string; topic?: string },
+): Promise<void> {
+  if (typeof opts.name === "string") {
+    await client.setRoomName(roomId, opts.name);
+  }
+  if (typeof opts.topic === "string") {
+    await client.setRoomTopic(roomId, opts.topic);
+  }
+}
+
+/** 권한 가드 — 현재 사용자가 특정 상태 이벤트를 보낼 수 있는지 */
+export function canSendStateEvent(
+  room: Room,
+  client: MatrixClient,
+  eventType: string,
+): boolean {
+  const myUserId = client.getUserId();
+  if (!myUserId) return false;
+  return room.currentState.maySendStateEvent(eventType, myUserId);
+}
+
+/** 멤버 강퇴 */
+export async function kickMember(
+  client: MatrixClient,
+  roomId: string,
+  userId: string,
+  reason?: string,
+): Promise<void> {
+  await client.kick(roomId, userId, reason);
+}
+
+/** 멤버 추방 (재가입 차단) */
+export async function banMember(
+  client: MatrixClient,
+  roomId: string,
+  userId: string,
+  reason?: string,
+): Promise<void> {
+  await client.ban(roomId, userId, reason);
+}
+
+/** 추방 해제 */
+export async function unbanMember(
+  client: MatrixClient,
+  roomId: string,
+  userId: string,
+): Promise<void> {
+  await client.unban(roomId, userId);
 }

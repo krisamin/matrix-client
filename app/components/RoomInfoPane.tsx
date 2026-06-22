@@ -5,6 +5,7 @@ import {
   Lock,
   LockOpen,
   LogOut,
+  Settings,
   UserPlus,
   X,
 } from "lucide-react";
@@ -15,6 +16,7 @@ import { looksLikeUserId, useUserSearch } from "../hooks/useUserSearch";
 import { getDmUserId } from "../lib/matrix";
 import { Avatar, RoomAvatar } from "./Avatar";
 import { PaneHeader, PaneHeaderButton } from "./PaneHeader";
+import { RoomSettingsModal } from "./RoomSettingsModal";
 import { roleLabel, UserProfileCard } from "./UserProfileCard";
 import { UserResultRow } from "./UserResultRow";
 
@@ -88,6 +90,7 @@ export function RoomInfoPane({
     userId: string;
     anchor: DOMRect;
   } | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const myUserId = client.getUserId() ?? "";
   const encrypted = room.hasEncryptionStateEvent();
   const dmUserId = getDmUserId(client, room);
@@ -178,9 +181,17 @@ export function RoomInfoPane({
     <section className="flex w-[320px] shrink-0 flex-col border-l border-line">
       <PaneHeader
         actions={
-          <PaneHeaderButton title="닫기" onClick={onClose}>
-            <X className="h-[15px] w-[15px]" />
-          </PaneHeaderButton>
+          <>
+            <PaneHeaderButton
+              title="방 설정"
+              onClick={() => setSettingsOpen(true)}
+            >
+              <Settings className="h-[15px] w-[15px]" />
+            </PaneHeaderButton>
+            <PaneHeaderButton title="닫기" onClick={onClose}>
+              <X className="h-[15px] w-[15px]" />
+            </PaneHeaderButton>
+          </>
         }
       >
         <h2 className="truncate font-semibold text-fg-0">방 정보</h2>
@@ -385,6 +396,13 @@ export function RoomInfoPane({
           userId={profile.userId}
           anchor={profile.anchor}
           onClose={() => setProfile(null)}
+        />
+      )}
+      {settingsOpen && (
+        <RoomSettingsModal
+          client={client}
+          room={room}
+          onClose={() => setSettingsOpen(false)}
         />
       )}
     </section>

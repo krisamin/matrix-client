@@ -1,4 +1,4 @@
-import { Lock, Plus } from "lucide-react";
+import { Lock, Plus, Settings } from "lucide-react";
 import type { MatrixClient, Room } from "matrix-js-sdk";
 import { useState } from "react";
 import { useNavigate } from "react-router";
@@ -6,7 +6,8 @@ import { childRoomIds } from "../lib/spaces";
 import { RoomAvatar } from "./Avatar";
 import { NewRoomModal } from "./NewRoomModal";
 import { NewSpaceModal } from "./NewSpaceModal";
-import { PaneHeader } from "./PaneHeader";
+import { PaneHeader, PaneHeaderButton } from "./PaneHeader";
+import { RoomSettingsModal } from "./RoomSettingsModal";
 
 /** Space 홈 — 메시지 타임라인 대신 보여주는 화면.
  *  Space 이름/설명 + 하위 Space + 자식 방 목록(클릭 이동) + 추가 버튼. */
@@ -20,6 +21,7 @@ export function SpaceView({
   const navigate = useNavigate();
   const [newRoomOpen, setNewRoomOpen] = useState(false);
   const [newSpaceOpen, setNewSpaceOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const topic =
     space.currentState.getStateEvents("m.room.topic", "")?.getContent()
@@ -35,7 +37,16 @@ export function SpaceView({
 
   return (
     <div className="flex min-w-0 flex-1 flex-col">
-      <PaneHeader>
+      <PaneHeader
+        actions={
+          <PaneHeaderButton
+            title="Space 설정"
+            onClick={() => setSettingsOpen(true)}
+          >
+            <Settings className="h-[15px] w-[15px]" />
+          </PaneHeaderButton>
+        }
+      >
         <RoomAvatar client={client} room={space} size={20} />
         <h1 className="truncate font-semibold text-fg-0">{space.name}</h1>
         <span className="shrink-0 rounded bg-bg-2 px-1.5 py-0.5 font-mono text-[10px] text-fg-3">
@@ -155,6 +166,13 @@ export function SpaceView({
             setNewSpaceOpen(false);
             navigate(`/room/${encodeURIComponent(spaceId)}`);
           }}
+        />
+      )}
+      {settingsOpen && (
+        <RoomSettingsModal
+          client={client}
+          room={space}
+          onClose={() => setSettingsOpen(false)}
         />
       )}
     </div>
