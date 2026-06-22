@@ -1,21 +1,16 @@
 import { ChevronRight, Wrench } from "lucide-react";
 import type { MatrixClient, MatrixEvent } from "matrix-js-sdk";
 import { useState } from "react";
-import { MessageBody } from "./MessageBody";
 
-/** Hermes 게이트웨이가 보내는 도구 호출 진행 메시지를 본문 모양으로 식별한다.
+/** Hermes 게이트웨이가 보내는 도구 호출 진행 메시지를 본문 모양으로 식별/분할한다.
  *
- *  배경: 게이트웨이는 원래 m.notice + 커스텀 `tool_progress: true` 필드로 칩
- *  분기 마커를 박지만, 그 동작은 hermes 로컬 패치(`matrix-live-streaming.patch`)
- *  의존이라 hermes update 시 패치가 풀려 마커가 사라진다. 그 경우 일반 m.notice로
- *  떨어져 칩이 안 보이고 평문 텍스트로 풀려버린다.
+ *  배경: 게이트웨이는 `tool_progress: true` 마커를 박지만 hermes 로컬 패치
+ *  의존이라 update 시 풀려 평문으로 떨어짐. 또 한 turn의 여러 도구 호출이
+ *  하나의 m.text 메시지로 묶여 와서 칩 하나로 합쳐 보이는 문제도 있었다.
  *
- *  해결: 본문 자체에 단서가 있다. `gateway/platforms/base.py::format_tool_event`
- *  포맷:
- *    - `{emoji} {tool_name}...`
- *    - `{emoji} {tool_name}: "{preview}"`
- *    - `{emoji} {tool_name}([key, key])\n{args_str}`  (verbose)
- *  마커 없이도 첫 줄 모양 + 알려진 도구 이름 화이트리스트로 충분히 판별 가능. */
+ *  해결:
+ *  - 본문 모든 라인을 스캔해 도구 헤더 패턴을 찾고 (첫 줄 한정 X)
+ *  - 헤더 발견마다 새 섹션 시작 → 한 메시지에 N개 도구가 있으면 N개 칩 렌더 */
 
 /** Hermes 코어/플러그인이 노출하는 모델 도구 이름.
  *  agent/display.py의 primary_args 딕셔너리 + 흔한 모델 도구 추가. */
@@ -55,12 +50,69 @@ const KNOWN_TOOL_NAMES = new Set<string>([
   "x_search",
 ]);
 
-/** 본문이 도구 진행 메시지로 보이는지.
+/** 한 줄에서 도구 이름 추출. 자연 채팅 텍스트와 구분되도록 두 가지 엄격 패턴만 인정:
  *
- *  - 메시지 m.notice 이고
- *  - 본문 첫 줄이 `<emoji-or-symbol> <tool_name>(... | : "..." | ...)` 패턴
+ *  - `<prefix(이모지 등)> <tool_name>` — 마커 없이 단독이어도 OK
+ *    (`💻 terminal` 줄 다음에 코드블록이 오는 verbose 변종)
+ *  - `<tool_name>(...)` 또는 `<tool_name>: "..."` — prefix 없을 땐 명시적 마커 필수
  *
- *  레거시 호환: `content.tool_progress === true`도 같이 인정. */
+ *  화이트리스트 통과는 필수. */
+function matchToolHeader(line: string): string | null {
+  // edit fallback("* ..." 접두) 제거
+  const cleaned = line.replace(/^\*\s+/, "").trim();
+  if (!cleaned) return null;
+  if (cleaned.startsWith("```")) return null;
+  // 패턴 1: prefix(이모지 등) + 공백 + tool_name [+ 마커 없어도 OK]
+  let m = cleaned.match(
+    /^\S+\s+([a-z_][a-z0-9_]*)(?:\s*\(|\s*:\s*"|\s*\.\.\.|\s*$)/,
+  );
+  if (m && KNOWN_TOOL_NAMES.has(m[1])) return m[1];
+  // 패턴 2: prefix 없이 tool_name — 마커(`(`, `: "`, `...`) 필수.
+  // 단독 도구 이름 단어("terminal" 한 줄)는 자연 채팅과 구분 못 해 거부.
+  m = cleaned.match(/^([a-z_][a-z0-9_]*)(?:\s*\(|\s*:\s*"|\s*\.\.\.)/);
+  if (m && KNOWN_TOOL_NAMES.has(m[1])) return m[1];
+  return null;
+}
+
+/** 도구 진행 섹션 — 헤더 줄 + 그 도구의 본문 영역(다음 헤더 직전까지). */
+export interface ToolSection {
+  /** 도구 이름 (KNOWN_TOOL_NAMES 중 하나) */
+  tool: string;
+  /** 헤더 줄 원본 (이모지 + 도구이름 + 마커 등) */
+  header: string;
+  /** 헤더 다음부터 다음 헤더 직전까지의 본문 (트림됨) */
+  body: string;
+}
+
+/** 본문을 도구 진행 섹션 목록으로 분할.
+ *  도구 헤더가 하나도 없으면 빈 배열 → 호출부에서 일반 메시지로 처리. */
+export function splitToolSections(rawBody: string): ToolSection[] {
+  const lines = rawBody.split("\n");
+  const sections: { tool: string; header: string; bodyLines: string[] }[] = [];
+  let current: (typeof sections)[number] | null = null;
+  for (const raw of lines) {
+    const tool = matchToolHeader(raw);
+    if (tool) {
+      if (current) sections.push(current);
+      current = {
+        tool,
+        header: raw.replace(/^\*\s+/, "").trim(),
+        bodyLines: [],
+      };
+    } else if (current) {
+      current.bodyLines.push(raw);
+    }
+    // 헤더 발견 전의 줄들(인사말 등 prefix)은 버림 — 도구 진행 메시지에선 거의 없음
+  }
+  if (current) sections.push(current);
+  return sections.map((s) => ({
+    tool: s.tool,
+    header: s.header,
+    body: s.bodyLines.join("\n").trim(),
+  }));
+}
+
+/** 본문이 도구 진행 메시지로 보이는지 (헤더 한 개 이상). */
 export function isToolProgressEvent(ev: MatrixEvent): boolean {
   const content = ev.getContent() as {
     msgtype?: string;
@@ -70,72 +122,30 @@ export function isToolProgressEvent(ev: MatrixEvent): boolean {
   // 레거시 마커 우선 (패치 적용 상태)
   if (content.tool_progress === true) return true;
   // m.notice(패치 상태) 또는 m.text(패치 풀린 상태) 둘 다 검사.
-  // 패치가 풀리면 게이트웨이가 m.text로 진행 메시지를 보내므로 m.text도 포함해야
-  // 평문으로 노출되는 회귀를 막을 수 있다. 일반 채팅도 m.text이지만 본문 패턴
-  // (`<이모지> <도구이름>`) + KNOWN_TOOL_NAMES 화이트리스트가 오탐을 막는다.
   if (content.msgtype !== "m.notice" && content.msgtype !== "m.text")
     return false;
   const body = (content.body ?? "").trim();
   if (!body) return false;
-  // edit fallback("* ..." 접두)이 있을 수 있어 제거
-  const noEditPrefix = body.replace(/^\*\s+/, "");
-  // 줄 단위로 보고, 코드펜스(```) / 빈 줄 / 마크다운 장식만으로 된 줄은 건너뛰어
-  // 첫 "의미 있는" 줄을 찾는다. 게이트웨이는 보통 헤더 줄을 가장 먼저 두지만
-  // edit/m.replace 경로에서 펜스가 앞에 붙는 변종이 관찰됨.
-  let head = "";
-  for (const raw of noEditPrefix.split("\n")) {
-    const line = raw.trim();
-    if (!line) continue;
-    if (line.startsWith("```")) continue; // 코드펜스 열기/닫기
-    head = line;
-    break;
-  }
-  if (!head) return false;
-  // 패턴: `<공백 없는 prefix(이모지 등)> <tool_name>` — 뒤에 뭐가 오든(없어도) 됨.
-  // 화이트리스트가 게이트라 정규식은 느슨해도 안전.
-  const m = head.match(/^\S+\s+([a-z_][a-z0-9_]*)\b/);
-  if (!m) return false;
-  return KNOWN_TOOL_NAMES.has(m[1]);
+  return splitToolSections(body).length > 0;
 }
 
-/** 본문에서 접힌 칩에 보여줄 한 줄 요약 추출:
- *  - 마크다운 장식/코드펜스/헤더 마커 제거 후 첫 의미 줄
- *  - 너무 길면 잘라서 말줄임 */
-function previewLine(body: string): string {
-  const firstMeaningful = body
-    .split("\n")
-    .map((l) => l.trim())
-    .find((l) => l.length > 0 && !/^[`*_>#-]+$/.test(l));
-  if (!firstMeaningful) return "도구 실행";
-  const cleaned = firstMeaningful
-    .replace(/^#+\s*/, "") // 헤더 마커
-    .replace(/^[-*>]\s*/, "") // 불릿/인용 마커
-    .replace(/[*_`~]/g, "") // 인라인 장식
-    .trim();
-  return cleaned.length > 80
-    ? `${cleaned.slice(0, 80)}…`
-    : cleaned || "도구 실행";
+/** 헤더에서 도구 이름 다음의 마커/괄호 부분을 추출 — 칩 라벨 미리보기용.
+ *  예: `🧠 memory(['target', 'operations'])` → `(['target', 'operations'])` */
+function previewFromHeader(header: string, tool: string): string {
+  const idx = header.indexOf(tool);
+  if (idx < 0) return "";
+  const tail = header.slice(idx + tool.length).trim();
+  if (!tail) return "";
+  // 너무 길면 자름
+  return tail.length > 60 ? `${tail.slice(0, 60)}…` : tail;
 }
 
-/** tool_progress 메시지(게이트웨이가 m.notice + tool_progress 필드로 태깅하거나
- *  본문 패턴으로 식별된 메시지)를 일반 채팅 버블이 아니라
- *  "접힌 칩 → 클릭 시 펼침"으로 렌더한다.
- *  - 라이브 갱신(m.replace edit)되는 메시지라 MessageBody를 그대로 재사용해
- *    펼친 상태에서도 진행 내용이 실시간으로 따라간다. */
-export function ToolCallChip({
-  client,
-  ev,
-}: {
-  client: MatrixClient;
-  ev: MatrixEvent;
-}) {
+/** 단일 도구 호출 칩 — 헤더만 보여주고 클릭 시 그 도구의 본문(코드/결과) 펼침. */
+function ToolSectionRow({ section }: { section: ToolSection }) {
   const [open, setOpen] = useState(false);
-  const body = (ev.getContent().body as string) ?? "";
-  // edit fallback("* ..." prefix)이 평문 body에 섞여있을 수 있어 제거
-  const preview = previewLine(body.replace(/^\*\s+/, ""));
-
+  const preview = previewFromHeader(section.header, section.tool);
   return (
-    <div className="my-0.5">
+    <div>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -148,13 +158,59 @@ export function ToolCallChip({
             open ? "rotate-90" : ""
           }`}
         />
-        <span className="truncate font-mono">{preview}</span>
+        <span className="shrink-0 font-mono font-medium text-fg-1">
+          {section.tool}
+        </span>
+        {preview && (
+          <span className="truncate font-mono text-fg-3">{preview}</span>
+        )}
       </button>
-      {open && (
-        <div className="mt-1 rounded-md border border-line bg-bg-1/40 px-3 py-2 text-[13px] text-fg-2">
-          <MessageBody client={client} ev={ev} />
-        </div>
+      {open && section.body && (
+        <pre className="mt-1 max-h-[400px] overflow-auto whitespace-pre-wrap rounded-md border border-line bg-bg-1/40 px-3 py-2 font-mono text-[12px] text-fg-2">
+          {section.body}
+        </pre>
       )}
+    </div>
+  );
+}
+
+/** 도구 호출 진행 메시지를 칩(들)로 렌더한다.
+ *  - 본문에 도구 헤더가 1개면 칩 1개
+ *  - 여러 개면 도구별로 분리해서 N개 칩 — 각각 독립적으로 펼침
+ *  - 라이브 갱신(m.replace edit)되면 ev.getContent()가 최신을 반환하므로
+ *    splitToolSections가 매 렌더마다 새 섹션 목록을 만들어 따라간다. */
+export function ToolCallChip({
+  client: _client,
+  ev,
+}: {
+  client: MatrixClient;
+  ev: MatrixEvent;
+}) {
+  const body = (ev.getContent().body as string) ?? "";
+  const sections = splitToolSections(body);
+  if (sections.length === 0) {
+    // 안전망 — isToolProgressEvent를 통과했지만 split이 비어 있으면
+    // 평문 한 줄 칩으로 폴백 (자체 마커 케이스 등).
+    return (
+      <div className="my-0.5">
+        <button
+          type="button"
+          className="flex max-w-full items-center gap-1.5 rounded-md border border-line bg-bg-2/50 px-2 py-1 text-[12px] text-fg-2"
+          disabled
+        >
+          <Wrench className="h-3 w-3 shrink-0 text-fg-3" />
+          <span className="truncate font-mono">도구 실행</span>
+        </button>
+      </div>
+    );
+  }
+  return (
+    <div className="my-0.5 flex flex-col gap-1">
+      {sections.map((s) => (
+        // 헤더 원문이 같은 turn 안에서 도구별 안정 키 — 같은 도구가 같은 args로
+        // 두 번 호출되는 극단 케이스에서만 충돌하지만 그땐 펼침 상태 공유돼도 무해.
+        <ToolSectionRow key={s.header} section={s} />
+      ))}
     </div>
   );
 }
