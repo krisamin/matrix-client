@@ -234,14 +234,14 @@ function RoomContextMenu({
 
   return (
     <div
-      className="fixed z-50 min-w-[160px] overflow-hidden rounded-lg border border-line bg-bg-1 py-1 shadow-2xl"
+      className="fixed z-50 flex min-w-[180px] flex-col divide-y divide-line overflow-hidden rounded-md border border-line bg-bg-1 shadow-2xl"
       style={{ left: x, top: y }}
       onClick={(e) => e.stopPropagation()}
       role="presentation"
     >
       <button
         type="button"
-        className="flex w-full items-center gap-2.5 px-3 py-1.5 text-left text-[13px] text-fg-1 hover:bg-bg-2 hover:text-fg-0"
+        className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] text-fg-1 hover:bg-bg-2 hover:text-fg-0"
         onClick={onFav}
       >
         <Star
@@ -251,7 +251,7 @@ function RoomContextMenu({
       </button>
       <button
         type="button"
-        className="flex w-full items-center gap-2.5 px-3 py-1.5 text-left text-[13px] text-fg-1 hover:bg-bg-2 hover:text-fg-0"
+        className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] text-fg-1 hover:bg-bg-2 hover:text-fg-0"
         onClick={onMute}
       >
         <BellOff className="h-3.5 w-3.5 shrink-0 text-fg-3" />
@@ -339,13 +339,21 @@ function SpaceTreeNode({
   );
 }
 
-/** 섹션 라벨 (Direct / Spaces / Rooms) */
-function SectionLabel({ children }: { children: string }) {
+/** 섹션 라벨 (Direct / Spaces / Rooms) — RoomInfoPane/SpaceView 카드 헤더 톤
+ *  과 같은 패밀리로 (그래픽 uppercase 대신 일관된 한글 라벨 + 카운트). */
+function SectionLabel({
+  children,
+  count,
+}: {
+  children: string;
+  count?: number;
+}) {
   return (
-    <div className="mt-3 flex h-6 items-center px-2 first:mt-0">
-      <span className="text-[11px] font-semibold uppercase tracking-widest text-fg-3">
-        {children}
-      </span>
+    <div className="mt-3 flex items-center gap-1.5 px-3 pb-1 first:mt-0">
+      <span className="text-[11px] font-medium text-fg-2">{children}</span>
+      {typeof count === "number" && count > 0 && (
+        <span className="font-mono text-[11px] text-fg-3">{count}</span>
+      )}
     </div>
   );
 }
@@ -492,13 +500,15 @@ export function Sidebar({ client }: { client: MatrixClient }) {
       <nav className="flex-1 select-none overflow-y-auto p-2">
         {invites.length > 0 && (
           <>
-            <SectionLabel>Invites</SectionLabel>
+            <SectionLabel count={invites.length}>초대</SectionLabel>
             {invites.map((room) => (
               <div key={room.roomId} className="tree-row">
-                <span className="min-w-0 flex-1 truncate">{room.name}</span>
+                <span className="min-w-0 flex-1 truncate text-[13px] text-fg-1">
+                  {room.name}
+                </span>
                 <button
                   type="button"
-                  className="shrink-0 rounded p-0.5 text-fg-2 hover:text-fg-0 disabled:opacity-50"
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-fg-2 hover:bg-bg-3 hover:text-emerald-400 disabled:opacity-50"
                   disabled={inviteBusy === room.roomId}
                   onClick={() => acceptInvite(room.roomId)}
                   title="수락"
@@ -507,7 +517,7 @@ export function Sidebar({ client }: { client: MatrixClient }) {
                 </button>
                 <button
                   type="button"
-                  className="shrink-0 rounded p-0.5 text-fg-2 hover:text-fg-0 disabled:opacity-50"
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-fg-2 hover:bg-bg-3 hover:text-red-400 disabled:opacity-50"
                   disabled={inviteBusy === room.roomId}
                   onClick={() => rejectInvite(room.roomId)}
                   title="거절"
@@ -520,13 +530,13 @@ export function Sidebar({ client }: { client: MatrixClient }) {
         )}
         {tree.dms.length > 0 && (
           <>
-            <SectionLabel>Direct</SectionLabel>
+            <SectionLabel count={tree.dms.length}>대화</SectionLabel>
             {renderRooms(tree.dms, true)}
           </>
         )}
         {tree.spaces.length > 0 && (
           <>
-            <SectionLabel>Spaces</SectionLabel>
+            <SectionLabel count={tree.spaces.length}>스페이스</SectionLabel>
             {tree.spaces.map((node) => (
               <SpaceTreeNode
                 key={node.space.roomId}
@@ -540,27 +550,33 @@ export function Sidebar({ client }: { client: MatrixClient }) {
         )}
         {tree.orphanRooms.length > 0 && (
           <>
-            <SectionLabel>Rooms</SectionLabel>
+            <SectionLabel count={tree.orphanRooms.length}>방</SectionLabel>
             {renderRooms(tree.orphanRooms)}
           </>
         )}
         {rooms.length === 0 && invites.length === 0 && (
-          <p className="px-2 py-3 text-[12px] text-fg-3">대화가 없습니다</p>
+          <p className="px-3 py-6 text-center text-[12px] text-fg-3">
+            아직 대화가 없어요. 위 + 버튼으로 새 대화를 시작해 보세요.
+          </p>
         )}
       </nav>
 
-      {/* 푸터: 36px */}
-      <div className="flex h-9 shrink-0 items-center gap-2 border-t border-line px-4 text-[12px] text-fg-3">
+      {/* 푸터: 36px — 좌측 sync 점·라벨, 우측 E2EE 배지 (헤더와 같은 px-5 인셋) */}
+      <div className="flex h-9 shrink-0 items-center gap-2 border-t border-line px-5 text-[12px] text-fg-3">
         <span
-          className={`h-1.5 w-1.5 rounded-full ${
+          className={`h-1.5 w-1.5 shrink-0 rounded-full ${
             syncState === "SYNCING" || syncState === "PREPARED"
               ? "bg-emerald-600"
               : "bg-amber-600"
           }`}
         />
-        {(syncState ?? "starting").toLowerCase()}
-        <span className="ml-auto font-mono">E2EE</span>
-        <ShieldCheck className="h-3.5 w-3.5" />
+        <span className="font-mono">
+          {(syncState ?? "starting").toLowerCase()}
+        </span>
+        <span className="ml-auto flex items-center gap-1 font-mono">
+          <ShieldCheck className="h-3 w-3" />
+          E2EE
+        </span>
       </div>
 
       {newDmOpen && (
