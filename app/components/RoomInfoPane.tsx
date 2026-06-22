@@ -36,7 +36,7 @@ function MemberRow({
     <li>
       <button
         type="button"
-        className="flex h-9 w-full items-center gap-2.5 rounded-md px-3 text-left hover:bg-bg-2"
+        className="flex w-full items-center gap-2.5 px-5 py-2 text-left hover:bg-bg-2"
         title={member.userId}
         onClick={(e) => onClick(e.currentTarget.getBoundingClientRect())}
       >
@@ -197,74 +197,79 @@ export function RoomInfoPane({
         <h2 className="truncate font-semibold text-fg-0">방 정보</h2>
       </PaneHeader>
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        {/* 방 프로필 */}
-        <div className="flex flex-col items-center gap-2.5 border-b border-line px-5 py-6">
-          <RoomAvatar client={client} room={room} size={56} />
-          <p className="max-w-full truncate text-[15px] font-semibold text-fg-0">
-            {room.name}
-          </p>
-          {topic && (
-            <p className="max-w-full whitespace-pre-wrap break-words text-center text-[12px] leading-relaxed text-fg-2">
-              {topic}
+      <div className="min-h-0 flex-1 overflow-y-auto bg-bg-0">
+        {/* 방 프로필 — 카드 컨테이너 (SpaceView 섹션 톤과 같은 가족) */}
+        <div className="m-3 overflow-hidden rounded-md border border-line bg-bg-1">
+          <div className="flex flex-col items-center gap-2.5 px-5 py-6">
+            <RoomAvatar client={client} room={room} size={56} />
+            <p className="max-w-full truncate text-[15px] font-semibold text-fg-0">
+              {room.name}
             </p>
-          )}
-          {/* roomId 복사 — DM이면 상대 userId가 더 유용 */}
-          <button
-            type="button"
-            className="flex max-w-full items-center gap-1.5 rounded-md px-2 py-1 font-mono text-[11px] text-fg-3 hover:bg-bg-2 hover:text-fg-1"
-            title="복사"
-            onClick={copyRoomId}
-          >
-            <span className="truncate">{dmUserId ?? room.roomId}</span>
-            {copied ? (
-              <Check className="h-3 w-3 shrink-0 text-green-400" />
-            ) : (
-              <Copy className="h-3 w-3 shrink-0" />
+            {topic && (
+              <p className="max-w-full whitespace-pre-wrap break-words text-center text-[12px] leading-relaxed text-fg-2">
+                {topic}
+              </p>
             )}
-          </button>
-          {/* E2EE 상태 */}
-          <span
-            className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] ${
-              encrypted ? "border-line text-fg-1" : "border-line text-fg-3"
-            }`}
-          >
-            {encrypted ? (
-              <>
-                <Lock className="h-3 w-3" /> 종단간 암호화됨
-              </>
-            ) : (
-              <>
-                <LockOpen className="h-3 w-3" /> 암호화 안 됨
-              </>
-            )}
-          </span>
+            {/* roomId 복사 — DM이면 상대 userId가 더 유용 */}
+            <button
+              type="button"
+              className="flex max-w-full items-center gap-1.5 rounded-md px-2 py-1 font-mono text-[11px] text-fg-3 hover:bg-bg-2 hover:text-fg-1"
+              title="복사"
+              onClick={copyRoomId}
+            >
+              <span className="truncate">{dmUserId ?? room.roomId}</span>
+              {copied ? (
+                <Check className="h-3 w-3 shrink-0 text-green-400" />
+              ) : (
+                <Copy className="h-3 w-3 shrink-0" />
+              )}
+            </button>
+            {/* E2EE 상태 */}
+            <span
+              className={`flex items-center gap-1.5 rounded-md border border-line px-2.5 py-1 text-[11px] ${
+                encrypted ? "text-fg-1" : "text-fg-3"
+              }`}
+            >
+              {encrypted ? (
+                <>
+                  <Lock className="h-3 w-3" /> 종단간 암호화됨
+                </>
+              ) : (
+                <>
+                  <LockOpen className="h-3 w-3" /> 암호화 안 됨
+                </>
+              )}
+            </span>
+          </div>
         </div>
 
-        {/* 멤버 목록 */}
-        <div className="p-2">
-          <div className="flex items-center justify-between px-3 pb-1 pt-2">
-            <p className="font-mono text-[11px] text-fg-3">
-              멤버 — {members.length}명
-            </p>
+        {/* 멤버 섹션 — SpaceView와 같은 카드 + h-10 헤더 + 우측 정사각 액션 */}
+        <div className="mx-3 mb-3 overflow-hidden rounded-md border border-line bg-bg-1">
+          <div className="flex h-10 items-center border-b border-line bg-bg-2/30 pl-5">
+            <h2 className="flex-1 text-[12px] font-medium text-fg-2">
+              멤버
+              <span className="ml-1.5 font-mono text-[11px] text-fg-3">
+                {members.length}
+              </span>
+            </h2>
             {canInvite && (
               <button
                 type="button"
-                className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] text-fg-2 hover:bg-bg-2 hover:text-fg-0"
+                className="flex aspect-square h-full shrink-0 items-center justify-center text-fg-2 hover:bg-bg-2 hover:text-fg-0"
                 onClick={() => {
                   setInviteOpen((v) => !v);
                   setInviteMsg(null);
                 }}
+                title="초대"
               >
-                <UserPlus className="h-3 w-3" />
-                초대
+                <UserPlus className="h-3.5 w-3.5" />
               </button>
             )}
           </div>
-          {/* 초대 폼 — 디렉토리 검색 + 직접 @user:server 입력 */}
+          {/* 초대 폼 — 헤더 바로 아래 슬라이드인 */}
           {inviteOpen && (
-            <div className="mx-1 mb-2 flex flex-col rounded-md border border-line">
-              <label className="flex items-center gap-2 border-b border-line px-2.5 py-2">
+            <div className="flex flex-col border-b border-line bg-bg-2/20">
+              <label className="flex items-center gap-2 border-b border-line px-5 py-2">
                 <span className="shrink-0 text-[11px] text-fg-3">검색</span>
                 <input
                   className="flex-1 bg-transparent text-[12px] text-fg-0 outline-none placeholder:text-fg-3"
@@ -275,7 +280,7 @@ export function RoomInfoPane({
                 />
               </label>
               {inviteMsg && (
-                <p className="border-b border-line px-2.5 py-1.5 text-[11px] text-fg-2">
+                <p className="border-b border-line px-5 py-1.5 text-[11px] text-fg-2">
                   {inviteMsg}
                 </p>
               )}
@@ -309,7 +314,7 @@ export function RoomInfoPane({
                       />
                     ))}
                     {inviteSearching && (
-                      <p className="px-2 py-3 text-center text-[12px] text-fg-3">
+                      <p className="px-5 py-3 text-center text-[12px] text-fg-3">
                         검색 중…
                       </p>
                     )}
@@ -317,7 +322,7 @@ export function RoomInfoPane({
                       !directEntry &&
                       inviteResults.length === 0 &&
                       trimmed.length > 0 && (
-                        <p className="px-2 py-3 text-center text-[12px] text-fg-3">
+                        <p className="px-5 py-3 text-center text-[12px] text-fg-3">
                           결과 없음. @user:server로 직접 입력 가능
                         </p>
                       )}
@@ -326,7 +331,7 @@ export function RoomInfoPane({
               })()}
             </div>
           )}
-          <ul>
+          <ul className="flex flex-col divide-y divide-line">
             {members.map((m) => (
               <MemberRow
                 key={m.userId}
@@ -345,19 +350,27 @@ export function RoomInfoPane({
           </ul>
         </div>
 
-        {/* 위험 영역: 방 나가기 (2단계 확인) */}
-        <div className="border-t border-line p-3">
+        {/* 위험 영역: 방 나가기 (별도 카드) */}
+        <div className="mx-3 mb-3 overflow-hidden rounded-md border border-line bg-bg-1">
           {leaveArmed ? (
-            <div className="flex flex-col gap-1.5">
-              <p className="px-1 text-[12px] text-fg-2">
-                정말 나갈까?{" "}
+            <>
+              <p className="border-b border-line px-5 py-3 text-[12px] text-fg-2">
+                정말 나갈까?
                 {encrypted &&
-                  "암호화 방은 다시 들어와도 이전 메시지를 못 읽을 수 있어."}
+                  " 암호화 방은 다시 들어와도 이전 메시지를 못 읽을 수 있어."}
               </p>
-              <div className="flex gap-1.5">
+              <div className="flex">
                 <button
                   type="button"
-                  className="flex flex-1 items-center justify-center gap-1.5 rounded-md bg-red-950/60 py-1.5 text-[12px] font-medium text-red-300 hover:bg-red-900/60 disabled:opacity-50"
+                  className="flex-1 border-r border-line py-2.5 text-[13px] text-fg-2 hover:bg-bg-2 hover:text-fg-0 disabled:opacity-50"
+                  disabled={leaveBusy}
+                  onClick={() => setLeaveArmed(false)}
+                >
+                  취소
+                </button>
+                <button
+                  type="button"
+                  className="flex flex-1 items-center justify-center gap-1.5 bg-red-950/40 py-2.5 text-[13px] font-medium text-red-300 hover:bg-red-900/50 disabled:opacity-50"
                   disabled={leaveBusy}
                   onClick={leave}
                 >
@@ -368,20 +381,12 @@ export function RoomInfoPane({
                   )}
                   나가기
                 </button>
-                <button
-                  type="button"
-                  className="flex-1 rounded-md border border-line py-1.5 text-[12px] text-fg-2 hover:bg-bg-2"
-                  disabled={leaveBusy}
-                  onClick={() => setLeaveArmed(false)}
-                >
-                  취소
-                </button>
               </div>
-            </div>
+            </>
           ) : (
             <button
               type="button"
-              className="flex w-full items-center justify-center gap-1.5 rounded-md py-1.5 text-[12px] text-fg-2 hover:bg-bg-2 hover:text-red-300"
+              className="flex w-full items-center justify-center gap-1.5 py-2.5 text-[13px] text-fg-2 hover:bg-bg-2 hover:text-red-300"
               onClick={() => setLeaveArmed(true)}
             >
               <LogOut className="h-3 w-3" />방 나가기
