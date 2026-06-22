@@ -39,13 +39,12 @@ body {
 /* ── PWA: Window Controls Overlay (macOS Safari "Dock에 추가" 등) ──
    manifest display_override=["window-controls-overlay"]가 먹으면
    상단 타이틀바가 사라지고 콘텐츠가 그 영역까지 꽉 참.
-   미지원 환경에선 아래 블록이 비활성 → 일반 standalone(얇은 타이틀바)로 폴백.
+   미지원 환경(일반 웹·일반 standalone)에선 아래 블록이 비활성 →
+   tailwind의 px-* 등 기본 padding이 그대로 작동.
 
    - .app-titlebar: 헤더를 창 드래그 핸들로 (no-drag 자식만 클릭 가능)
-   - .app-titlebar-lead: 좌상단(신호등 버튼 자리)을 피해 콘텐츠를 들여씀 */
-.app-titlebar-lead {
-  padding-left: 0;
-}
+   - .app-titlebar-lead: 좌상단(신호등 버튼 자리)을 피해 콘텐츠를 들여씀
+     (standalone에서만 의미 — 일반 웹에선 no-op로 둬서 px-*가 살아남) */
 @media all and (display-mode: window-controls-overlay) {
   /* 헤더 전체를 드래그 영역으로 (창 이동) */
   .app-titlebar {
@@ -59,6 +58,12 @@ body {
        위로). OS 컨트롤은 헤더 전체 높이 기준 중앙이므로, padding-top 1px로
        콘텐츠 정렬 영역을 헤더 전체 중앙에 맞춰 세로 정렬을 OS 컨트롤과 일치시킴. */
     padding-top: 1px;
+    /* tailwind px-* 무력화 — standalone에선 OS 컨트롤 영역만 비키고
+       그 외 좌우 padding은 0으로 (위아래도 0과 동일 inset → 사방 균형).
+       좌상단 신호등 / 우상단 OS controls는 아래 .app-titlebar-lead와
+       :last-child 규칙에서 정확한 폭만큼 별도로 들여씀. */
+    padding-left: 0;
+    padding-right: 0;
   }
   /* 헤더 안의 인터랙티브 요소는 드래그에서 제외 (클릭 정상 동작) */
   .app-titlebar a,
@@ -69,17 +74,17 @@ body {
     app-region: no-drag;
   }
   /* 좌상단 헤더: OS 창 컨트롤(신호등) 폭만큼 콘텐츠를 밀어 가림 방지.
-     env(titlebar-area-x)는 콘텐츠가 시작 가능한 x좌표(=신호등 우측 끝) */
+     env(titlebar-area-x)는 콘텐츠가 시작 가능한 x좌표(=신호등 우측 끝).
+     신호등 없는 환경(Windows 등)에선 fallback 0 → 콘텐츠가 끝에 닿음(위아래와 일치). */
   .app-titlebar-lead {
-    padding-left: max(1rem, env(titlebar-area-x, 0px));
+    padding-left: env(titlebar-area-x, 0px);
   }
   /* 우상단: 맨 오른쪽 패널 헤더만 OS 창 컨트롤(닫기/메뉴 등) 오버레이를 피함.
      우측 예약영역 폭 = 창너비 - 좌예약(x) - 안전영역(width).
      분할뷰(방+스레드)에선 마지막 패널만 창 우측 끝에 닿으므로 :last-child로 한정. */
   .app-pane-row > :last-child .app-titlebar {
-    padding-right: max(
-      1.25rem,
-      calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw))
+    padding-right: calc(
+      100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw)
     );
   }
 }
