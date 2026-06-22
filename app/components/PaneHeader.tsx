@@ -13,7 +13,7 @@ export function PaneHeader({
     <header className="app-titlebar flex h-12 shrink-0 items-center gap-2.5 border-b border-line bg-bg-1 px-5">
       {children}
       {actions && (
-        <div className="ml-auto flex items-center gap-0.5 text-fg-2">
+        <div className="-mr-5 ml-auto flex h-12 items-stretch text-fg-2">
           {actions}
         </div>
       )}
@@ -21,7 +21,7 @@ export function PaneHeader({
   );
 }
 
-/** 헤더 우측 아이콘 버튼 */
+/** 헤더 우측 아이콘 버튼 — 정사각형, 위아래 꽉, 라운드/간격 없음 */
 export function PaneHeaderButton({
   onClick,
   title,
@@ -36,7 +36,7 @@ export function PaneHeaderButton({
       type="button"
       onClick={onClick}
       title={title}
-      className="rounded-md p-2 hover:bg-bg-2 hover:text-fg-0"
+      className="flex h-12 w-12 shrink-0 items-center justify-center hover:bg-bg-2 hover:text-fg-0"
     >
       {children}
     </button>

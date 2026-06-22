@@ -258,7 +258,7 @@ export function MessageInput({
           넣어(py-3) 입력 영역이 바 위아래로 꽉 차고, 스크롤이 끝과 끝까지 흐른다.
           멀티라인이라 items-end로 버튼은 아래 정렬, textarea만 위로 자란다. */}
       <form
-        className="flex min-h-12 items-end gap-1 border-t border-line bg-bg-1 px-3 transition-colors focus-within:bg-bg-2"
+        className="flex min-h-12 items-end border-t border-line bg-bg-1 pl-3 transition-colors focus-within:bg-bg-2"
         onSubmit={(e) => {
           e.preventDefault();
           send();
@@ -326,7 +326,7 @@ export function MessageInput({
         />
         <button
           type="button"
-          className="flex h-12 w-9 shrink-0 items-center justify-center rounded-md text-fg-2 hover:bg-bg-2 hover:text-fg-0 disabled:opacity-50"
+          className="flex h-12 w-12 shrink-0 items-center justify-center text-fg-2 hover:bg-bg-2 hover:text-fg-0 disabled:opacity-50"
           disabled={!!uploading}
           onClick={() => fileInputRef.current?.click()}
           title="파일 첨부"
@@ -335,7 +335,7 @@ export function MessageInput({
         </button>
         <button
           type="button"
-          className="flex h-12 w-9 shrink-0 items-center justify-center rounded-md text-fg-2 hover:bg-bg-2 hover:text-fg-0"
+          className="flex h-12 w-12 shrink-0 items-center justify-center text-fg-2 hover:bg-bg-2 hover:text-fg-0"
           title="이모지"
           onClick={(e) => {
             // rect는 핸들러 안에서 즉시 읽기 — setState 콜백 시점엔 currentTarget이 null
@@ -347,7 +347,7 @@ export function MessageInput({
         </button>
         <button
           type="submit"
-          className="flex h-12 w-9 shrink-0 items-center justify-center rounded-md text-fg-2 hover:bg-bg-2 hover:text-fg-0 disabled:opacity-50"
+          className="flex h-12 w-12 shrink-0 items-center justify-center text-fg-2 hover:bg-bg-2 hover:text-fg-0 disabled:opacity-50"
           disabled={sending || !draft.trim()}
           title="전송 (⌘/Ctrl + Enter)"
         >
