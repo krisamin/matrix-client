@@ -50,27 +50,38 @@ export function useRooms(client: MatrixClient) {
     const onDecrypted = (_ev: MatrixEvent) => refresh();
     const onMembership = () => refresh();
     // 스레드 이벤트는 방 자체의 lastActive를 안 흔들 수 있어 별도 tick으로 처리.
-    // Room이 ThreadEvent를 재방출함(SDK room.d.ts 참고).
+    // ThreadEvent는 Room emitter가 재방출하므로 방 단위로 구독한다 (client emitter엔 없음).
     const onThread = () => setThreadTick((n) => n + 1);
+    function attachRoomThread(room: Room) {
+      room.on(ThreadEvent.New, onThread);
+      room.on(ThreadEvent.NewReply, onThread);
+      room.on(ThreadEvent.Update, onThread);
+      room.on(ThreadEvent.Delete, onThread);
+    }
+    function detachRoomThread(room: Room) {
+      room.off(ThreadEvent.New, onThread);
+      room.off(ThreadEvent.NewReply, onThread);
+      room.off(ThreadEvent.Update, onThread);
+      room.off(ThreadEvent.Delete, onThread);
+    }
+    // 기존 방들에 모두 부착
+    for (const r of client.getRooms()) attachRoomThread(r);
+    // 새로 들어오는 방에도 부착
+    const onNewRoom = (r: Room) => attachRoomThread(r);
+    client.on(ClientEvent.Room, onNewRoom);
     client.on(ClientEvent.Sync, onSync);
     client.on(RoomEvent.Timeline, onTimeline);
     client.on(RoomEvent.Receipt, onReceipt);
     client.on(MatrixEventEvent.Decrypted, onDecrypted);
     client.on(RoomEvent.MyMembership, onMembership);
-    client.on(ThreadEvent.New, onThread);
-    client.on(ThreadEvent.NewReply, onThread);
-    client.on(ThreadEvent.Update, onThread);
-    client.on(ThreadEvent.Delete, onThread);
     return () => {
+      for (const r of client.getRooms()) detachRoomThread(r);
+      client.off(ClientEvent.Room, onNewRoom);
       client.off(ClientEvent.Sync, onSync);
       client.off(RoomEvent.Timeline, onTimeline);
       client.off(RoomEvent.Receipt, onReceipt);
       client.off(MatrixEventEvent.Decrypted, onDecrypted);
       client.off(RoomEvent.MyMembership, onMembership);
-      client.off(ThreadEvent.New, onThread);
-      client.off(ThreadEvent.NewReply, onThread);
-      client.off(ThreadEvent.Update, onThread);
-      client.off(ThreadEvent.Delete, onThread);
     };
   }, [client]);
 
