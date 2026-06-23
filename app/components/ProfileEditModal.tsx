@@ -103,7 +103,7 @@ export function ProfileEditModal({
         onClick={(e) => e.stopPropagation()}
         role="presentation"
       >
-        <header className="flex h-12 items-center border-b border-line px-5">
+        <header className="flex h-12 items-center border-b border-line pl-5">
           <h2 className="font-semibold text-fg-0">프로필 편집</h2>
         </header>
         {loading ? (
@@ -152,7 +152,7 @@ export function ProfileEditModal({
             {/* 필드 */}
             <div className="flex flex-col divide-y divide-line">
               <label className="flex items-center gap-3 px-5 py-2.5">
-                <span className="w-20 shrink-0 text-[12px] text-fg-3">
+                <span className="w-24 shrink-0 text-[12px] text-fg-3">
                   표시 이름
                 </span>
                 <input
