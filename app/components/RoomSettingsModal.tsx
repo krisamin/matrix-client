@@ -148,19 +148,23 @@ function Row({
   children: React.ReactNode;
   description?: string;
 }) {
-  // Row는 t 필요 없음
+  // 라벨/입력이 자체 padding으로 row를 꽉 채우는 패턴 (B-final).
+  // children에 들어가는 input/select는 Form.tsx의 TextInput/Select처럼
+  // 자체 'py-2.5 pl-3 pr-5'를 가져야 함.
   return (
-    <div className="flex flex-col gap-1 px-5 py-2.5">
-      <div className="flex items-center gap-3">
+    <label className="flex flex-col">
+      <div className="flex items-stretch">
         <span className="flex w-24 shrink-0 items-center pl-5 text-[12px] text-fg-3">
           {label}
         </span>
-        <div className="flex flex-1 items-center">{children}</div>
+        <div className="flex flex-1 items-stretch">{children}</div>
       </div>
       {description && (
-        <p className="pl-[6.75rem] text-[11px] text-fg-3">{description}</p>
+        <span className="px-5 pb-2 pl-[6.75rem] text-[11px] text-fg-3">
+          {description}
+        </span>
       )}
-    </div>
+    </label>
   );
 }
 
@@ -472,7 +476,7 @@ function AccessTab({
             label={t("field.alias")}
             description={t("roomSettings.alias.format", { server: myDomain })}
           >
-            <div className="flex flex-1 items-center gap-1">
+            <div className="flex flex-1 items-center gap-1 py-2.5 pl-3 pr-5">
               <span className="text-[13px] text-fg-3">#</span>
               <input
                 type="text"
@@ -658,7 +662,7 @@ function PermissionsTab({
                         ROLE_LEVELS[e.target.value as keyof typeof ROLE_LEVELS],
                       )
                     }
-                    className="bg-transparent text-[12px] text-fg-0 outline-none disabled:opacity-50"
+                    className="bg-transparent py-2.5 pl-3 pr-5 text-[12px] text-fg-0 outline-none disabled:opacity-50"
                   >
                     <option value="멤버">{t("perm.role.member")} (0)</option>
                     <option value="모더레이터">
@@ -841,7 +845,7 @@ function DefaultPLEditor({
             value={r.value}
             disabled={!canEdit}
             onChange={(e) => r.set(Number(e.target.value))}
-            className="w-12 bg-transparent text-right font-mono text-[13px] text-fg-0 outline-none disabled:opacity-50"
+            className="w-16 bg-transparent py-2.5 pl-3 pr-5 text-right font-mono text-[13px] text-fg-0 outline-none disabled:opacity-50"
           />
           <span className="text-[11px] text-fg-3">
             {t("perm.basicHint", {

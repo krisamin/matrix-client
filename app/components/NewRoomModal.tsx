@@ -9,8 +9,10 @@ import type {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useT } from "../lib/i18n";
 import { createGroupRoom, getJoinedSpaces } from "../lib/matrix";
+import { Field, FieldGroup, Select, TextInput } from "./Form";
+import { Modal, ModalFooter, ModalHeader } from "./Modal";
 
-/** {t("modal.newRoom.title")} 모달 (B-final 톤 + 고급 옵션 풀셋). */
+/** 새 방 만들기 모달 — 공용 Modal/Form 사용. */
 export function NewRoomModal({
   client,
   onClose,
@@ -27,7 +29,6 @@ export function NewRoomModal({
   const [topic, setTopic] = useState("");
   const [encrypted, setEncrypted] = useState(true);
   const [parentSpaceId, setParentSpaceId] = useState(defaultSpaceId ?? "");
-  // 고급
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [visibility, setVisibility] = useState<Visibility>(
     "private" as Visibility,
@@ -44,7 +45,6 @@ export function NewRoomModal({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const spaces = useMemo(() => getJoinedSpaces(client), [client]);
-  // alias 미리보기: localpart + 홈서버 도메인
   const myDomain = (client.getUserId() ?? "").split(":")[1] ?? "";
   const aliasPreview = aliasLocalpart.trim()
     ? `#${aliasLocalpart.trim()}:${myDomain}`
@@ -54,15 +54,6 @@ export function NewRoomModal({
     inputRef.current?.focus();
   }, []);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
-  // alias 검증 (Matrix 스펙: 알파벳/숫자/_/-/.만, 빈 칸이면 OK)
   const aliasInvalid =
     aliasLocalpart.trim().length > 0 &&
     !/^[a-zA-Z0-9._-]+$/.test(aliasLocalpart.trim());
@@ -92,78 +83,50 @@ export function NewRoomModal({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 pt-[15vh]"
-      onClick={onClose}
-      role="presentation"
-    >
-      <div
-        className="max-h-[80vh] w-[460px] max-w-[90vw] overflow-hidden rounded-md border border-line bg-bg-1 shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-        role="presentation"
-      >
-        <header className="flex h-12 items-center border-b border-line px-5">
-          <h2 className="font-semibold text-fg-0">
-            {t("modal.newRoom.title")}
-          </h2>
-        </header>
-        <div className="max-h-[calc(80vh-7rem)] overflow-y-auto">
-          <div className="flex flex-col divide-y divide-line">
-            {/* 기본 */}
-            <label className="flex items-stretch">
-              <span className="flex w-24 shrink-0 items-center pl-5 text-[12px] text-fg-3">
-                {t("field.roomName")}
-              </span>
-              <input
-                ref={inputRef}
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") create();
-                }}
-                placeholder={t("ph.roomName")}
-                className="flex-1 bg-transparent py-2.5 pl-3 pr-5 text-[13px] text-fg-0 outline-none placeholder:text-fg-3"
-              />
-            </label>
-            <label className="flex items-stretch">
-              <span className="flex w-24 shrink-0 items-center pl-5 text-[12px] text-fg-3">
-                {t("field.topic")}
-              </span>
-              <input
-                type="text"
-                value={topic}
-                onChange={(e) => setTopic(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") create();
-                }}
-                placeholder={t("ph.roomDesc")}
-                className="flex-1 bg-transparent py-2.5 pl-3 pr-5 text-[13px] text-fg-0 outline-none placeholder:text-fg-3"
-              />
-            </label>
-            {spaces.length > 0 && (
-              <label className="flex items-stretch">
-                <span className="flex w-24 shrink-0 items-center pl-5 text-[12px] text-fg-3">
-                  상위 Space
-                </span>
-                <select
-                  value={parentSpaceId}
-                  onChange={(e) => setParentSpaceId(e.target.value)}
-                  className="flex-1 bg-transparent py-2.5 pl-3 pr-5 text-[13px] text-fg-0 outline-none"
-                >
-                  <option value="">{t("alias.noSpace")}</option>
-                  {spaces.map((s) => (
-                    <option key={s.roomId} value={s.roomId}>
-                      {s.name || s.roomId}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
-            <label className="flex cursor-pointer items-center gap-3 px-5 py-2.5">
-              <span className="flex w-24 shrink-0 items-center pl-5 text-[12px] text-fg-3">
-                {t("field.encryption")}
-              </span>
+    <Modal onClose={onClose} size="md">
+      <ModalHeader title={t("modal.newRoom.title")} />
+
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <FieldGroup>
+          <Field label={t("field.roomName")}>
+            <TextInput
+              ref={inputRef}
+              value={name}
+              onChange={setName}
+              placeholder={t("ph.roomName")}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") create();
+              }}
+            />
+          </Field>
+          <Field label={t("field.topic")}>
+            <TextInput
+              value={topic}
+              onChange={setTopic}
+              placeholder={t("ph.roomDesc")}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") create();
+              }}
+            />
+          </Field>
+          {spaces.length > 0 && (
+            <Field label={t("field.parentSpace")}>
+              <Select value={parentSpaceId} onChange={setParentSpaceId}>
+                <option value="">{t("alias.noSpace")}</option>
+                {spaces.map((s) => (
+                  <option key={s.roomId} value={s.roomId}>
+                    {s.name || s.roomId}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          )}
+          {/* 체크박스 row — Field 패턴이지만 토글 형태라 인라인. */}
+          <label className="flex cursor-pointer items-stretch">
+            <span className="flex w-24 shrink-0 items-center pl-5 text-[12px] text-fg-3">
+              {t("field.encryption")}
+            </span>
+            <span className="flex flex-1 items-center gap-2 py-2.5 pl-3 pr-5">
               <input
                 type="checkbox"
                 checked={encrypted}
@@ -171,150 +134,111 @@ export function NewRoomModal({
                 className="accent-fg-1"
               />
               <span className="text-[13px] text-fg-1">{t("e2ee.on")}</span>
-            </label>
+            </span>
+          </label>
+        </FieldGroup>
 
-            {/* 고급 토글 */}
-            <button
-              type="button"
-              onClick={() => setAdvancedOpen((v) => !v)}
-              className="flex items-center gap-1.5 bg-bg-2/40 px-5 py-2 text-left text-[12px] font-medium text-fg-2 hover:bg-bg-2 hover:text-fg-0"
+        {/* 고급 토글 */}
+        <button
+          type="button"
+          onClick={() => setAdvancedOpen((v) => !v)}
+          className="flex w-full items-center gap-1.5 border-y border-line bg-bg-2/40 px-5 py-2 text-left text-[12px] font-medium text-fg-2 hover:bg-bg-2 hover:text-fg-0"
+        >
+          {advancedOpen ? (
+            <ChevronDown className="h-3.5 w-3.5" />
+          ) : (
+            <ChevronRight className="h-3.5 w-3.5" />
+          )}
+          {t("modal.advanced")}
+        </button>
+
+        {advancedOpen && (
+          <FieldGroup>
+            <Field label={t("field.directory")}>
+              <Select
+                value={visibility}
+                onChange={(v) => setVisibility(v as Visibility)}
+              >
+                <option value="private">{t("vis.privateDesc")}</option>
+                <option value="public">{t("vis.publicDesc")}</option>
+              </Select>
+            </Field>
+            <Field
+              label={t("field.alias")}
+              description={
+                aliasInvalid
+                  ? t("alias.invalidChars")
+                  : aliasPreview || undefined
+              }
             >
-              {advancedOpen ? (
-                <ChevronDown className="h-3.5 w-3.5" />
-              ) : (
-                <ChevronRight className="h-3.5 w-3.5" />
-              )}
-              {t("modal.advanced")}
-            </button>
-
-            {advancedOpen && (
-              <>
-                {/* 공개 디렉토리 */}
-                <label className="flex items-stretch">
-                  <span className="flex w-24 shrink-0 items-center pl-5 text-[12px] text-fg-3">
-                    {t("field.directory")}
+              {/* 별칭 row — # prefix 시각만 보여주고 입력은 localpart만. */}
+              <span className="flex flex-1 items-center gap-1 py-2.5 pl-3 pr-5">
+                <span className="text-[13px] text-fg-3">#</span>
+                <input
+                  type="text"
+                  value={aliasLocalpart}
+                  onChange={(e) => setAliasLocalpart(e.target.value)}
+                  placeholder={t("ph.aliasRoom")}
+                  className="min-w-0 flex-1 bg-transparent text-[13px] text-fg-0 outline-none placeholder:text-fg-3"
+                />
+                {myDomain && (
+                  <span className="truncate text-[11px] text-fg-3">
+                    :{myDomain}
                   </span>
-                  <select
-                    value={visibility}
-                    onChange={(e) =>
-                      setVisibility(e.target.value as Visibility)
-                    }
-                    className="flex-1 bg-transparent py-2.5 pl-3 pr-5 text-[13px] text-fg-0 outline-none"
-                  >
-                    <option value="private">{t("vis.privateDesc")}</option>
-                    <option value="public">{t("vis.publicDesc")}</option>
-                  </select>
-                </label>
-
-                {/* 별칭 */}
-                <label className="flex items-stretch">
-                  <span className="flex w-24 shrink-0 items-center pl-5 text-[12px] text-fg-3">
-                    {t("field.alias")}
-                  </span>
-                  <div className="flex flex-1 items-center gap-1">
-                    <span className="text-[13px] text-fg-3">#</span>
-                    <input
-                      type="text"
-                      value={aliasLocalpart}
-                      onChange={(e) => setAliasLocalpart(e.target.value)}
-                      placeholder={t("ph.aliasRoom")}
-                      className="min-w-0 flex-1 bg-transparent text-[13px] text-fg-0 outline-none placeholder:text-fg-3"
-                    />
-                    {aliasPreview && (
-                      <span className="truncate text-[11px] text-fg-3">
-                        :{myDomain}
-                      </span>
-                    )}
-                  </div>
-                </label>
-                {aliasInvalid && (
-                  <p className="px-5 py-1.5 text-[11px] text-red-400">
-                    {t("alias.invalidChars")}
-                  </p>
                 )}
+              </span>
+            </Field>
+            <Field label={t("field.joinRule")}>
+              <Select
+                value={joinRule}
+                onChange={(v) => setJoinRule(v as JoinRule)}
+              >
+                <option value="">{t("join.default")}</option>
+                <option value="invite">{t("join.invite")}</option>
+                <option value="public">{t("join.public")}</option>
+                <option value="knock">{t("join.knock")}</option>
+              </Select>
+            </Field>
+            <Field label={t("field.guest")}>
+              <Select
+                value={guestAccess}
+                onChange={(v) => setGuestAccess(v as GuestAccess)}
+              >
+                <option value="">{t("guest.default")}</option>
+                <option value="forbidden">{t("guest.forbidden")}</option>
+                <option value="can_join">{t("guest.canJoin")}</option>
+              </Select>
+            </Field>
+            <Field label={t("field.history")}>
+              <Select
+                value={historyVisibility}
+                onChange={(v) => setHistoryVisibility(v as HistoryVisibility)}
+              >
+                <option value="">{t("hist.default")}</option>
+                <option value="invited">{t("hist.invited")}</option>
+                <option value="joined">{t("hist.joined")}</option>
+                <option value="shared">{t("hist.shared.full")}</option>
+                <option value="world_readable">
+                  {t("hist.worldReadableGuest")}
+                </option>
+              </Select>
+            </Field>
+          </FieldGroup>
+        )}
 
-                {/* 가입 규칙 */}
-                <label className="flex items-stretch">
-                  <span className="flex w-24 shrink-0 items-center pl-5 text-[12px] text-fg-3">
-                    {t("field.joinRule")}
-                  </span>
-                  <select
-                    value={joinRule}
-                    onChange={(e) => setJoinRule(e.target.value as JoinRule)}
-                    className="flex-1 bg-transparent py-2.5 pl-3 pr-5 text-[13px] text-fg-0 outline-none"
-                  >
-                    <option value="">{t("join.default")}</option>
-                    <option value="invite">{t("join.invite")}</option>
-                    <option value="public">{t("join.public")}</option>
-                    <option value="knock">{t("join.knock")}</option>
-                  </select>
-                </label>
-
-                {/* 게스트 */}
-                <label className="flex items-stretch">
-                  <span className="flex w-24 shrink-0 items-center pl-5 text-[12px] text-fg-3">
-                    {t("field.guest")}
-                  </span>
-                  <select
-                    value={guestAccess}
-                    onChange={(e) =>
-                      setGuestAccess(e.target.value as GuestAccess)
-                    }
-                    className="flex-1 bg-transparent py-2.5 pl-3 pr-5 text-[13px] text-fg-0 outline-none"
-                  >
-                    <option value="">{t("guest.default")}</option>
-                    <option value="forbidden">{t("guest.forbidden")}</option>
-                    <option value="can_join">{t("guest.canJoin")}</option>
-                  </select>
-                </label>
-
-                {/* 히스토리 */}
-                <label className="flex items-stretch">
-                  <span className="flex w-24 shrink-0 items-center pl-5 text-[12px] text-fg-3">
-                    {t("field.history")}
-                  </span>
-                  <select
-                    value={historyVisibility}
-                    onChange={(e) =>
-                      setHistoryVisibility(e.target.value as HistoryVisibility)
-                    }
-                    className="flex-1 bg-transparent py-2.5 pl-3 pr-5 text-[13px] text-fg-0 outline-none"
-                  >
-                    <option value="">{t("hist.default")}</option>
-                    <option value="invited">{t("hist.invited")}</option>
-                    <option value="joined">{t("hist.joined")}</option>
-                    <option value="shared">{t("hist.shared.full")}</option>
-                    <option value="world_readable">
-                      {t("hist.worldReadableGuest")}
-                    </option>
-                  </select>
-                </label>
-              </>
-            )}
-
-            {error && (
-              <p className="px-5 py-2.5 text-[12px] text-red-400">{error}</p>
-            )}
-          </div>
-        </div>
-        <div className="flex border-t border-line">
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex-1 border-r border-line py-2.5 text-[13px] text-fg-2 hover:bg-bg-2 hover:text-fg-0"
-          >
-            {t("common.cancel")}
-          </button>
-          <button
-            type="button"
-            onClick={create}
-            disabled={busy || !name.trim() || aliasInvalid}
-            className="flex-1 bg-bg-2 py-2.5 text-[13px] font-medium text-fg-0 hover:bg-bg-3 disabled:opacity-50"
-          >
-            {busy ? t("common.creating") : t("common.create")}
-          </button>
-        </div>
+        {error && (
+          <p className="px-5 py-2.5 text-[12px] text-red-400">{error}</p>
+        )}
       </div>
-    </div>
+
+      <ModalFooter
+        onCancel={onClose}
+        onConfirm={create}
+        cancelLabel={t("common.cancel")}
+        confirmLabel={busy ? t("common.creating") : t("common.create")}
+        busy={busy}
+        disabled={!name.trim() || aliasInvalid}
+      />
+    </Modal>
   );
 }
