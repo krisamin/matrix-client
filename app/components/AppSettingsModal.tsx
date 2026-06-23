@@ -56,30 +56,25 @@ export function AppSettingsModal({
           {t("settings.section.general")}
         </div>
         <div className="flex flex-col divide-y divide-line">
-          <div className="flex flex-col gap-1 px-5 py-3">
-            <div className="flex items-center gap-3">
-              <span className="w-24 shrink-0 text-[12px] text-fg-3">
-                {t("settings.lang")}
-              </span>
-              <select
-                value={pref}
-                onChange={(e) => setPref(e.target.value as LocalePref)}
-                className="flex-1 bg-transparent text-[13px] text-fg-0 outline-none"
-              >
-                <option value="auto">
-                  {t("settings.lang.auto")} ({LOCALE_LABEL[detected]})
+          <label className="flex items-center gap-3 px-5 py-2.5">
+            <span className="w-24 shrink-0 text-[12px] text-fg-3">
+              {t("settings.lang")}
+            </span>
+            <select
+              value={pref}
+              onChange={(e) => setPref(e.target.value as LocalePref)}
+              className="flex-1 bg-transparent text-[13px] text-fg-0 outline-none"
+            >
+              <option value="auto">
+                {t("settings.lang.auto")} ({LOCALE_LABEL[detected]})
+              </option>
+              {SUPPORTED_LOCALES.map((l) => (
+                <option key={l} value={l}>
+                  {LOCALE_LABEL[l]}
                 </option>
-                {SUPPORTED_LOCALES.map((l) => (
-                  <option key={l} value={l}>
-                    {LOCALE_LABEL[l]}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <p className="pl-[6.5rem] text-[11px] text-fg-3">
-              {t("settings.lang.desc")}
-            </p>
-          </div>
+              ))}
+            </select>
+          </label>
         </div>
 
         {/* 계정 섹션 */}
