@@ -192,7 +192,7 @@ export function SearchPane({
     (localMode || searched !== "");
 
   return (
-    <section className="flex w-[360px] shrink-0 flex-col border-l border-line">
+    <section className="flex w-[340px] shrink-0 flex-col border-l border-line">
       <PaneHeader
         actions={
           <PaneHeaderButton title={t("search.title.close")} onClick={onClose}>

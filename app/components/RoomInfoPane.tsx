@@ -186,7 +186,7 @@ export function RoomInfoPane({
   }
 
   return (
-    <section className="flex w-[320px] shrink-0 flex-col border-l border-line">
+    <section className="flex w-[340px] shrink-0 flex-col border-l border-line">
       <PaneHeader
         actions={
           <>

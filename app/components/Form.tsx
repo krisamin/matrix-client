@@ -181,7 +181,7 @@ export function SectionHeader({
   onClick?: () => void;
 }) {
   const baseCls =
-    "flex h-9 w-full items-stretch border-y border-line bg-bg-2 text-[11px] font-semibold uppercase tracking-wider text-fg-1 first:border-t-0";
+    "flex h-9 w-full items-stretch border-y border-line bg-bg-2 text-[11px] font-semibold uppercase tracking-wider text-fg-1 first:border-t-0 last:border-b-0";
   const inner = (
     <>
       <span className="flex flex-1 items-center pl-5">{children}</span>
