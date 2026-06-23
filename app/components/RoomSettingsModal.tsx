@@ -47,6 +47,7 @@ export function RoomSettingsModal({
   onClose: () => void;
 }) {
   const [tab, setTab] = useState<Tab>("general");
+  const isSpace = room.isSpaceRoom();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -67,10 +68,12 @@ export function RoomSettingsModal({
         onClick={(e) => e.stopPropagation()}
         role="presentation"
       >
-        {/* 좌측 탭 */}
-        <aside className="flex w-40 shrink-0 flex-col border-r border-line bg-bg-1">
-          <header className="flex h-12 items-center border-b border-line px-4">
-            <h2 className="truncate font-semibold text-fg-0">방 설정</h2>
+        {/* 좌측 탭 — Sidebar 톤(좌측 accent + bg-bg-2/30 헤더 띠) */}
+        <aside className="flex w-44 shrink-0 flex-col border-r border-line bg-bg-1">
+          <header className="flex h-12 items-center border-b border-line pl-5">
+            <h2 className="truncate font-semibold text-fg-0">
+              {isSpace ? "Space 설정" : "방 설정"}
+            </h2>
           </header>
           {(
             [
@@ -79,20 +82,36 @@ export function RoomSettingsModal({
               { id: "permissions", label: "권한" },
               { id: "danger", label: "위험" },
             ] as { id: Tab; label: string }[]
-          ).map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => setTab(t.id)}
-              className={`border-b border-line px-4 py-2.5 text-left text-[13px] ${
-                tab === t.id
-                  ? "bg-bg-2 text-fg-0"
-                  : "text-fg-2 hover:bg-bg-2 hover:text-fg-0"
-              } ${t.id === "danger" ? "text-red-400" : ""}`}
-            >
-              {t.label}
-            </button>
-          ))}
+          ).map((t) => {
+            const active = tab === t.id;
+            const danger = t.id === "danger";
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setTab(t.id)}
+                className={`relative border-b border-line py-2.5 pl-5 pr-4 text-left text-[13px] transition-colors ${
+                  active
+                    ? danger
+                      ? "bg-red-950/30 font-medium text-red-300"
+                      : "bg-bg-2 font-medium text-fg-0"
+                    : danger
+                      ? "text-red-400/80 hover:bg-bg-2 hover:text-red-300"
+                      : "text-fg-2 hover:bg-bg-2 hover:text-fg-0"
+                }`}
+              >
+                {/* 활성 인디케이터 — 좌측 2px accent bar */}
+                {active && (
+                  <span
+                    className={`absolute inset-y-0 left-0 w-[2px] ${
+                      danger ? "bg-red-400" : "bg-fg-0"
+                    }`}
+                  />
+                )}
+                {t.label}
+              </button>
+            );
+          })}
         </aside>
         {/* 우측 컨텐츠 */}
         <section className="flex min-w-0 flex-1 flex-col">
@@ -128,11 +147,11 @@ function Row({
   return (
     <div className="flex flex-col gap-1 px-5 py-2.5">
       <div className="flex items-center gap-3">
-        <span className="w-28 shrink-0 text-[12px] text-fg-3">{label}</span>
+        <span className="w-24 shrink-0 text-[12px] text-fg-3">{label}</span>
         <div className="flex flex-1 items-center">{children}</div>
       </div>
       {description && (
-        <p className="pl-[7.75rem] text-[11px] text-fg-3">{description}</p>
+        <p className="pl-[6.75rem] text-[11px] text-fg-3">{description}</p>
       )}
     </div>
   );
@@ -782,7 +801,7 @@ function DefaultPLEditor({
     <>
       {rows.map((r) => (
         <div key={r.label} className="flex items-center gap-3 px-5 py-2">
-          <span className="w-28 shrink-0 text-[12px] text-fg-2">{r.label}</span>
+          <span className="w-24 shrink-0 text-[12px] text-fg-2">{r.label}</span>
           <input
             type="number"
             min={0}
