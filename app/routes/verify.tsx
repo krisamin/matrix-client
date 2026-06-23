@@ -8,6 +8,7 @@ import {
 } from "matrix-js-sdk/lib/crypto-api";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
+import { useT } from "../lib/i18n";
 import {
   ensureStarted,
   getReadyClient,
@@ -28,6 +29,7 @@ type Step =
   | { kind: "error"; message: string };
 
 export default function Verify() {
+  const t = useT();
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>({ kind: "idle" });
   const requestRef = useRef<VerificationRequest | null>(null);
@@ -153,117 +155,148 @@ export default function Verify() {
   }
 
   return (
-    <main className="mx-auto flex h-screen max-w-xl flex-col gap-4 overflow-y-auto p-6">
-      <header className="flex items-center gap-3">
-        <Link to="/" className="text-blue-500">
-          ←
-        </Link>
-        <h1 className="text-xl font-bold">기기 인증</h1>
-      </header>
+    <main className="flex min-h-screen items-start justify-center bg-bg-0 p-6">
+      <div className="flex w-[480px] max-w-full flex-col overflow-hidden rounded-md border border-line bg-bg-1 shadow-2xl">
+        <header className="flex h-12 items-center gap-3 border-b border-line pl-5 pr-3">
+          <Link
+            to="/"
+            className="text-fg-3 hover:text-fg-0"
+            aria-label={t("common.cancel")}
+          >
+            ←
+          </Link>
+          <h1 className="flex-1 font-semibold text-fg-0">
+            {t("verify.title")}
+          </h1>
+        </header>
 
-      {step.kind === "idle" && (
-        <>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            이미 로그인된 다른 기기와 이모지 비교로 이 브라우저를 인증합니다.
-            인증이 완료되면 암호화된 메시지를 읽을 수 있습니다.
-          </p>
-          <div className="flex gap-2">
-            <button
-              className="rounded bg-blue-600 px-4 py-2 text-white"
-              onClick={start}
-            >
-              인증 시작
-            </button>
-            <button
-              className="rounded border border-gray-300 px-4 py-2 dark:border-gray-700"
-              onClick={restoreBackup}
-            >
-              키 백업 복구만
-            </button>
-          </div>
-        </>
-      )}
+        {step.kind === "idle" && (
+          <>
+            <p className="border-b border-line px-5 py-4 text-[13px] leading-relaxed text-fg-2">
+              {t("verify.idleHint")}
+            </p>
+            <div className="flex border-t border-line">
+              <button
+                type="button"
+                className="flex-1 border-r border-line py-2.5 text-[13px] text-fg-2 hover:bg-bg-2 hover:text-fg-0"
+                onClick={restoreBackup}
+              >
+                {t("verify.restoreOnly")}
+              </button>
+              <button
+                type="button"
+                className="flex-1 bg-bg-2 py-2.5 text-[13px] font-medium text-fg-0 hover:bg-bg-3"
+                onClick={start}
+              >
+                {t("verify.start")}
+              </button>
+            </div>
+          </>
+        )}
 
-      {step.kind === "waiting" && <p>{step.note}</p>}
+        {step.kind === "waiting" && (
+          <p className="px-5 py-4 text-[13px] text-fg-2">{step.note}</p>
+        )}
 
-      {step.kind === "sas" && (
-        <div className="flex flex-col gap-4">
-          <p>다른 기기에 표시된 이모지와 같은지 확인하세요</p>
-          <div className="flex flex-wrap gap-3 text-center">
-            {step.emojis.map(([emoji, name]) => (
-              <div key={name} className="flex w-16 flex-col items-center">
-                <span className="text-3xl">{emoji}</span>
-                <span className="text-xs text-gray-500">{name}</span>
-              </div>
-            ))}
-          </div>
-          <div className="flex gap-2">
-            <button
-              className="rounded bg-green-600 px-4 py-2 text-white"
-              onClick={() => step.sas.confirm()}
-            >
-              일치함
-            </button>
-            <button
-              className="rounded bg-red-600 px-4 py-2 text-white"
-              onClick={() => step.sas.mismatch()}
-            >
-              다름
-            </button>
-          </div>
-        </div>
-      )}
+        {step.kind === "sas" && (
+          <>
+            <p className="border-b border-line px-5 py-3 text-[13px] text-fg-2">
+              {t("verify.sasHint")}
+            </p>
+            <div className="flex flex-wrap gap-3 border-b border-line px-5 py-4">
+              {step.emojis.map(([emoji, name]) => (
+                <div
+                  key={name}
+                  className="flex w-16 flex-col items-center gap-1"
+                >
+                  <span className="text-3xl">{emoji}</span>
+                  <span className="text-[11px] text-fg-3">{name}</span>
+                </div>
+              ))}
+            </div>
+            <div className="flex">
+              <button
+                type="button"
+                className="flex-1 border-r border-line py-2.5 text-[13px] text-red-300 hover:bg-red-950/40"
+                onClick={() => step.sas.mismatch()}
+              >
+                {t("verify.mismatch")}
+              </button>
+              <button
+                type="button"
+                className="flex-1 bg-bg-2 py-2.5 text-[13px] font-medium text-fg-0 hover:bg-bg-3"
+                onClick={() => step.sas.confirm()}
+              >
+                {t("verify.match")}
+              </button>
+            </div>
+          </>
+        )}
 
-      {step.kind === "done" && (
-        <div className="flex flex-col gap-3">
-          <p className="text-green-600">인증이 완료되었습니다</p>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            이전 암호화 메시지를 읽으려면 키 백업 복구가 필요합니다.
-          </p>
-          <div className="flex gap-2">
+        {step.kind === "done" && (
+          <>
+            <p className="border-b border-line px-5 py-3 text-[13px] font-medium text-emerald-300">
+              {t("verify.done")}
+            </p>
+            <p className="border-b border-line px-5 py-3 text-[13px] text-fg-2">
+              {t("verify.restoreHint")}
+            </p>
+            <div className="flex">
+              <button
+                type="button"
+                className="flex-1 border-r border-line py-2.5 text-[13px] text-fg-2 hover:bg-bg-2 hover:text-fg-0"
+                onClick={() => navigate("/")}
+              >
+                {t("verify.skip")}
+              </button>
+              <button
+                type="button"
+                className="flex-1 bg-bg-2 py-2.5 text-[13px] font-medium text-fg-0 hover:bg-bg-3"
+                onClick={restoreBackup}
+              >
+                {t("verify.restoreAction")}
+              </button>
+            </div>
+          </>
+        )}
+
+        {step.kind === "restoring" && (
+          <p className="px-5 py-4 text-[13px] text-fg-2">{step.progress}</p>
+        )}
+
+        {step.kind === "restored" && (
+          <>
+            <p className="border-b border-line px-5 py-3 text-[13px] font-medium text-emerald-300">
+              {t("verify.restored", {
+                imported: step.imported,
+                total: step.total,
+              })}
+            </p>
             <button
-              className="rounded bg-blue-600 px-4 py-2 text-white"
-              onClick={restoreBackup}
-            >
-              과거 메시지 키 복구
-            </button>
-            <button
-              className="rounded border border-gray-300 px-4 py-2 dark:border-gray-700"
+              type="button"
+              className="bg-bg-2 py-2.5 text-[13px] font-medium text-fg-0 hover:bg-bg-3"
               onClick={() => navigate("/")}
             >
-              건너뛰기
+              {t("verify.home")}
             </button>
-          </div>
-        </div>
-      )}
+          </>
+        )}
 
-      {step.kind === "restoring" && <p>{step.progress}</p>}
-
-      {step.kind === "restored" && (
-        <div className="flex flex-col gap-3">
-          <p className="text-green-600">
-            키 복구가 완료되었습니다 ({step.imported}/{step.total})
-          </p>
-          <button
-            className="self-start rounded bg-blue-600 px-4 py-2 text-white"
-            onClick={() => navigate("/")}
-          >
-            홈으로
-          </button>
-        </div>
-      )}
-
-      {step.kind === "error" && (
-        <div className="flex flex-col gap-3">
-          <p className="text-red-500">실패: {step.message}</p>
-          <button
-            className="self-start rounded border border-gray-300 px-4 py-2 dark:border-gray-700"
-            onClick={() => setStep({ kind: "idle" })}
-          >
-            다시 시도
-          </button>
-        </div>
-      )}
+        {step.kind === "error" && (
+          <>
+            <p className="border-b border-line px-5 py-3 text-[13px] text-red-400">
+              {t("verify.failed", { message: step.message })}
+            </p>
+            <button
+              type="button"
+              className="bg-bg-2 py-2.5 text-[13px] font-medium text-fg-0 hover:bg-bg-3"
+              onClick={() => setStep({ kind: "idle" })}
+            >
+              {t("verify.retry")}
+            </button>
+          </>
+        )}
+      </div>
     </main>
   );
 }

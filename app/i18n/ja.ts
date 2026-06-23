@@ -366,4 +366,23 @@ export const ja: Record<keyof typeof ko, string> = {
   "roomInfo.section.danger": "危険ゾーン",
   "settings.account.editProfile": "プロフィール編集",
   "settings.account.session": "セッション",
+  "login.homeserver": "ホームサーバー",
+  "verify.title": "デバイス認証",
+  "verify.idleHint":
+    "別の認証済みデバイスと絵文字を比較してこのブラウザを認証します。認証後、暗号化されたメッセージを読めます。",
+  "verify.start": "認証を開始",
+  "verify.restoreOnly": "キーバックアップ復元のみ",
+  "verify.sasHint": "他のデバイスの絵文字と一致するか確認してください",
+  "verify.match": "一致",
+  "verify.mismatch": "一致しない",
+  "verify.done": "認証完了",
+  "verify.restoreHint":
+    "過去の暗号化メッセージを読むにはキーバックアップ復元が必要です。",
+  "verify.restoreAction": "メッセージキーを復元",
+  "verify.skip": "スキップ",
+  "verify.restored": "キー復元完了 ({{imported}}/{{total}})",
+  "verify.home": "ホームへ",
+  "verify.failed": "失敗: {{message}}",
+  "verify.retry": "再試行",
+  "presence.away": "離席",
 };

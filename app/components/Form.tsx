@@ -219,3 +219,43 @@ export function SectionHeader({
 export function FieldGroup({ children }: { children: ReactNode }) {
   return <div className="flex flex-col divide-y divide-line">{children}</div>;
 }
+
+/** 메뉴 항목 — 사이드바 +드롭다운, 우클릭 메뉴, 설정 모달 등에서 공용.
+ *  좌측 아이콘 + 라벨 + (옵션) 우측 메타. hover:bg-bg-2 톤 통일. */
+export function MenuItem({
+  icon,
+  label,
+  meta,
+  onClick,
+  variant = "default",
+  disabled,
+}: {
+  icon?: ReactNode;
+  label: ReactNode;
+  meta?: ReactNode;
+  onClick?: () => void;
+  /** 'danger' = 빨강 hover (로그아웃/삭제 등) */
+  variant?: "default" | "danger";
+  disabled?: boolean;
+}) {
+  const hoverCls =
+    variant === "danger"
+      ? "hover:bg-bg-2 hover:text-red-300"
+      : "hover:bg-bg-2 hover:text-fg-0";
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`flex w-full items-center gap-2.5 px-5 py-2.5 text-left text-[13px] text-fg-1 disabled:opacity-50 ${hoverCls}`}
+    >
+      {icon && <span className="shrink-0 text-fg-3">{icon}</span>}
+      <span className="flex-1 truncate">{label}</span>
+      {meta !== undefined && (
+        <span className="shrink-0 truncate font-mono text-[11px] text-fg-3">
+          {meta}
+        </span>
+      )}
+    </button>
+  );
+}

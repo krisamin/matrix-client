@@ -2,7 +2,7 @@ import { Check, Copy, ShieldCheck } from "lucide-react";
 import type { MatrixClient, Room, RoomMember } from "matrix-js-sdk";
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { PRESENCE_LABEL, usePresence } from "../hooks/usePresence";
+import { usePresence } from "../hooks/usePresence";
 import { useT } from "../lib/i18n";
 import { Avatar, PresenceDot } from "./Avatar";
 
@@ -153,7 +153,13 @@ export function UserProfileCard({
               </span>
               <span className="flex flex-1 items-center gap-1.5 text-[13px] text-fg-1">
                 <PresenceDot presence={presence} size={8} />
-                {PRESENCE_LABEL[presence]}
+                {t(
+                  presence === "online"
+                    ? "presence.online"
+                    : presence === "unavailable"
+                      ? "presence.away"
+                      : "presence.offline",
+                )}
               </span>
             </div>
           )}

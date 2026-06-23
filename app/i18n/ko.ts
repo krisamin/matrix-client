@@ -376,6 +376,25 @@ export const ko = {
   "roomInfo.section.danger": "위험 영역",
   "settings.account.editProfile": "프로필 편집",
   "settings.account.session": "세션",
+  "login.homeserver": "홈서버",
+  "verify.title": "기기 인증",
+  "verify.idleHint":
+    "이미 로그인된 다른 기기와 이모지 비교로 이 브라우저를 인증합니다. 인증이 완료되면 암호화된 메시지를 읽을 수 있습니다.",
+  "verify.start": "인증 시작",
+  "verify.restoreOnly": "키 백업 복구만",
+  "verify.sasHint": "다른 기기에 표시된 이모지와 같은지 확인하세요",
+  "verify.match": "일치함",
+  "verify.mismatch": "다름",
+  "verify.done": "인증이 완료되었습니다",
+  "verify.restoreHint":
+    "이전 암호화 메시지를 읽으려면 키 백업 복구가 필요합니다.",
+  "verify.restoreAction": "과거 메시지 키 복구",
+  "verify.skip": "건너뛰기",
+  "verify.restored": "키 복구가 완료되었습니다 ({{imported}}/{{total}})",
+  "verify.home": "홈으로",
+  "verify.failed": "실패: {{message}}",
+  "verify.retry": "다시 시도",
+  "presence.away": "자리 비움",
 } as const;
 
 export type DictKey = keyof typeof ko;

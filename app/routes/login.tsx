@@ -54,23 +54,37 @@ export default function Login() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center">
-      <div className="flex w-80 flex-col gap-4">
-        <h1 className="text-2xl font-bold">{t("login.title")}</h1>
-        <input
-          className="rounded border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
-          value={homeserver}
-          onChange={(e) => setHomeserver(e.target.value)}
-          placeholder="https://matrix.example.com"
-        />
+    <main className="flex min-h-screen items-center justify-center bg-bg-0 p-6">
+      <div className="flex w-[400px] max-w-full flex-col overflow-hidden rounded-md border border-line bg-bg-1 shadow-2xl">
+        <header className="flex h-12 items-center border-b border-line pl-5">
+          <h1 className="font-semibold text-fg-0">{t("login.title")}</h1>
+        </header>
+        <div className="flex flex-col">
+          <label className="flex items-stretch border-b border-line">
+            <span className="flex w-28 shrink-0 items-center pl-5 text-[12px] text-fg-3">
+              {t("login.homeserver")}
+            </span>
+            <input
+              className="flex-1 bg-transparent py-2.5 pl-3 pr-5 text-[13px] text-fg-0 outline-none placeholder:text-fg-3"
+              value={homeserver}
+              onChange={(e) => setHomeserver(e.target.value)}
+              placeholder="https://matrix.example.com"
+            />
+          </label>
+          {error && (
+            <p className="border-b border-line px-5 py-2 text-[12px] text-red-400">
+              {error}
+            </p>
+          )}
+        </div>
         <button
-          className="rounded bg-blue-600 px-3 py-2 text-white disabled:opacity-50"
+          type="button"
+          className="bg-bg-2 py-2.5 text-[13px] font-medium text-fg-0 hover:bg-bg-3 disabled:opacity-50"
           disabled={busy}
           onClick={startLogin}
         >
           {busy ? t("login.busy") : t("login.action")}
         </button>
-        {error && <p className="text-sm text-red-500">{error}</p>}
       </div>
     </main>
   );

@@ -50,7 +50,7 @@ export function usePresence(
 }
 
 export const PRESENCE_LABEL: Record<NonNullable<Presence>, string> = {
-  online: "온라인",
-  unavailable: "자리 비움",
-  offline: "오프라인",
+  online: "online",
+  unavailable: "away",
+  offline: "offline",
 };
