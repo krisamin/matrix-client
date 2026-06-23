@@ -635,16 +635,14 @@ function PermissionsTab({
                         ROLE_LEVELS[e.target.value as keyof typeof ROLE_LEVELS],
                       )
                     }
-                    className="rounded-md border border-line bg-bg-2 px-2 py-1 text-[12px] text-fg-0 outline-none focus:bg-bg-3"
+                    className="bg-transparent text-[12px] text-fg-0 outline-none disabled:opacity-50"
                   >
                     <option value="멤버">멤버 (0)</option>
                     <option value="모더레이터">모더레이터 (50)</option>
                     <option value="관리자">관리자 (100)</option>
                   </select>
                 ) : (
-                  <span className="rounded-md border border-line px-2 py-1 text-[12px] text-fg-2">
-                    {role}
-                  </span>
+                  <span className="text-[12px] text-fg-2">{role}</span>
                 )}
               </div>
             );
@@ -809,7 +807,7 @@ function DefaultPLEditor({
             value={r.value}
             disabled={!canEdit}
             onChange={(e) => r.set(Number(e.target.value))}
-            className="w-20 rounded-md border border-line bg-bg-2 px-2 py-1 text-[12px] text-fg-0 outline-none focus:bg-bg-3 disabled:opacity-50"
+            className="w-12 bg-transparent text-right font-mono text-[13px] text-fg-0 outline-none disabled:opacity-50"
           />
           <span className="text-[11px] text-fg-3">
             (기본 {r.label === "메시지 보내기" || r.label === "초대" ? 0 : 50})
