@@ -67,7 +67,7 @@ export const en: Record<keyof typeof ko, string> = {
 
   "settings.section.general": "General",
   "settings.section.account": "Account",
-  "settings.lang": "Display language",
+  "settings.lang": "Language",
   "settings.lang.auto": "Auto",
   "settings.lang.desc": "Defaults to your browser language.",
   "settings.account.profile": "Edit profile",

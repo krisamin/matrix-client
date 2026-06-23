@@ -56,14 +56,18 @@ export function AppSettingsModal({
           {t("settings.section.general")}
         </div>
         <div className="flex flex-col divide-y divide-line">
-          <label className="flex items-center gap-3 px-5 py-2.5">
-            <span className="w-24 shrink-0 text-[12px] text-fg-3">
+          {/* row 패턴 v2: 라벨/select 각자 자체 padding을 가져 row 영역을 꽉 채움.
+           *  결과: row 어디 클릭해도 select가 포커스/드롭다운 열림 (라벨 옆
+           *  빈 공간 클릭해도). 이전엔 label에 px-5 py-2.5라 select 클릭
+           *  영역이 자기 텍스트 폭까지만이었음. */}
+          <label className="flex items-stretch">
+            <span className="flex w-24 shrink-0 items-center pl-5 text-[12px] text-fg-3">
               {t("settings.lang")}
             </span>
             <select
               value={pref}
               onChange={(e) => setPref(e.target.value as LocalePref)}
-              className="flex-1 bg-transparent text-[13px] text-fg-0 outline-none"
+              className="flex-1 bg-transparent py-2.5 pl-3 pr-5 text-[13px] text-fg-0 outline-none"
             >
               <option value="auto">
                 {t("settings.lang.auto")} ({LOCALE_LABEL[detected]})

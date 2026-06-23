@@ -66,7 +66,7 @@ export const ja: Record<keyof typeof ko, string> = {
 
   "settings.section.general": "一般",
   "settings.section.account": "アカウント",
-  "settings.lang": "表示言語",
+  "settings.lang": "言語",
   "settings.lang.auto": "自動",
   "settings.lang.desc": "デフォルトはブラウザ設定に従います。",
   "settings.account.profile": "プロフィール編集",
