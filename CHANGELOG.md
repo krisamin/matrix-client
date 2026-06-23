@@ -14,9 +14,15 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
     and PKCE.
   - **Password** flow with username, MXID (`@user:server`), or email
     identifier (3PID via `m.id.thirdparty`).
-  - **Sign-up** for homeservers that allow open registration via
-    `m.login.dummy` UIA stage; servers requiring CAPTCHA / email verification
-    are detected and surfaced with a helpful message.
+  - **Sign-up** with full UIA support — `m.login.dummy`, **inline reCAPTCHA**
+    (`m.login.recaptcha` via Google reCAPTCHA v2 widget mounted on demand),
+    and **terms acceptance** (`m.login.terms` with policy links). Servers
+    requiring stages outside this set surface a clear "use the server's own
+    registration page" message.
+  - **Forgot password** — request reset email token, follow link in inbox to
+    finish via the homeserver's own reset page.
+  - **Mode toggles** — when both OIDC and password are available, OIDC is
+    primary; "Use password instead" is a secondary ghost link.
 - **Toast notifications** (`components/Toast.tsx`). Connection issues, device
   verification, and notification permission prompts now appear as dismissible
   cards in the lower-left corner instead of taking horizontal space at the

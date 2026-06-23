@@ -416,6 +416,19 @@ export const ko = {
     "이 서버는 추가 인증 단계가 필요해요 ({{flows}}). 서버의 회원가입 페이지를 직접 이용해 주세요.",
   "login.actionSignup": "계정 만들기",
   "login.noSupportedFlow": "지원하는 로그인 방식이 없습니다.",
+  "login.user": "아이디",
+  "login.usePasswordInstead": "비밀번호로 로그인",
+  "login.useOidcInstead": "OIDC로 로그인",
+  "login.forgotPassword": "비밀번호를 잊으셨나요?",
+  "login.reset.title": "비밀번호 재설정",
+  "login.reset.send": "재설정 메일 보내기",
+  "login.reset.needEmail": "이메일 주소를 입력하세요.",
+  "login.reset.sent":
+    "재설정 안내 메일을 보냈어요. 메일함에서 링크를 따라 진행하세요.",
+  "login.backToSignin": "로그인으로 돌아가기",
+  "login.captcha.hint": "스팸 방지를 위해 아래 인증을 완료해 주세요.",
+  "login.terms.hint": "이 서버를 사용하려면 다음 약관에 동의해야 합니다.",
+  "login.terms.accept": "동의하고 계속하기",
 } as const;
 
 export type DictKey = keyof typeof ko;

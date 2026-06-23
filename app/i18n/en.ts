@@ -406,4 +406,18 @@ export const en: Record<keyof typeof ko, string> = {
     "This homeserver requires additional steps ({{flows}}). Please use the server's own registration page.",
   "login.actionSignup": "Create account",
   "login.noSupportedFlow": "No supported login methods.",
+  "login.user": "User",
+  "login.usePasswordInstead": "Use password instead",
+  "login.useOidcInstead": "Use OIDC instead",
+  "login.forgotPassword": "Forgot password?",
+  "login.reset.title": "Reset password",
+  "login.reset.send": "Send reset email",
+  "login.reset.needEmail": "Please enter an email address.",
+  "login.reset.sent":
+    "Reset email sent. Follow the link in your inbox to continue.",
+  "login.backToSignin": "Back to sign in",
+  "login.captcha.hint": "Please complete the captcha to verify you're human.",
+  "login.terms.hint":
+    "You must agree to the following policies to use this server.",
+  "login.terms.accept": "Accept and continue",
 };

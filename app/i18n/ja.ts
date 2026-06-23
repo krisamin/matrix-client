@@ -407,4 +407,18 @@ export const ja: Record<keyof typeof ko, string> = {
     "このサーバーは追加の認証ステップが必要です ({{flows}})。サーバーの登録ページをご利用ください。",
   "login.actionSignup": "アカウントを作成",
   "login.noSupportedFlow": "サポートされているログイン方式がありません。",
+  "login.user": "ユーザー",
+  "login.usePasswordInstead": "パスワードでログイン",
+  "login.useOidcInstead": "OIDCでログイン",
+  "login.forgotPassword": "パスワードをお忘れですか?",
+  "login.reset.title": "パスワード再設定",
+  "login.reset.send": "再設定メール送信",
+  "login.reset.needEmail": "メールアドレスを入力してください。",
+  "login.reset.sent":
+    "再設定メールを送信しました。メールボックスのリンクから続行してください。",
+  "login.backToSignin": "ログインに戻る",
+  "login.captcha.hint": "スパム防止のため、以下の認証を完了してください。",
+  "login.terms.hint":
+    "このサーバーを使用するには、以下のポリシーに同意する必要があります。",
+  "login.terms.accept": "同意して続行",
 };
