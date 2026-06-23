@@ -5,3 +5,12 @@
 # React Router
 /.react-router/
 /build/
+
+# 개발 작업 흔적 — 공개 안 함
+/.hermes/
+/sketches/
+
+# 에디터/툴
+.vscode/
+.idea/
+*.log
