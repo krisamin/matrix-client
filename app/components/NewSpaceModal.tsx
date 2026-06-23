@@ -77,7 +77,7 @@ export function NewSpaceModal({
   }
 
   return (
-    <Modal onClose={onClose} size="md" fixedHeight>
+    <Modal onClose={onClose} size="md">
       <ModalHeader title={t("modal.newSpace.title")} />
 
       <div className="min-h-0 flex-1 overflow-y-auto">

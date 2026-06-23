@@ -188,8 +188,13 @@ export function SectionHeader({
   actions?: ReactNode;
   onClick?: () => void;
 }) {
+  // border-y 항상 유지 — first/last에서 끄지 않음.
+  // 이유: 펼침/접힘처럼 동적으로 last 위치가 바뀌면 border-b 0↔1 토글되며
+  // box-border content area가 1px 변해 텍스트가 0.5px 시프트(들썩)됨.
+  // -mb-px: 다음 sibling의 border-t와 1px 겹쳐 시각상 단일 라인으로 보이게
+  // 함. layout 자체는 항상 1+1=2px border 유지해서 안정.
   const baseCls =
-    "flex h-9 w-full items-stretch border-y border-line bg-bg-2 text-[11px] font-semibold uppercase tracking-wider text-fg-1 first:border-t-0 last:border-b-0";
+    "-mb-px flex h-9 w-full items-stretch border-y border-line bg-bg-2 text-[11px] font-semibold uppercase tracking-wider text-fg-1";
   const inner = (
     <>
       <span className="flex flex-1 items-center pl-5">{children}</span>

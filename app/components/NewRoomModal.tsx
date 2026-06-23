@@ -83,7 +83,7 @@ export function NewRoomModal({
   }
 
   return (
-    <Modal onClose={onClose} size="md" fixedHeight>
+    <Modal onClose={onClose} size="md">
       <ModalHeader title={t("modal.newRoom.title")} />
 
       <div className="min-h-0 flex-1 overflow-y-auto">
