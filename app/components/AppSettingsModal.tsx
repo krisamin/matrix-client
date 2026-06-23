@@ -2,7 +2,12 @@ import { LogOut, UserCog } from "lucide-react";
 import type { MatrixClient } from "matrix-js-sdk";
 import { useEffect, useState } from "react";
 import { useI18n } from "../lib/i18n";
-import { LOCALE_LABEL, type Locale, SUPPORTED_LOCALES } from "../lib/locale";
+import {
+  detectBrowserLocale,
+  LOCALE_LABEL,
+  type LocalePref,
+  SUPPORTED_LOCALES,
+} from "../lib/locale";
 import { ProfileEditModal } from "./ProfileEditModal";
 
 /** 앱 전역 설정 모달 — B-final 톤 (헤더 + divide-y row + 풀폭 푸터). */
@@ -15,8 +20,11 @@ export function AppSettingsModal({
   onClose: () => void;
   onLogout: () => void;
 }) {
-  const { t, locale, setLocale } = useI18n();
+  const { t, pref, setPref } = useI18n();
   const [profileOpen, setProfileOpen] = useState(false);
+  // "자동" 옵션 라벨에 현재 감지된 브라우저 언어 표시 — 사용자에게 어떤 언어로
+  // 적용될지 명시적으로 보여줌.
+  const detected = detectBrowserLocale();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -54,10 +62,13 @@ export function AppSettingsModal({
                 {t("settings.lang")}
               </span>
               <select
-                value={locale}
-                onChange={(e) => setLocale(e.target.value as Locale)}
+                value={pref}
+                onChange={(e) => setPref(e.target.value as LocalePref)}
                 className="flex-1 bg-transparent text-[13px] text-fg-0 outline-none"
               >
+                <option value="auto">
+                  {t("settings.lang.auto")} ({LOCALE_LABEL[detected]})
+                </option>
                 {SUPPORTED_LOCALES.map((l) => (
                   <option key={l} value={l}>
                     {LOCALE_LABEL[l]}

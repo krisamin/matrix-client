@@ -75,6 +75,7 @@ export const ko = {
   "settings.section.general": "일반",
   "settings.section.account": "계정",
   "settings.lang": "표시 언어",
+  "settings.lang.auto": "자동",
   "settings.lang.desc": "기본은 브라우저 설정을 따릅니다.",
   "settings.account.profile": "프로필 편집",
   "settings.account.logout": "로그아웃",
