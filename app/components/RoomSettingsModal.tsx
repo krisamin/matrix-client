@@ -473,10 +473,7 @@ function AccessTab({
     <>
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="flex flex-col divide-y divide-line">
-          <Row
-            label={t("field.alias")}
-            description={t("roomSettings.alias.format", { server: myDomain })}
-          >
+          <Row label={t("field.alias")}>
             <TextInput
               value={aliasLocalpart}
               onChange={setAliasLocalpart}
@@ -488,13 +485,10 @@ function AccessTab({
           </Row>
           {aliasInvalid && (
             <p className="px-5 py-1.5 text-[11px] text-red-400">
-              영문/숫자/_-. 만 사용 가능
+              {t("alias.invalidChars")}
             </p>
           )}
-          <Row
-            label={t("field.directory")}
-            description={t("roomSettings.tab.aria.access.dirDesc")}
-          >
+          <Row label={t("field.directory")}>
             <select
               value={directory === "loading" ? "private" : directory}
               disabled={directory === "loading"}
