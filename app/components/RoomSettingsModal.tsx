@@ -562,6 +562,13 @@ function PermissionsTab({
   const t = useT();
   const myUserId = client.getUserId() ?? "";
   const [, force] = useState(0);
+  // DefaultPLEditor에서 끌어올린 푸터 상태
+  const [defaultsState, setDefaultsState] = useState<{
+    dirty: boolean;
+    busy: boolean;
+    error: string | null;
+    save: () => void;
+  } | null>(null);
   const refresh = () => force((n) => n + 1);
   const pls = getRoomPowerLevels(room);
   const myLevel = pls.users[myUserId] ?? pls.users_default;
@@ -620,7 +627,9 @@ function PermissionsTab({
             {t("perm.viewOnly")}
           </p>
         )}
-        <div className="flex flex-col divide-y divide-line">
+        {/* divide-y 제거 — SectionHeader가 자체 border-y로 row 사이 경계 책임.
+            divide-y와 SectionHeader.border-y가 겹쳐 이중 border 발생함. */}
+        <div className="flex flex-col">
           {/* 멤버 역할 */}
           <SectionHeader>
             {t("perm.section.members", { count: members.length })}
@@ -631,7 +640,10 @@ function PermissionsTab({
             const isMe = m.userId === myUserId;
             const canEditThis = canEditPL && (isMe ? lvl > 0 : lvl < myLevel);
             return (
-              <div key={m.userId} className="flex items-stretch">
+              <div
+                key={m.userId}
+                className="flex items-stretch border-b border-line last:border-b-0"
+              >
                 <span className="flex min-w-0 flex-1 items-center gap-1.5 truncate py-2.5 pl-5 text-[13px] text-fg-1">
                   <span className="truncate">{m.name}</span>
                   {isMe && (
@@ -677,6 +689,7 @@ function PermissionsTab({
             room={room}
             pls={pls}
             canEdit={canEditPL}
+            onStateChange={setDefaultsState}
           />
         </div>
         {error && (
@@ -685,6 +698,25 @@ function PermissionsTab({
           </p>
         )}
       </div>
+      {/* 외곽 푸터 — DefaultPLEditor의 dirty/busy/error/save를 끌어올려 렌더.
+          모달 바닥에 풀폭 Save defaults 버튼 + 좌측에 에러 메시지. */}
+      {canEditPL && defaultsState && (
+        <div className="flex shrink-0 border-t border-line">
+          {defaultsState.error && (
+            <p className="flex flex-1 items-center px-5 py-2.5 text-[12px] text-red-400">
+              {defaultsState.error}
+            </p>
+          )}
+          <button
+            type="button"
+            onClick={defaultsState.save}
+            disabled={defaultsState.busy || !defaultsState.dirty}
+            className={`${defaultsState.error ? "px-5" : "flex-1"} bg-bg-2 py-2.5 text-[13px] font-medium text-fg-0 hover:bg-bg-3 disabled:opacity-50`}
+          >
+            {defaultsState.busy ? t("perm.saving") : t("perm.saveDefaults")}
+          </button>
+        </div>
+      )}
 
       {/* 자기 강등 확인 */}
       {pendingTarget && (
@@ -737,11 +769,19 @@ function DefaultPLEditor({
   room,
   pls,
   canEdit,
+  onStateChange,
 }: {
   client: MatrixClient;
   room: Room;
   pls: ReturnType<typeof getRoomPowerLevels>;
   canEdit: boolean;
+  /** 외부 푸터가 dirty/busy/error/save에 접근할 수 있게 끌어올림 */
+  onStateChange?: (state: {
+    dirty: boolean;
+    busy: boolean;
+    error: string | null;
+    save: () => void;
+  }) => void;
 }) {
   const t = useT();
   const myUserId = client.getUserId() ?? "";
@@ -763,6 +803,13 @@ function DefaultPLEditor({
     kick !== pls.kick ||
     ban !== pls.ban ||
     redact !== pls.redact;
+
+  // 외부 푸터로 dirty/busy/error/save를 끌어올림
+  useEffect(() => {
+    onStateChange?.({ dirty, busy, error, save });
+    // save는 closure로 잡혀있어 매 렌더 새 ref — deps에 넣으면 무한루프
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dirty, busy, error, onStateChange, save]);
 
   async function save() {
     if (busy || !dirty) return;
@@ -827,7 +874,10 @@ function DefaultPLEditor({
   return (
     <>
       {rows.map((r) => (
-        <div key={r.label} className="flex items-stretch">
+        <div
+          key={r.label}
+          className="flex items-stretch border-b border-line last:border-b-0"
+        >
           <span className="flex w-28 shrink-0 items-center pl-5 text-[12px] text-fg-2">
             {r.label}
           </span>
@@ -848,23 +898,6 @@ function DefaultPLEditor({
           />
         </div>
       ))}
-      {canEdit && (
-        <div className="flex border-t border-line">
-          {error && (
-            <p className="flex-1 px-5 py-2.5 text-[12px] text-red-400">
-              {error}
-            </p>
-          )}
-          <button
-            type="button"
-            onClick={save}
-            disabled={busy || !dirty}
-            className={`${error ? "" : "flex-1"} bg-bg-2 px-5 py-2.5 text-[13px] font-medium text-fg-0 hover:bg-bg-3 disabled:opacity-50`}
-          >
-            {busy ? t("perm.saving") : t("perm.saveDefaults")}
-          </button>
-        </div>
-      )}
     </>
   );
 }
@@ -936,13 +969,16 @@ function DangerTab({
   return (
     <>
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="flex flex-col divide-y divide-line">
+        <div className="flex flex-col">
           <SectionHeader>
             {t("perm.section.members", { count: members.length })}
             {t("danger.excludeSelf")}
           </SectionHeader>
           {members.map((m) => (
-            <div key={m.userId} className="flex items-stretch">
+            <div
+              key={m.userId}
+              className="flex items-stretch border-b border-line last:border-b-0"
+            >
               <span className="flex min-w-0 flex-1 items-center truncate py-2.5 pl-5 text-[13px] text-fg-1">
                 <span className="truncate">{m.name}</span>
               </span>
@@ -980,7 +1016,10 @@ function DangerTab({
                 {t("danger.section.banned", { count: banned.length })}
               </SectionHeader>
               {banned.map((m) => (
-                <div key={m.userId} className="flex items-stretch">
+                <div
+                  key={m.userId}
+                  className="flex items-stretch border-b border-line last:border-b-0"
+                >
                   <span className="flex min-w-0 flex-1 items-center truncate py-2.5 pl-5 text-[13px] text-fg-2">
                     <span className="truncate">{m.name}</span>
                   </span>
