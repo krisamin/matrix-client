@@ -33,6 +33,7 @@ function MemberRow({
   onClick: (rect: DOMRect) => void;
 }) {
   const role = roleLabel(member.powerLevel);
+  const t = useT();
   return (
     <li>
       <button
@@ -50,7 +51,11 @@ function MemberRow({
         />
         <span className="min-w-0 flex-1 truncate text-[13px] text-fg-1">
           {member.name}
-          {isMe && <span className="ml-1.5 text-[11px] text-fg-3">(나)</span>}
+          {isMe && (
+            <span className="ml-1.5 text-[11px] text-fg-3">
+              {t("roomInfo.member.tag")}
+            </span>
+          )}
         </span>
         {role && (
           <span className="shrink-0 rounded-md border border-line px-1.5 py-0.5 font-mono text-[10px] text-fg-2">
@@ -150,14 +155,14 @@ export function RoomInfoPane({
     if (inviteBusy) return;
     // 형식 검증: @local:server
     if (!looksLikeUserId(target)) {
-      setInviteMsg("형식: @user:server");
+      setInviteMsg(t("invite.formatError"));
       return;
     }
     setInviteBusy(true);
     setInviteMsg(null);
     try {
       await client.invite(room.roomId, target);
-      setInviteMsg(`${target} 초대함`);
+      setInviteMsg(t("invite.invited", { user: target }));
       setInviteTerm("");
     } catch (e) {
       setInviteMsg(e instanceof Error ? e.message : String(e));
@@ -185,18 +190,23 @@ export function RoomInfoPane({
         actions={
           <>
             <PaneHeaderButton
-              title="방 설정"
+              title={t("roomInfo.action.settings")}
               onClick={() => setSettingsOpen(true)}
             >
               <Settings className="h-[15px] w-[15px]" />
             </PaneHeaderButton>
-            <PaneHeaderButton title="닫기" onClick={onClose}>
+            <PaneHeaderButton
+              title={t("roomInfo.action.close")}
+              onClick={onClose}
+            >
               <X className="h-[15px] w-[15px]" />
             </PaneHeaderButton>
           </>
         }
       >
-        <h2 className="truncate font-semibold text-fg-0">방 정보</h2>
+        <h2 className="truncate font-semibold text-fg-0">
+          {t("roomInfo.title")}
+        </h2>
       </PaneHeader>
 
       <div className="min-h-0 flex-1 overflow-y-auto bg-bg-0">
@@ -216,7 +226,7 @@ export function RoomInfoPane({
             <button
               type="button"
               className="flex max-w-full items-center gap-1.5 rounded-md px-2 py-1 font-mono text-[11px] text-fg-3 hover:bg-bg-2 hover:text-fg-1"
-              title="복사"
+              title={t("roomInfo.copy.title")}
               onClick={copyRoomId}
             >
               <span className="truncate">{dmUserId ?? room.roomId}</span>
@@ -234,11 +244,11 @@ export function RoomInfoPane({
             >
               {encrypted ? (
                 <>
-                  <Lock className="h-3 w-3" /> 종단간 암호화됨
+                  <Lock className="h-3 w-3" /> {t("roomInfo.e2ee.on")}
                 </>
               ) : (
                 <>
-                  <LockOpen className="h-3 w-3" /> 암호화 안 됨
+                  <LockOpen className="h-3 w-3" /> {t("roomInfo.e2ee.off")}
                 </>
               )}
             </span>
@@ -249,7 +259,7 @@ export function RoomInfoPane({
         <div className="mx-3 mb-3 overflow-hidden rounded-md border border-line bg-bg-1">
           <div className="flex h-10 items-center border-b border-line bg-bg-2/30 pl-5">
             <h2 className="flex-1 text-[12px] font-medium text-fg-2">
-              멤버
+              {t("roomInfo.section.members")}
               <span className="ml-1.5 font-mono text-[11px] text-fg-3">
                 {members.length}
               </span>
@@ -262,7 +272,7 @@ export function RoomInfoPane({
                   setInviteOpen((v) => !v);
                   setInviteMsg(null);
                 }}
-                title="초대"
+                title={t("roomInfo.invite.title")}
               >
                 <UserPlus className="h-3.5 w-3.5" />
               </button>
@@ -272,10 +282,12 @@ export function RoomInfoPane({
           {inviteOpen && (
             <div className="flex flex-col border-b border-line bg-bg-2/20">
               <label className="flex items-center gap-2 border-b border-line px-5 py-2">
-                <span className="shrink-0 text-[11px] text-fg-3">검색</span>
+                <span className="shrink-0 text-[11px] text-fg-3">
+                  {t("roomInfo.search.label")}
+                </span>
                 <input
                   className="flex-1 bg-transparent text-[12px] text-fg-0 outline-none placeholder:text-fg-3"
-                  placeholder="이름 또는 @user:server"
+                  placeholder={t("roomInfo.search.placeholder")}
                   value={inviteTerm}
                   autoFocus
                   onChange={(e) => setInviteTerm(e.target.value)}
@@ -317,7 +329,7 @@ export function RoomInfoPane({
                     ))}
                     {inviteSearching && (
                       <p className="px-5 py-3 text-center text-[12px] text-fg-3">
-                        검색 중…
+                        {t("roomInfo.search.searching")}
                       </p>
                     )}
                     {!inviteSearching &&
@@ -325,7 +337,7 @@ export function RoomInfoPane({
                       inviteResults.length === 0 &&
                       trimmed.length > 0 && (
                         <p className="px-5 py-3 text-center text-[12px] text-fg-3">
-                          결과 없음. @user:server로 직접 입력 가능
+                          {t("roomInfo.search.notFound")}
                         </p>
                       )}
                   </div>
@@ -357,9 +369,8 @@ export function RoomInfoPane({
           {leaveArmed ? (
             <>
               <p className="border-b border-line px-5 py-3 text-[12px] text-fg-2">
-                정말 나갈까?
-                {encrypted &&
-                  " 암호화 방은 다시 들어와도 이전 메시지를 못 읽을 수 있어."}
+                {t("roomInfo.leave.confirm")}
+                {encrypted && t("roomInfo.leave.warn")}
               </p>
               <div className="flex">
                 <button
@@ -381,7 +392,7 @@ export function RoomInfoPane({
                   ) : (
                     <LogOut className="h-3 w-3" />
                   )}
-                  나가기
+                  {t("roomInfo.leave.confirmBtn")}
                 </button>
               </div>
             </>
@@ -391,7 +402,8 @@ export function RoomInfoPane({
               className="flex w-full items-center justify-center gap-1.5 py-2.5 text-[13px] text-fg-2 hover:bg-bg-2 hover:text-red-300"
               onClick={() => setLeaveArmed(true)}
             >
-              <LogOut className="h-3 w-3" />방 나가기
+              <LogOut className="h-3 w-3" />
+              {t("roomInfo.leave.action")}
             </button>
           )}
         </div>

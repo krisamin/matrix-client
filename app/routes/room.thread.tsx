@@ -48,7 +48,7 @@ export default function ThreadView() {
 
   const rootEvent =
     room.findEventById(threadId!) ?? room.getThread(threadId!)?.rootEvent;
-  const title = rootEvent ? quotePreview(rootEvent) : "스레드";
+  const title = rootEvent ? quotePreview(rootEvent) : t("thread.title");
   const replyCount = room.getThread(threadId!)?.length ?? 0;
 
   async function sendReply(text: string, mentions: Mention[]) {
@@ -92,13 +92,13 @@ export default function ThreadView() {
           actions={
             <>
               <PaneHeaderButton
-                title="스레드에서 검색"
+                title={t("thread.search")}
                 onClick={() => setSearchOpen((v) => !v)}
               >
                 <Search className="h-[15px] w-[15px]" />
               </PaneHeaderButton>
               <PaneHeaderButton
-                title={full ? "분할 화면" : "전체 화면"}
+                title={t(full ? "thread.viewSplit" : "thread.viewFull")}
                 onClick={() =>
                   setSearchParams(full ? {} : { full: "1" }, { replace: true })
                 }
@@ -109,7 +109,7 @@ export default function ThreadView() {
                   <Maximize2 className="h-[15px] w-[15px]" />
                 )}
               </PaneHeaderButton>
-              <PaneHeaderButton title="닫기" onClick={close}>
+              <PaneHeaderButton title={t("common.close")} onClick={close}>
                 <X className="h-[15px] w-[15px]" />
               </PaneHeaderButton>
             </>
@@ -119,7 +119,7 @@ export default function ThreadView() {
           <h1 className="truncate font-semibold text-fg-0">{title}</h1>
           {replyCount > 0 && (
             <span className="shrink-0 font-mono text-[11px] text-fg-3">
-              답글 {replyCount}
+              {t("thread.replies", { count: replyCount })}
             </span>
           )}
         </PaneHeader>
@@ -146,7 +146,7 @@ export default function ThreadView() {
         <MessageInput
           client={client}
           room={room}
-          placeholder="스레드에 답글 보내기…"
+          placeholder={t("input.placeholder.thread")}
           onSend={sendReply}
           uploadRef={uploadRef}
           threadId={threadId}

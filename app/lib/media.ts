@@ -44,12 +44,12 @@ export function getMediaBlobUrl(
       true,
       true, // useAuthentication
     );
-    if (!httpUrl) throw new Error("mxc URL 변환 실패");
+    if (!httpUrl) throw new Error("mxc URL conversion failed");
 
     const res = await fetch(httpUrl, {
       headers: { Authorization: `Bearer ${client.getAccessToken()}` },
     });
-    if (!res.ok) throw new Error(`미디어 다운로드 실패 (${res.status})`);
+    if (!res.ok) throw new Error(`Media download failed (${res.status})`);
     let buffer = await res.arrayBuffer();
 
     if (source.file) {
@@ -95,7 +95,7 @@ export function getThumbnailBlobUrl(
     const res = await fetch(httpUrl, {
       headers: { Authorization: `Bearer ${client.getAccessToken()}` },
     });
-    if (!res.ok) throw new Error(`썸네일 다운로드 실패 (${res.status})`);
+    if (!res.ok) throw new Error(`Thumbnail download failed (${res.status})`);
     const blob = await res.blob();
     return URL.createObjectURL(blob);
   })();

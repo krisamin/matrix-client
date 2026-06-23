@@ -12,6 +12,7 @@ import {
 } from "react";
 import { Virtualizer, type VirtualizerHandle } from "virtua";
 import { groupTimeline } from "../lib/group";
+import { useT } from "../lib/i18n";
 import { useTypingMembers } from "../lib/typing";
 import { DateDivider, UnreadDivider } from "./DateDivider";
 import { EventLine } from "./EventLine";
@@ -95,6 +96,7 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
     },
     ref,
   ) {
+    const t = useT();
     const scrollRef = useRef<HTMLDivElement>(null);
     const vRef = useRef<VirtualizerHandle>(null);
     // 직전에 바닥 근처였는지 — append 시 바닥 추적 판단의 소스.
@@ -346,7 +348,7 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
         {loadingOlder && (
           <div className="pointer-events-none absolute inset-x-0 top-2 z-10 flex justify-center">
             <span className="rounded-full border border-line bg-bg-2 px-3 py-1 font-mono text-[11px] text-fg-2 shadow-lg">
-              과거 메시지 불러오는 중...
+              {t("timeline.loading")}
             </span>
           </div>
         )}
@@ -369,7 +371,9 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
             {displayRows.map((row) => {
               if (row.kind === "top") return <div key={row.key}>{topSlot}</div>;
               if (row.kind === "start")
-                return <DateDivider key={row.key} label="대화의 시작" />;
+                return (
+                  <DateDivider key={row.key} label={t("timeline.start")} />
+                );
               if (row.kind === "typing")
                 return (
                   <div
@@ -381,7 +385,7 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
                       <span className="typing-dot h-1 w-1 rounded-full bg-fg-2" />
                       <span className="typing-dot h-1 w-1 rounded-full bg-fg-2" />
                     </span>
-                    {row.names.join(", ")} 입력 중
+                    {t("timeline.typing", { names: row.names.join(", ") })}
                   </div>
                 );
               return (
@@ -410,8 +414,8 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
           <button
             type="button"
             onClick={scrollToBottom}
-            title="맨 아래로"
-            aria-label="맨 아래로"
+            title={t("timeline.scrollDown")}
+            aria-label={t("timeline.scrollDown")}
             className="absolute right-5 bottom-4 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-line bg-bg-2 text-fg-1 shadow-xl transition-colors hover:bg-bg-3 hover:text-fg-0"
           >
             <ChevronDown className="h-5 w-5" />

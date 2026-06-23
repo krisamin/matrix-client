@@ -32,9 +32,9 @@ type Tab = "general" | "access" | "permissions" | "danger";
 // 역할 ↔ PL 매핑 (Element 관례)
 const ROLE_LEVELS = { 멤버: 0, 모더레이터: 50, 관리자: 100 } as const;
 function levelToRole(lvl: number): string {
-  if (lvl >= 100) return "관리자";
-  if (lvl >= 50) return "모더레이터";
-  return "멤버";
+  if (lvl >= 100) return "admin";
+  if (lvl >= 50) return "mod";
+  return "member";
 }
 
 /** 방 설정 모달 — 일반/접근/권한/위험 탭 (B-final 톤). */
@@ -47,8 +47,8 @@ export function RoomSettingsModal({
   room: Room;
   onClose: () => void;
 }) {
-  const _t = useT();
   const [tab, setTab] = useState<Tab>("general");
+  const t = useT();
   const isSpace = room.isSpaceRoom();
 
   useEffect(() => {
@@ -74,15 +74,17 @@ export function RoomSettingsModal({
         <aside className="flex w-44 shrink-0 flex-col border-r border-line bg-bg-1">
           <header className="flex h-12 items-center border-b border-line pl-5">
             <h2 className="truncate font-semibold text-fg-0">
-              {isSpace ? "Space 설정" : "방 설정"}
+              {isSpace
+                ? t("roomSettings.title.space")
+                : t("roomSettings.title.room")}
             </h2>
           </header>
           {(
             [
-              { id: "general", label: "일반" },
-              { id: "access", label: "접근" },
-              { id: "permissions", label: "권한" },
-              { id: "danger", label: "위험" },
+              { id: "general", label: t("roomSettings.tab.general") },
+              { id: "access", label: t("roomSettings.tab.access") },
+              { id: "permissions", label: t("roomSettings.tab.permissions") },
+              { id: "danger", label: t("roomSettings.tab.danger") },
             ] as { id: Tab; label: string }[]
           ).map((t) => {
             const active = tab === t.id;
@@ -165,7 +167,7 @@ function Footer({
   dirty,
   onCancel,
   onSave,
-  saveLabel = "저장",
+  saveLabel,
 }: {
   busy: boolean;
   dirty: boolean;
@@ -189,7 +191,7 @@ function Footer({
         disabled={busy || !dirty}
         className="flex-1 bg-bg-2 py-2.5 text-[13px] font-medium text-fg-0 hover:bg-bg-3 disabled:opacity-50"
       >
-        {busy ? "저장 중…" : saveLabel}
+        {busy ? t("common.saving") : (saveLabel ?? t("common.save"))}
       </button>
     </div>
   );
@@ -206,7 +208,7 @@ function GeneralTab({
   room: Room;
   onClose: () => void;
 }) {
-  const _t = useT();
+  const t = useT();
   const initialName = room.name;
   const initialTopic =
     room.currentState.getStateEvents("m.room.topic", "")?.getContent().topic ??
@@ -238,7 +240,7 @@ function GeneralTab({
     const f = e.target.files?.[0];
     if (!f) return;
     if (!f.type.startsWith("image/")) {
-      setError("이미지 파일만 가능해");
+      setError(t("roomSettings.imageOnly"));
       return;
     }
     setError(null);
@@ -287,7 +289,11 @@ function GeneralTab({
             className="group relative rounded-md disabled:cursor-not-allowed"
             onClick={() => fileRef.current?.click()}
             disabled={!canAvatar}
-            title={canAvatar ? "아바타 변경" : "권한 없음"}
+            title={t(
+              canAvatar
+                ? "roomSettings.changeAvatar"
+                : "roomSettings.noPermission",
+            )}
           >
             {previewUrl ? (
               <img
@@ -316,7 +322,7 @@ function GeneralTab({
 
         {/* 필드 — divide-y row */}
         <div className="flex flex-col divide-y divide-line">
-          <Row label="방 이름">
+          <Row label={t("roomSettings.field.name")}>
             <input
               type="text"
               value={name}
@@ -325,13 +331,13 @@ function GeneralTab({
               className="flex-1 bg-transparent text-[13px] text-fg-0 outline-none placeholder:text-fg-3 disabled:opacity-50"
             />
           </Row>
-          <Row label="주제">
+          <Row label={t("roomSettings.field.topic")}>
             <input
               type="text"
               value={topic}
               disabled={!canTopic}
               onChange={(e) => setTopic(e.target.value)}
-              placeholder="(설명 없음)"
+              placeholder={t("roomSettings.topic.placeholder")}
               className="flex-1 bg-transparent text-[13px] text-fg-0 outline-none placeholder:text-fg-3 disabled:opacity-50"
             />
           </Row>
@@ -356,7 +362,7 @@ function AccessTab({
   room: Room;
   onClose: () => void;
 }) {
-  const _t = useT();
+  const t = useT();
   const myDomain = (client.getUserId() ?? "").split(":")[1] ?? "";
 
   // 현재 값 추출
@@ -460,7 +466,10 @@ function AccessTab({
     <>
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="flex flex-col divide-y divide-line">
-          <Row label="별칭" description={`형식: #이름:${myDomain}`}>
+          <Row
+            label={t("field.alias")}
+            description={t("roomSettings.alias.format", { server: myDomain })}
+          >
             <div className="flex flex-1 items-center gap-1">
               <span className="text-[13px] text-fg-3">#</span>
               <input
@@ -468,7 +477,7 @@ function AccessTab({
                 value={aliasLocalpart}
                 disabled={!canAlias}
                 onChange={(e) => setAliasLocalpart(e.target.value)}
-                placeholder="(없음)"
+                placeholder={t("roomSettings.alias.none")}
                 className="min-w-0 flex-1 bg-transparent text-[13px] text-fg-0 outline-none placeholder:text-fg-3 disabled:opacity-50"
               />
               {aliasLocalpart && (
@@ -481,7 +490,10 @@ function AccessTab({
               영문/숫자/_-. 만 사용 가능
             </p>
           )}
-          <Row label="디렉토리" description="홈서버 공개 방 목록 노출 여부">
+          <Row
+            label={t("field.directory")}
+            description={t("roomSettings.tab.aria.access.dirDesc")}
+          >
             <select
               value={directory === "loading" ? "private" : directory}
               disabled={directory === "loading"}
@@ -490,35 +502,35 @@ function AccessTab({
               }
               className="flex-1 bg-transparent text-[13px] text-fg-0 outline-none disabled:opacity-50"
             >
-              <option value="private">비공개</option>
-              <option value="public">공개</option>
+              <option value="private">{t("vis.private")}</option>
+              <option value="public">{t("vis.public")}</option>
             </select>
           </Row>
-          <Row label="가입 방식">
+          <Row label={t("field.joinRule")}>
             <select
               value={joinRule}
               disabled={!canJoin}
               onChange={(e) => setJoinRule(e.target.value as JoinRule)}
               className="flex-1 bg-transparent text-[13px] text-fg-0 outline-none disabled:opacity-50"
             >
-              <option value="invite">초대받은 사람만</option>
-              <option value="public">누구나</option>
-              <option value="knock">노크 후 승인</option>
-              <option value="restricted">제한적 (Space 멤버)</option>
+              <option value="invite">{t("join.invite")}</option>
+              <option value="public">{t("join.public")}</option>
+              <option value="knock">{t("join.knock")}</option>
+              <option value="restricted">{t("join.restricted")}</option>
             </select>
           </Row>
-          <Row label="게스트">
+          <Row label={t("field.guest")}>
             <select
               value={guestAccess}
               disabled={!canGuest}
               onChange={(e) => setGuestAccess(e.target.value as GuestAccess)}
               className="flex-1 bg-transparent text-[13px] text-fg-0 outline-none disabled:opacity-50"
             >
-              <option value="forbidden">금지</option>
-              <option value="can_join">허용</option>
+              <option value="forbidden">{t("guest.forbidden")}</option>
+              <option value="can_join">{t("guest.canJoin")}</option>
             </select>
           </Row>
-          <Row label="이전 메시지">
+          <Row label={t("field.history")}>
             <select
               value={historyVis}
               disabled={!canHistory}
@@ -527,10 +539,10 @@ function AccessTab({
               }
               className="flex-1 bg-transparent text-[13px] text-fg-0 outline-none disabled:opacity-50"
             >
-              <option value="invited">초대받은 시점부터</option>
-              <option value="joined">참여한 시점부터</option>
-              <option value="shared">공유 시점부터</option>
-              <option value="world_readable">누구나</option>
+              <option value="invited">{t("hist.invited")}</option>
+              <option value="joined">{t("hist.joined")}</option>
+              <option value="shared">{t("hist.shared")}</option>
+              <option value="world_readable">{t("hist.worldReadable")}</option>
             </select>
           </Row>
           {error && (
@@ -610,13 +622,13 @@ function PermissionsTab({
       <div className="min-h-0 flex-1 overflow-y-auto">
         {!canEditPL && (
           <p className="border-b border-line bg-bg-2/40 px-5 py-2 text-[12px] text-fg-3">
-            보기 전용 — 권한 변경 권한이 없어
+            {t("perm.viewOnly")}
           </p>
         )}
         <div className="flex flex-col divide-y divide-line">
           {/* 멤버 역할 */}
           <div className="px-5 py-2 text-[11px] font-medium text-fg-3">
-            멤버 — {members.length}명
+            {t("perm.section.members", { count: members.length })}
           </div>
           {members.map((m) => {
             const lvl = pls.users[m.userId] ?? pls.users_default;
@@ -628,7 +640,9 @@ function PermissionsTab({
                 <span className="min-w-0 flex-1 truncate text-[13px] text-fg-1">
                   {m.name}
                   {isMe && (
-                    <span className="ml-1.5 text-[11px] text-fg-3">(나)</span>
+                    <span className="ml-1.5 text-[11px] text-fg-3">
+                      {t("perm.member.me")}
+                    </span>
                   )}
                 </span>
                 <span className="font-mono text-[11px] text-fg-3">{lvl}</span>
@@ -644,9 +658,11 @@ function PermissionsTab({
                     }
                     className="bg-transparent text-[12px] text-fg-0 outline-none disabled:opacity-50"
                   >
-                    <option value="멤버">멤버 (0)</option>
-                    <option value="모더레이터">모더레이터 (50)</option>
-                    <option value="관리자">관리자 (100)</option>
+                    <option value="멤버">{t("perm.role.member")} (0)</option>
+                    <option value="모더레이터">
+                      {t("perm.role.moderator")} (50)
+                    </option>
+                    <option value="관리자">{t("perm.role.admin")} (100)</option>
                   </select>
                 ) : (
                   <span className="text-[12px] text-fg-2">{role}</span>
@@ -657,7 +673,7 @@ function PermissionsTab({
 
           {/* 기본 액션 PL */}
           <div className="px-5 py-2 text-[11px] font-medium text-fg-3">
-            기본 권한 — 액션별 최소 레벨
+            {t("perm.section.defaults")}
           </div>
           <DefaultPLEditor
             client={client}
@@ -686,12 +702,12 @@ function PermissionsTab({
             role="presentation"
           >
             <header className="flex h-12 items-center border-b border-line px-5">
-              <h3 className="font-semibold text-fg-0">정말 자기 강등?</h3>
+              <h3 className="font-semibold text-fg-0">
+                {t("perm.demoteSelf.title")}
+              </h3>
             </header>
             <p className="px-5 py-4 text-[13px] text-fg-2">
-              자신의 권한을 낮추면{" "}
-              <strong className="text-fg-0">되돌릴 수 없어</strong>. 더 높은
-              권한자가 다시 올려줘야 해.
+              {t("perm.demoteSelf.body")}
             </p>
             <div className="flex border-t border-line">
               <button
@@ -709,7 +725,7 @@ function PermissionsTab({
                 }
                 className="flex-1 bg-red-950/60 py-2.5 text-[13px] font-medium text-red-300 hover:bg-red-900/60"
               >
-                강등
+                {t("perm.demote")}
               </button>
             </div>
           </div>
@@ -730,7 +746,7 @@ function DefaultPLEditor({
   pls: ReturnType<typeof getRoomPowerLevels>;
   canEdit: boolean;
 }) {
-  const _t = useT();
+  const t = useT();
   const myUserId = client.getUserId() ?? "";
   const myLevel = pls.users[myUserId] ?? pls.users_default;
   const [busy, setBusy] = useState(false);
@@ -795,12 +811,20 @@ function DefaultPLEditor({
   }
 
   const rows: { label: string; value: number; set: (n: number) => void }[] = [
-    { label: "메시지 보내기", value: eventsDefault, set: setEventsDefault },
-    { label: "상태 이벤트", value: stateDefault, set: setStateDefault },
-    { label: "초대", value: invite, set: setInvite },
-    { label: "강퇴", value: kick, set: setKick },
-    { label: "추방", value: ban, set: setBan },
-    { label: "메시지 삭제", value: redact, set: setRedact },
+    {
+      label: t("perm.action.sendMsg"),
+      value: eventsDefault,
+      set: setEventsDefault,
+    },
+    {
+      label: t("perm.action.stateEvent"),
+      value: stateDefault,
+      set: setStateDefault,
+    },
+    { label: t("perm.action.invite"), value: invite, set: setInvite },
+    { label: t("perm.action.kick"), value: kick, set: setKick },
+    { label: t("perm.action.ban"), value: ban, set: setBan },
+    { label: t("perm.action.redact"), value: redact, set: setRedact },
   ];
 
   return (
@@ -818,7 +842,13 @@ function DefaultPLEditor({
             className="w-12 bg-transparent text-right font-mono text-[13px] text-fg-0 outline-none disabled:opacity-50"
           />
           <span className="text-[11px] text-fg-3">
-            (기본 {r.label === "메시지 보내기" || r.label === "초대" ? 0 : 50})
+            {t("perm.basicHint", {
+              level:
+                r.label === t("perm.action.sendMsg") ||
+                r.label === t("perm.action.invite")
+                  ? 0
+                  : 50,
+            })}
           </span>
         </div>
       ))}
@@ -910,7 +940,7 @@ function DangerTab({
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="flex flex-col divide-y divide-line">
           <div className="px-5 py-2 text-[11px] font-medium text-fg-3">
-            멤버 — {members.length}명 (나 제외)
+            {t("perm.section.members", { count: members.length })} (나 제외)
           </div>
           {members.map((m) => (
             <div key={m.userId} className="flex items-center gap-2 px-5 py-2">
@@ -921,7 +951,7 @@ function DangerTab({
                 type="button"
                 onClick={() => doKick(m.userId)}
                 disabled={!canKick || busy === m.userId}
-                title="강퇴 (다시 들어올 수 있음)"
+                title={t("danger.kick.title")}
                 className="flex items-center gap-1 rounded-md border border-line px-2 py-1 text-[11px] text-fg-2 hover:bg-bg-2 hover:text-fg-0 disabled:opacity-50"
               >
                 <UserMinus className="h-3 w-3" />
@@ -931,7 +961,7 @@ function DangerTab({
                 type="button"
                 onClick={() => doBan(m.userId)}
                 disabled={!canKick || busy === m.userId}
-                title="추방 (재가입 차단)"
+                title={t("danger.ban.title")}
                 className="flex items-center gap-1 rounded-md border border-line px-2 py-1 text-[11px] text-red-400 hover:bg-red-950/30 disabled:opacity-50"
               >
                 <Ban className="h-3 w-3" />
@@ -946,7 +976,7 @@ function DangerTab({
           {banned.length > 0 && (
             <>
               <div className="px-5 py-2 text-[11px] font-medium text-fg-3">
-                추방됨 — {banned.length}명
+                {t("danger.section.banned", { count: banned.length })}
               </div>
               {banned.map((m) => (
                 <div

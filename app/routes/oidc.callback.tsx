@@ -23,7 +23,7 @@ export default function OidcCallback() {
     const code = params.get("code");
     const state = params.get("state");
     if (!code || !state) {
-      setError(params.get("error_description") ?? "code/state 파라미터 없음");
+      setError(params.get("error_description") ?? "Missing code/state params");
       return;
     }
     (async () => {
@@ -43,7 +43,7 @@ export default function OidcCallback() {
       const whoami = await tmp.whoami();
       const deviceId =
         deviceIdFromScope(tokenResponse.scope) ?? whoami.device_id;
-      if (!deviceId) throw new Error("device id를 알 수 없음");
+      if (!deviceId) throw new Error("Unknown device id");
 
       saveSession({
         homeserverUrl,
@@ -64,13 +64,13 @@ export default function OidcCallback() {
     <main className="flex min-h-screen items-center justify-center">
       {error ? (
         <div className="flex flex-col gap-2 text-center">
-          <p className="text-red-500">로그인 실패: {error}</p>
+          <p className="text-red-500">{error}</p>
           <a className="text-blue-500 underline" href="/login">
-            다시 시도
+            Retry
           </a>
         </div>
       ) : (
-        <p>토큰 교환 중...</p>
+        <p>Exchanging token…</p>
       )}
     </main>
   );

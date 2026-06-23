@@ -146,12 +146,11 @@ const EventLineInner = function EventLine({
   // 그 외 상태(복호화중/실패/삭제)는 평문 placeholder
   let placeholder: string | null = null;
   if (ev.isDecryptionFailure()) {
-    placeholder =
-      "🔒 복호화할 수 없는 메시지입니다 (기기 인증 또는 키 백업 확인)";
+    placeholder = t("msg.cantDecrypt");
   } else if (ev.getType() === EventType.RoomMessageEncrypted) {
-    placeholder = "🔒 복호화 중...";
+    placeholder = t("msg.decrypting");
   } else if (ev.isRedacted()) {
-    placeholder = "삭제된 메시지입니다";
+    placeholder = t("msg.deleted");
   } else if (!isMedia && content.body == null) {
     placeholder = `(${content.msgtype ?? ev.getType()})`;
   }
@@ -226,7 +225,7 @@ const EventLineInner = function EventLine({
   }
 
   async function remove() {
-    if (busy || !window.confirm("이 메시지를 삭제할까요?")) return;
+    if (busy || !window.confirm(t("msg.confirmDelete"))) return;
     setBusy(true);
     try {
       await client.redactEvent(room.roomId, ev.getId()!);
@@ -336,14 +335,14 @@ const EventLineInner = function EventLine({
             {formatTime(ev.getTs())}
           </span>
           {ev.replacingEvent() && (
-            <span className="text-[11px] text-fg-3" title="수정됨">
+            <span className="text-[11px] text-fg-3" title={t("msg.edited")}>
               수정됨
             </span>
           )}
         </div>
       )}
       {!showHeader && ev.replacingEvent() && (
-        <span className="sr-only">수정됨</span>
+        <span className="sr-only">{t("msg.edited")}</span>
       )}
 
       {/* hover 플로팅 액션 툴바 — B-final 톤 (rounded-md, shadow-2xl) */}
@@ -513,7 +512,7 @@ const EventLineInner = function EventLine({
               className="hover:underline"
               onClick={() => setEditing(false)}
             >
-              취소 (Esc)
+              {t("msg.cancelEsc")}
             </button>
           </span>
         </form>
@@ -543,21 +542,21 @@ const EventLineInner = function EventLine({
       {/* 전송 상태 */}
       {isFailed && (
         <span className="flex items-center gap-2 text-[12px] text-red-400">
-          ⚠ 전송 실패
+          {t("msg.sendFailed")}
           <button
             type="button"
             className="font-medium underline hover:text-red-300"
             onClick={resend}
             disabled={busy}
           >
-            재전송
+            {t("msg.resend")}
           </button>
           <button
             type="button"
             className="text-fg-2 underline hover:text-fg-1"
             onClick={cancelFailed}
           >
-            삭제
+            {t("common.delete")}
           </button>
         </span>
       )}

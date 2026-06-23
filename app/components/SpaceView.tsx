@@ -2,6 +2,7 @@ import { Lock, Plus, Settings } from "lucide-react";
 import type { MatrixClient, Room } from "matrix-js-sdk";
 import { useState } from "react";
 import { useNavigate } from "react-router";
+import { useT } from "../lib/i18n";
 import { childRoomIds } from "../lib/spaces";
 import { RoomAvatar } from "./Avatar";
 import { NewRoomModal } from "./NewRoomModal";
@@ -18,6 +19,7 @@ export function SpaceView({
   client: MatrixClient;
   space: Room;
 }) {
+  const t = useT();
   const navigate = useNavigate();
   const [newRoomOpen, setNewRoomOpen] = useState(false);
   const [newSpaceOpen, setNewSpaceOpen] = useState(false);
@@ -40,7 +42,7 @@ export function SpaceView({
       <PaneHeader
         actions={
           <PaneHeaderButton
-            title="Space 설정"
+            title={t("modal.spaceSettings.title")}
             onClick={() => setSettingsOpen(true)}
           >
             <Settings className="h-[15px] w-[15px]" />
@@ -66,7 +68,7 @@ export function SpaceView({
           <section className="mb-4 overflow-hidden rounded-md border border-line bg-bg-1">
             <div className="flex h-10 items-center border-b border-line bg-bg-2/30 pl-5">
               <h2 className="flex-1 text-[12px] font-medium text-fg-2">
-                하위 Space
+                {t("spaceView.subspaces")}
                 {childSpaces.length > 0 && (
                   <span className="ml-1.5 font-mono text-[11px] text-fg-3">
                     {childSpaces.length}
@@ -77,14 +79,14 @@ export function SpaceView({
                 type="button"
                 onClick={() => setNewSpaceOpen(true)}
                 className="flex aspect-square h-full shrink-0 items-center justify-center text-fg-2 hover:bg-bg-2 hover:text-fg-0"
-                title="하위 Space 추가"
+                title={t("spaceView.addSubspace")}
               >
                 <Plus className="h-3.5 w-3.5" />
               </button>
             </div>
             {childSpaces.length === 0 ? (
               <p className="px-5 py-4 text-center text-[12px] text-fg-3">
-                아직 하위 Space가 없어요.
+                {t("spaceView.empty.subspaces")}
               </p>
             ) : (
               <ul className="flex flex-col divide-y divide-line">
@@ -112,7 +114,7 @@ export function SpaceView({
           <section className="overflow-hidden rounded-md border border-line bg-bg-1">
             <div className="flex h-10 items-center border-b border-line bg-bg-2/30 pl-5">
               <h2 className="flex-1 text-[12px] font-medium text-fg-2">
-                방
+                {t("spaceView.rooms")}
                 {childRooms.length > 0 && (
                   <span className="ml-1.5 font-mono text-[11px] text-fg-3">
                     {childRooms.length}
@@ -123,14 +125,14 @@ export function SpaceView({
                 type="button"
                 onClick={() => setNewRoomOpen(true)}
                 className="flex aspect-square h-full shrink-0 items-center justify-center text-fg-2 hover:bg-bg-2 hover:text-fg-0"
-                title="방 추가"
+                title={t("spaceView.addRoom")}
               >
                 <Plus className="h-3.5 w-3.5" />
               </button>
             </div>
             {childRooms.length === 0 ? (
               <p className="px-5 py-6 text-center text-[13px] text-fg-3">
-                아직 방이 없어요. 우측 + 버튼으로 첫 방을 만들어 보세요.
+                {t("spaceView.empty.rooms")}
               </p>
             ) : (
               <ul className="flex flex-col divide-y divide-line">

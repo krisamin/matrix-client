@@ -18,7 +18,7 @@ import { NotificationCountType } from "matrix-js-sdk";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { useRooms } from "../hooks/useRooms";
-import { useI18n } from "../lib/i18n";
+import { useI18n, useT } from "../lib/i18n";
 import {
   isFavourite,
   isMuted,
@@ -51,6 +51,7 @@ function RoomNode({
   activeThreadId?: string;
   showPresence?: boolean;
 }) {
+  const t = useT();
   const threads = room.getThreads();
   const hasThreads = threads.length > 0;
   // 활성 방은 기본 펼침
@@ -109,7 +110,7 @@ function RoomNode({
             type="button"
             className="shrink-0 text-fg-3 hover:text-fg-1"
             onClick={() => setExpanded((v) => !v)}
-            title={showChildren ? "접기" : "펼치기"}
+            title={t(showChildren ? "common.collapse" : "common.expand")}
           >
             {showChildren ? (
               <ChevronDown className="h-3.5 w-3.5" />
@@ -277,6 +278,7 @@ function SpaceTreeNode({
   activeRoomId?: string;
   activeThreadId?: string;
 }) {
+  const t = useT();
   const navigate = useNavigate();
   /** 이 Space 서브트리에 활성 방이 들어있는지 (있으면 자동 펼침 유지) */
   const containsActive = (n: SpaceNode): boolean =>
@@ -293,7 +295,7 @@ function SpaceTreeNode({
           type="button"
           className="shrink-0 text-fg-3 hover:text-fg-1"
           onClick={() => setCollapsed((v) => !v)}
-          title={expanded ? "접기" : "펼치기"}
+          title={t(expanded ? "sidebar.collapse" : "sidebar.expand")}
         >
           {expanded ? (
             <ChevronDown className="h-3.5 w-3.5" />

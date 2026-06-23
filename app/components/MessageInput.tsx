@@ -168,14 +168,14 @@ export function MessageInput({
     setError(null);
     try {
       for (const file of Array.from(files)) {
-        setUploading(`${file.name} 업로드 중...`);
+        setUploading(t("input.uploading", { name: file.name }));
         await uploadAndSendFile(
           client,
           room.roomId,
           file,
           (loaded, total) => {
             const pct = total ? Math.round((loaded / total) * 100) : 0;
-            setUploading(`${file.name} 업로드 중... ${pct}%`);
+            setUploading(t("input.uploadingPct", { name: file.name, pct }));
           },
           threadId,
         );

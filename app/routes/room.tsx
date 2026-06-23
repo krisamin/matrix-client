@@ -27,6 +27,7 @@ import {
   useRoomTimeline,
   useUnreadMarker,
 } from "../hooks/useRoomTimeline";
+import { useT } from "../lib/i18n";
 import { buildMentionContent, type Mention } from "../lib/mention";
 import { useAppContext } from "./app-layout";
 
@@ -49,6 +50,7 @@ export function useRoomContext(): RoomContext {
  *  - /room/:roomId/thread/:tid   → 채팅 | 스레드 분할
  *  - + ?full=1                   → 스레드 풀 화면 (트리에서 진입) */
 export default function RoomView() {
+  const t = useT();
   const { client } = useAppContext();
   const { roomId, threadId } = useParams<{
     roomId: string;
@@ -212,7 +214,7 @@ export default function RoomView() {
           <MessageInput
             client={client}
             room={room}
-            placeholder={`${room.name}에 메시지 보내기…`}
+            placeholder={t("input.placeholder.send", { room: room.name })}
             onSend={send}
             replyTo={replyTo}
             onCancelReply={() => setReplyTo(null)}

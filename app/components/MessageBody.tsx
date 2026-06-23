@@ -192,9 +192,9 @@ function highlightHtml(html: string): string {
     const btn = doc.createElement("button");
     btn.setAttribute("type", "button");
     btn.setAttribute("data-copy", "");
-    btn.setAttribute("aria-label", "코드 복사");
+    btn.setAttribute("aria-label", "Copy code");
     btn.className = "code-copy-btn";
-    btn.textContent = "복사";
+    btn.textContent = "Copy";
     pre.replaceWith(wrap);
     wrap.append(btn, pre);
   }
@@ -356,7 +356,7 @@ export function MessageBody({
     navigator.clipboard
       .writeText(text)
       .then(() => {
-        btn.textContent = "복사됨!";
+        btn.textContent = "Copied!";
         btn.classList.add("copied");
         window.setTimeout(() => {
           btn.textContent = "복사";

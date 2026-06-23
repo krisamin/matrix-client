@@ -3,12 +3,13 @@ import type { MatrixClient, Room, RoomMember } from "matrix-js-sdk";
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { PRESENCE_LABEL, usePresence } from "../hooks/usePresence";
+import { useT } from "../lib/i18n";
 import { Avatar, PresenceDot } from "./Avatar";
 
 /** 파워레벨 → 역할 라벨 (Element 관례: 100 관리자 / 50 중재자) */
 export function roleLabel(power: number): string | null {
-  if (power >= 100) return "관리자";
-  if (power >= 50) return "중재자";
+  if (power >= 100) return "admin";
+  if (power >= 50) return "mod";
   return null;
 }
 
@@ -33,6 +34,7 @@ export function UserProfileCard({
   anchor: DOMRect;
   onClose: () => void;
 }) {
+  const t = useT();
   const [copied, setCopied] = useState(false);
   const member: RoomMember | null = room.getMember(userId);
   const name = member?.name ?? userId;
@@ -87,12 +89,16 @@ export function UserProfileCard({
           />
           <p className="max-w-full truncate text-[15px] font-semibold text-fg-0">
             {name}
-            {isMe && <span className="ml-1.5 text-[11px] text-fg-3">(나)</span>}
+            {isMe && (
+              <span className="ml-1.5 text-[11px] text-fg-3">
+                {t("userCard.me")}
+              </span>
+            )}
           </p>
           <button
             type="button"
             className="flex max-w-full items-center gap-1.5 rounded-md px-2 py-1 font-mono text-[11px] text-fg-3 hover:bg-bg-2 hover:text-fg-1"
-            title="userId 복사"
+            title={t("userCard.copyTitle")}
             onClick={copyUserId}
           >
             <span className="truncate">{userId}</span>
@@ -107,32 +113,44 @@ export function UserProfileCard({
         {/* 이 방에서의 상태 — divide-y 그리드 (모달 row 패턴과 동일) */}
         <div className="flex flex-col divide-y divide-line">
           <div className="flex items-center gap-3 px-5 py-2.5">
-            <span className="w-16 shrink-0 text-[12px] text-fg-3">역할</span>
+            <span className="w-16 shrink-0 text-[12px] text-fg-3">
+              {t("userCard.field.role")}
+            </span>
             <span className="flex flex-1 items-center gap-1 text-[13px] text-fg-1">
               {role && <ShieldCheck className="h-3 w-3" />}
-              {role ?? "멤버"}
+              {t(
+                role === "admin"
+                  ? "userCard.role.admin"
+                  : role === "mod"
+                    ? "userCard.role.mod"
+                    : "userCard.member",
+              )}
               <span className="ml-auto font-mono text-[11px] text-fg-3">
                 PL{member?.powerLevel ?? 0}
               </span>
             </span>
           </div>
           <div className="flex items-center gap-3 px-5 py-2.5">
-            <span className="w-16 shrink-0 text-[12px] text-fg-3">상태</span>
+            <span className="w-16 shrink-0 text-[12px] text-fg-3">
+              {t("userCard.field.status")}
+            </span>
             <span className="flex-1 text-[13px] text-fg-1">
               {member?.membership === "join"
-                ? "참여 중"
+                ? t("userCard.membership.join")
                 : member?.membership === "invite"
                   ? "초대됨"
                   : member?.membership === "leave"
                     ? "나감"
                     : member?.membership === "ban"
                       ? "차단됨"
-                      : "알 수 없음"}
+                      : t("userCard.membership.unknown")}
             </span>
           </div>
           {presence && (
             <div className="flex items-center gap-3 px-5 py-2.5">
-              <span className="w-16 shrink-0 text-[12px] text-fg-3">접속</span>
+              <span className="w-16 shrink-0 text-[12px] text-fg-3">
+                {t("userCard.field.presence")}
+              </span>
               <span className="flex flex-1 items-center gap-1.5 text-[13px] text-fg-1">
                 <PresenceDot presence={presence} size={8} />
                 {PRESENCE_LABEL[presence]}

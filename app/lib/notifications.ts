@@ -28,11 +28,11 @@ export async function requestNotificationPermission(): Promise<boolean> {
 function preview(ev: MatrixEvent): string {
   const content = ev.getContent();
   const msgtype = content.msgtype as string;
-  if (msgtype === "m.image") return "📷 사진";
-  if (msgtype === "m.video") return "🎞 동영상";
-  if (msgtype === "m.audio") return "🎙 음성";
-  if (msgtype === "m.file") return "📎 파일";
-  const body: string = content.body ?? "새 메시지";
+  if (msgtype === "m.image") return "📷 Image";
+  if (msgtype === "m.video") return "🎞 Video";
+  if (msgtype === "m.audio") return "🎙 Audio";
+  if (msgtype === "m.file") return "📎 File";
+  const body: string = content.body ?? "New message";
   const stripped = body.replace(/^(>.*\n)+\n?/, ""); // reply fallback 제거
   return stripped.length > 120 ? `${stripped.slice(0, 120)}…` : stripped;
 }

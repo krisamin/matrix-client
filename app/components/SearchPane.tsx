@@ -2,6 +2,7 @@ import { ChevronDown, History, Loader2, SearchX, X } from "lucide-react";
 import type { MatrixClient, MatrixEvent, Room } from "matrix-js-sdk";
 import type { ISearchResults } from "matrix-js-sdk/lib/@types/search";
 import { useMemo, useRef, useState } from "react";
+import { useT } from "../lib/i18n";
 import { PaneHeader, PaneHeaderButton } from "./PaneHeader";
 
 function formatDateTime(ts: number): string {
@@ -104,6 +105,7 @@ export function SearchPane({
   /** "thread"면 전달된 events에서만 로컬 검색 */
   scope?: "room" | "thread";
 }) {
+  const t = useT();
   const encrypted = room.hasEncryptionStateEvent();
   // 로컬 검색 모드: E2EE(서버가 암호문만 봄) 또는 스레드(서버 검색에 스레드 필터 없음)
   const localMode = encrypted || scope === "thread";
@@ -192,16 +194,18 @@ export function SearchPane({
     <section className="flex w-[360px] shrink-0 flex-col border-l border-line">
       <PaneHeader
         actions={
-          <PaneHeaderButton title="닫기 (Esc)" onClick={onClose}>
+          <PaneHeaderButton title={t("search.title.close")} onClick={onClose}>
             <X className="h-[15px] w-[15px]" />
           </PaneHeaderButton>
         }
       >
         <input
           className="min-w-0 flex-1 bg-transparent text-[13px] text-fg-0 outline-none placeholder:text-fg-3"
-          placeholder={
-            localMode ? "검색 (로드된 메시지에서)…" : "검색 (Enter)…"
-          }
+          placeholder={t(
+            localMode
+              ? "search.placeholder.local2"
+              : "search.placeholder.server2",
+          )}
           value={query}
           autoFocus
           onChange={(e) => setQuery(e.target.value)}
@@ -216,13 +220,16 @@ export function SearchPane({
         {/* 결과 카운트 */}
         {!localMode && serverHits && (
           <p className="px-5 py-2 font-mono text-[11px] text-fg-3">
-            "{searched}" — {serverCount}건
+            {t("search.serverCount", { q: searched, n: serverCount })}
           </p>
         )}
         {localMode && query.trim() && (
           <p className="px-5 py-2 font-mono text-[11px] text-fg-3">
-            로드된 {events.length}개 중 {localHits.length}건
-            {localHits.length >= 200 && " (최대 200)"}
+            {t("search.localCountFull", {
+              total: events.length,
+              hits: localHits.length,
+            })}
+            {localHits.length >= 200 && t("search.localMax")}
           </p>
         )}
 
@@ -245,7 +252,7 @@ export function SearchPane({
         {showEmpty && (
           <div className="flex flex-col items-center gap-2 py-10 text-fg-3">
             <SearchX className="h-6 w-6" />
-            <p className="text-[12px]">결과 없음</p>
+            <p className="text-[12px]">{t("search.empty2")}</p>
           </div>
         )}
 
@@ -263,7 +270,7 @@ export function SearchPane({
             onClick={moreServer}
           >
             <ChevronDown className="h-3.5 w-3.5" />
-            결과 더 보기
+            {t("search.loadMore2")}
           </button>
         )}
         {!busy && localMode && query.trim() && hasMore && (
@@ -273,7 +280,7 @@ export function SearchPane({
             onClick={deepenLocal}
           >
             <History className="h-3.5 w-3.5" />
-            과거 더 불러와서 검색
+            {t("search.deepenLocal2")}
           </button>
         )}
 
@@ -281,8 +288,8 @@ export function SearchPane({
         {localMode && !query.trim() && (
           <p className="px-5 py-6 text-[12px] leading-relaxed text-fg-3">
             {scope === "thread"
-              ? "스레드 검색은 이 기기에 로드된 답글에서 찾아. 범위가 부족하면 아래 버튼으로 과거 답글을 더 불러올 수 있어."
-              : "암호화 방은 서버가 내용을 읽을 수 없어 이 기기에 로드된 메시지에서 검색해. 범위가 부족하면 아래 버튼으로 과거를 더 불러올 수 있어."}
+              ? t("search.hint.thread")
+              : t("search.hint.local")}
           </p>
         )}
       </div>

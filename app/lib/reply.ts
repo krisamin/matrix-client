@@ -13,13 +13,13 @@ export function getReplyToId(ev: MatrixEvent): string | null {
 
 /** 인용/미리보기 텍스트 (한 줄 요약) */
 export function quotePreview(ev: MatrixEvent): string {
-  if (ev.isRedacted()) return "삭제된 메시지";
+  if (ev.isRedacted()) return "Deleted message";
   const content = ev.getContent();
   const msgtype = content.msgtype as string;
-  if (msgtype === "m.image") return "📷 사진";
-  if (msgtype === "m.video") return "🎞 동영상";
-  if (msgtype === "m.audio") return "🎙 음성";
-  if (msgtype === "m.file") return `📎 ${content.body ?? "파일"}`;
+  if (msgtype === "m.image") return "📷 Image";
+  if (msgtype === "m.video") return "🎞 Video";
+  if (msgtype === "m.audio") return "🎙 Audio";
+  if (msgtype === "m.file") return `📎 ${content.body ?? "File"}`;
   const body: string = content.body ?? "";
   // 구식 reply fallback("> <@u> ..." 인용부) 제거 후 첫 줄
   const stripped = body.replace(/^(>.*\n)+\n?/, "");

@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { useT } from "../lib/i18n";
 
 interface LightboxState {
   url: string;
@@ -47,6 +48,7 @@ export function openLightbox(url: string, name: string) {
 /** 이미지 라이트박스 오버레이 — 앱 루트에 1개 마운트.
  *  ESC/배경 클릭 닫기, 클릭 줌 토글, ←/→ 같은 방 이미지 넘기기, 원본 저장 */
 export function Lightbox() {
+  const t = useT();
   const [state, setState] = useState<LightboxState | null>(null);
   const [zoomed, setZoomed] = useState(false);
 
@@ -111,7 +113,7 @@ export function Lightbox() {
           href={state.url}
           download={state.name}
           className="rounded-md p-2 text-fg-1 hover:bg-bg-2 hover:text-fg-0"
-          title="저장"
+          title={t("lightbox.save")}
           onClick={(e) => e.stopPropagation()}
         >
           <Download className="h-[15px] w-[15px]" />
@@ -119,7 +121,7 @@ export function Lightbox() {
         <button
           type="button"
           className="rounded-md p-2 text-fg-1 hover:bg-bg-2 hover:text-fg-0"
-          title={zoomed ? "축소" : "확대"}
+          title={t(zoomed ? "lightbox.zoomOut" : "lightbox.zoomIn")}
           onClick={(e) => {
             e.stopPropagation();
             setZoomed((v) => !v);
@@ -134,7 +136,7 @@ export function Lightbox() {
         <button
           type="button"
           className="rounded-md p-2 text-fg-1 hover:bg-bg-2 hover:text-fg-0"
-          title="닫기 (Esc)"
+          title={t("lightbox.close")}
           onClick={close}
         >
           <X className="h-[15px] w-[15px]" />
@@ -168,7 +170,7 @@ export function Lightbox() {
         <button
           type="button"
           className={`${navBtn} absolute left-4 top-1/2 -translate-y-1/2`}
-          title="이전 이미지 (←)"
+          title={t("lightbox.prev")}
           onClick={(e) => {
             e.stopPropagation();
             goTo(prev);
@@ -181,7 +183,7 @@ export function Lightbox() {
         <button
           type="button"
           className={`${navBtn} absolute right-4 top-1/2 -translate-y-1/2`}
-          title="다음 이미지 (→)"
+          title={t("lightbox.next")}
           onClick={(e) => {
             e.stopPropagation();
             goTo(next);
