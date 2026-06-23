@@ -8,7 +8,7 @@ import type {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useT } from "../lib/i18n";
 import { createSpace, getJoinedSpaces } from "../lib/matrix";
-import { Field, FieldGroup, Select, TextInput } from "./Form";
+import { Field, FieldGroup, SectionHeader, Select, TextInput } from "./Form";
 import { Modal, ModalFooter, ModalHeader } from "./Modal";
 
 /** 새 Space 만들기 모달 — 공용 Modal/Form 사용. */
@@ -123,14 +123,21 @@ export function NewSpaceModal({
         <button
           type="button"
           onClick={() => setAdvancedOpen((v) => !v)}
-          className="flex w-full items-center gap-1.5 border-y border-line bg-bg-2/40 px-5 py-2 text-left text-[12px] font-medium text-fg-2 hover:bg-bg-2 hover:text-fg-0"
+          className="flex w-full items-stretch text-left hover:bg-bg-3"
         >
-          {advancedOpen ? (
-            <ChevronDown className="h-3.5 w-3.5" />
-          ) : (
-            <ChevronRight className="h-3.5 w-3.5" />
-          )}
-          {t("modal.advanced")}
+          <SectionHeader
+            actions={
+              <span className="flex items-center pr-5 text-fg-3">
+                {advancedOpen ? (
+                  <ChevronDown className="h-3.5 w-3.5" />
+                ) : (
+                  <ChevronRight className="h-3.5 w-3.5" />
+                )}
+              </span>
+            }
+          >
+            {t("modal.advanced")}
+          </SectionHeader>
         </button>
 
         {advancedOpen && (

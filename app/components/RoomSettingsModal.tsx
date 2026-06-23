@@ -127,7 +127,7 @@ export function RoomSettingsModal({
             <AccessTab client={client} room={room} onClose={onClose} />
           )}
           {tab === "permissions" && (
-            <PermissionsTab client={client} room={room} />
+            <PermissionsTab client={client} room={room} onClose={onClose} />
           )}
           {tab === "danger" && (
             <DangerTab client={client} room={room} onClose={onClose} />
@@ -555,9 +555,11 @@ function AccessTab({
 function PermissionsTab({
   client,
   room,
+  onClose,
 }: {
   client: MatrixClient;
   room: Room;
+  onClose: () => void;
 }) {
   const t = useT();
   const myUserId = client.getUserId() ?? "";
@@ -699,26 +701,34 @@ function PermissionsTab({
         )}
       </div>
       {/* 외곽 푸터 — DefaultPLEditor의 dirty/busy/error/save를 끌어올려 렌더.
-          모달 바닥에 풀폭 Save defaults 버튼 + 좌측에 에러 메시지. */}
+          모달 바닥에 Cancel + Save defaults 버튼 (다른 탭의 Footer와 동일
+          좌/우 풀폭 패턴). 에러는 푸터 위 별도 줄. */}
       {canEditPL && defaultsState && (
-        <div className="flex shrink-0 border-t border-line">
+        <>
           {defaultsState.error && (
-            <p className="flex flex-1 items-center px-5 py-2.5 text-[12px] text-red-400">
+            <p className="shrink-0 border-t border-line px-5 py-2 text-[12px] text-red-400">
               {defaultsState.error}
             </p>
           )}
-          <button
-            type="button"
-            onClick={defaultsState.save}
-            disabled={defaultsState.busy || !defaultsState.dirty}
-            className={`${defaultsState.error ? "px-5" : "flex-1"} bg-bg-2 py-2.5 text-[13px] font-medium text-fg-0 hover:bg-bg-3 disabled:opacity-50`}
-          >
-            {defaultsState.busy ? t("perm.saving") : t("perm.saveDefaults")}
-          </button>
-        </div>
+          <div className="flex shrink-0 border-t border-line">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 border-r border-line py-2.5 text-[13px] text-fg-2 hover:bg-bg-2 hover:text-fg-0"
+            >
+              {t("common.cancel")}
+            </button>
+            <button
+              type="button"
+              onClick={defaultsState.save}
+              disabled={defaultsState.busy || !defaultsState.dirty}
+              className="flex-1 bg-bg-2 py-2.5 text-[13px] font-medium text-fg-0 hover:bg-bg-3 disabled:opacity-50"
+            >
+              {defaultsState.busy ? t("perm.saving") : t("perm.saveDefaults")}
+            </button>
+          </div>
+        </>
       )}
-
-      {/* 자기 강등 확인 */}
       {pendingTarget && (
         <div
           className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60"
@@ -982,15 +992,15 @@ function DangerTab({
               <span className="flex min-w-0 flex-1 items-center truncate py-2.5 pl-5 text-[13px] text-fg-1">
                 <span className="truncate">{m.name}</span>
               </span>
-              <div className="flex shrink-0 items-center gap-2 py-2 pr-5">
+              <div className="flex shrink-0 items-stretch">
                 <button
                   type="button"
                   onClick={() => doKick(m.userId)}
                   disabled={!canKick || busy === m.userId}
                   title={t("danger.kick.title")}
-                  className="flex items-center gap-1 rounded-md border border-line px-2 py-1 text-[11px] text-fg-2 hover:bg-bg-2 hover:text-fg-0 disabled:opacity-50"
+                  className="flex items-center gap-1.5 px-3 text-[12px] text-fg-2 hover:bg-bg-2 hover:text-fg-0 disabled:opacity-50"
                 >
-                  <UserMinus className="h-3 w-3" />
+                  <UserMinus className="h-3.5 w-3.5" />
                   {t("danger.kick")}
                 </button>
                 <button
@@ -998,13 +1008,15 @@ function DangerTab({
                   onClick={() => doBan(m.userId)}
                   disabled={!canKick || busy === m.userId}
                   title={t("danger.ban.title")}
-                  className="flex items-center gap-1 rounded-md border border-line px-2 py-1 text-[11px] text-red-400 hover:bg-red-950/30 disabled:opacity-50"
+                  className="flex items-center gap-1.5 px-3 text-[12px] text-red-400 hover:bg-red-950/40 disabled:opacity-50"
                 >
-                  <Ban className="h-3 w-3" />
+                  <Ban className="h-3.5 w-3.5" />
                   {t("danger.ban")}
                 </button>
                 {busy === m.userId && (
-                  <Loader2 className="h-3 w-3 animate-spin text-fg-3" />
+                  <span className="flex items-center pr-3">
+                    <Loader2 className="h-3 w-3 animate-spin text-fg-3" />
+                  </span>
                 )}
               </div>
             </div>
