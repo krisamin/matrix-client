@@ -5,10 +5,10 @@ import {
   ChevronRight,
   FolderPlus,
   Hash,
-  LogOut,
   MessageSquareText,
   PenSquare,
   Plus,
+  Settings,
   ShieldCheck,
   Star,
   X,
@@ -18,6 +18,7 @@ import { NotificationCountType } from "matrix-js-sdk";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { useRooms } from "../hooks/useRooms";
+import { useI18n } from "../lib/i18n";
 import {
   isFavourite,
   isMuted,
@@ -28,6 +29,7 @@ import {
 import { quotePreview } from "../lib/reply";
 import { clearSession } from "../lib/session";
 import { buildRoomTree, type SpaceNode } from "../lib/spaces";
+import { AppSettingsModal } from "./AppSettingsModal";
 import { RoomAvatar } from "./Avatar";
 import { NewDmModal } from "./NewDmModal";
 import { NewRoomModal } from "./NewRoomModal";
@@ -217,6 +219,7 @@ function RoomContextMenu({
   onMute: () => void;
   onClose: () => void;
 }) {
+  const { t } = useI18n();
   useEffect(() => {
     const close = () => onClose();
     const onKey = (e: KeyboardEvent) => {
@@ -247,7 +250,7 @@ function RoomContextMenu({
         <Star
           className={`h-3.5 w-3.5 shrink-0 ${fav ? "fill-amber-400 text-amber-400" : "text-fg-3"}`}
         />
-        {fav ? "즐겨찾기 해제" : "즐겨찾기"}
+        {t(fav ? "sidebar.context.unfavorite" : "sidebar.context.favorite")}
       </button>
       <button
         type="button"
@@ -255,7 +258,7 @@ function RoomContextMenu({
         onClick={onMute}
       >
         <BellOff className="h-3.5 w-3.5 shrink-0 text-fg-3" />
-        {muted ? "알림 켜기" : "알림 끄기"}
+        {t(muted ? "sidebar.context.unmute" : "sidebar.context.mute")}
       </button>
     </div>
   );
@@ -345,7 +348,7 @@ function SectionLabel({
   children,
   count,
 }: {
-  children: string;
+  children: React.ReactNode;
   count?: number;
 }) {
   return (
@@ -369,6 +372,8 @@ export function Sidebar({ client }: { client: MatrixClient }) {
   const [newSpaceOpen, setNewSpaceOpen] = useState(false);
   const [createMenuOpen, setCreateMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [appSettingsOpen, setAppSettingsOpen] = useState(false);
+  const { t } = useI18n();
   const userId = client.getUserId() ?? "";
   const localpart = userId.replace(/^@/, "").split(":")[0];
 
@@ -429,7 +434,7 @@ export function Sidebar({ client }: { client: MatrixClient }) {
           type="button"
           className="flex min-w-0 flex-1 items-center gap-2 self-stretch px-4 text-left hover:bg-bg-2"
           onClick={() => setProfileOpen(true)}
-          title="프로필 편집"
+          title={t("sidebar.action.profile")}
         >
           <span className="truncate font-medium text-fg-0">{localpart}</span>
         </button>
@@ -438,7 +443,7 @@ export function Sidebar({ client }: { client: MatrixClient }) {
             type="button"
             className="flex aspect-square h-full shrink-0 items-center justify-center text-fg-2 hover:bg-bg-2 hover:text-fg-0"
             onClick={() => setCreateMenuOpen((v) => !v)}
-            title="새로 만들기"
+            title={t("sidebar.action.new")}
           >
             <Plus className="h-[15px] w-[15px]" />
           </button>
@@ -460,7 +465,8 @@ export function Sidebar({ client }: { client: MatrixClient }) {
                     setNewDmOpen(true);
                   }}
                 >
-                  <PenSquare className="h-4 w-4 shrink-0 text-fg-3" />새 대화
+                  <PenSquare className="h-4 w-4 shrink-0 text-fg-3" />
+                  {t("sidebar.create.dm")}
                 </button>
                 <button
                   type="button"
@@ -470,7 +476,8 @@ export function Sidebar({ client }: { client: MatrixClient }) {
                     setNewRoomOpen(true);
                   }}
                 >
-                  <Hash className="h-4 w-4 shrink-0 text-fg-3" />새 방
+                  <Hash className="h-4 w-4 shrink-0 text-fg-3" />
+                  {t("sidebar.create.room")}
                 </button>
                 <button
                   type="button"
@@ -480,7 +487,8 @@ export function Sidebar({ client }: { client: MatrixClient }) {
                     setNewSpaceOpen(true);
                   }}
                 >
-                  <FolderPlus className="h-4 w-4 shrink-0 text-fg-3" />새 Space
+                  <FolderPlus className="h-4 w-4 shrink-0 text-fg-3" />
+                  {t("sidebar.create.space")}
                 </button>
               </div>
             </>
@@ -489,10 +497,10 @@ export function Sidebar({ client }: { client: MatrixClient }) {
         <button
           type="button"
           className="flex aspect-square h-full shrink-0 items-center justify-center text-fg-2 hover:bg-bg-2 hover:text-fg-0"
-          onClick={logout}
-          title="로그아웃"
+          onClick={() => setAppSettingsOpen(true)}
+          title={t("sidebar.action.settings")}
         >
-          <LogOut className="h-[15px] w-[15px]" />
+          <Settings className="h-[15px] w-[15px]" />
         </button>
       </div>
 
@@ -500,7 +508,9 @@ export function Sidebar({ client }: { client: MatrixClient }) {
       <nav className="flex-1 select-none overflow-y-auto p-2">
         {invites.length > 0 && (
           <>
-            <SectionLabel count={invites.length}>초대</SectionLabel>
+            <SectionLabel count={invites.length}>
+              {t("sidebar.invites")}
+            </SectionLabel>
             {invites.map((room) => (
               <div key={room.roomId} className="tree-row">
                 <span className="min-w-0 flex-1 truncate text-[13px] text-fg-1">
@@ -511,7 +521,7 @@ export function Sidebar({ client }: { client: MatrixClient }) {
                   className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-fg-2 hover:bg-bg-3 hover:text-emerald-400 disabled:opacity-50"
                   disabled={inviteBusy === room.roomId}
                   onClick={() => acceptInvite(room.roomId)}
-                  title="수락"
+                  title={t("invite.accept")}
                 >
                   <Check className="h-3.5 w-3.5" />
                 </button>
@@ -520,7 +530,7 @@ export function Sidebar({ client }: { client: MatrixClient }) {
                   className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-fg-2 hover:bg-bg-3 hover:text-red-400 disabled:opacity-50"
                   disabled={inviteBusy === room.roomId}
                   onClick={() => rejectInvite(room.roomId)}
-                  title="거절"
+                  title={t("invite.reject")}
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -530,13 +540,17 @@ export function Sidebar({ client }: { client: MatrixClient }) {
         )}
         {tree.dms.length > 0 && (
           <>
-            <SectionLabel count={tree.dms.length}>대화</SectionLabel>
+            <SectionLabel count={tree.dms.length}>
+              {t("sidebar.dms")}
+            </SectionLabel>
             {renderRooms(tree.dms, true)}
           </>
         )}
         {tree.spaces.length > 0 && (
           <>
-            <SectionLabel count={tree.spaces.length}>스페이스</SectionLabel>
+            <SectionLabel count={tree.spaces.length}>
+              {t("sidebar.spaces")}
+            </SectionLabel>
             {tree.spaces.map((node) => (
               <SpaceTreeNode
                 key={node.space.roomId}
@@ -550,13 +564,15 @@ export function Sidebar({ client }: { client: MatrixClient }) {
         )}
         {tree.orphanRooms.length > 0 && (
           <>
-            <SectionLabel count={tree.orphanRooms.length}>방</SectionLabel>
+            <SectionLabel count={tree.orphanRooms.length}>
+              {t("sidebar.rooms")}
+            </SectionLabel>
             {renderRooms(tree.orphanRooms)}
           </>
         )}
         {rooms.length === 0 && invites.length === 0 && (
           <p className="px-3 py-6 text-center text-[12px] text-fg-3">
-            아직 대화가 없어요. 위 + 버튼으로 새 대화를 시작해 보세요.
+            {t("sidebar.empty")}
           </p>
         )}
       </nav>
@@ -613,6 +629,13 @@ export function Sidebar({ client }: { client: MatrixClient }) {
         <ProfileEditModal
           client={client}
           onClose={() => setProfileOpen(false)}
+        />
+      )}
+      {appSettingsOpen && (
+        <AppSettingsModal
+          client={client}
+          onClose={() => setAppSettingsOpen(false)}
+          onLogout={logout}
         />
       )}
     </aside>

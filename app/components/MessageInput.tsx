@@ -1,6 +1,7 @@
 import { Paperclip, SendHorizontal, SmilePlus, X } from "lucide-react";
 import type { MatrixClient, MatrixEvent, Room } from "matrix-js-sdk";
 import { useEffect, useRef, useState } from "react";
+import { useT } from "../lib/i18n";
 import { uploadAndSendFile } from "../lib/media";
 import { type Mention, searchMembers } from "../lib/mention";
 import { quotePreview } from "../lib/reply";
@@ -42,6 +43,7 @@ export function MessageInput({
   /** 지정 시 파일 업로드를 해당 스레드로 전송 */
   threadId?: string;
 }) {
+  const t = useT();
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -247,7 +249,7 @@ export function MessageInput({
             type="button"
             className="shrink-0 rounded p-0.5 hover:text-fg-0"
             onClick={onCancelReply}
-            title="답장 취소"
+            title={t("input.replyCancel")}
           >
             <X className="h-3 w-3" />
           </button>
@@ -329,14 +331,14 @@ export function MessageInput({
           className="flex h-12 w-12 shrink-0 items-center justify-center text-fg-2 hover:bg-bg-2 hover:text-fg-0 disabled:opacity-50"
           disabled={!!uploading}
           onClick={() => fileInputRef.current?.click()}
-          title="파일 첨부"
+          title={t("input.attach")}
         >
           <Paperclip className="h-[15px] w-[15px]" />
         </button>
         <button
           type="button"
           className="flex h-12 w-12 shrink-0 items-center justify-center text-fg-2 hover:bg-bg-2 hover:text-fg-0"
-          title="이모지"
+          title={t("input.emoji")}
           onClick={(e) => {
             // rect는 핸들러 안에서 즉시 읽기 — setState 콜백 시점엔 currentTarget이 null
             const rect = e.currentTarget.getBoundingClientRect();
@@ -349,7 +351,7 @@ export function MessageInput({
           type="submit"
           className="flex h-12 w-12 shrink-0 items-center justify-center text-fg-2 hover:bg-bg-2 hover:text-fg-0 disabled:opacity-50"
           disabled={sending || !draft.trim()}
-          title="전송 (⌘/Ctrl + Enter)"
+          title={t("input.send")}
         >
           <SendHorizontal className="h-[15px] w-[15px]" />
         </button>

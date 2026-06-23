@@ -1,0 +1,96 @@
+import type { ko } from "./ko";
+
+/** English 사전. ko와 키 1:1 매핑. */
+export const en: Record<keyof typeof ko, string> = {
+  "sidebar.invites": "Invites",
+  "sidebar.dms": "Direct",
+  "sidebar.spaces": "Spaces",
+  "sidebar.rooms": "Rooms",
+  "sidebar.empty":
+    "No conversations yet. Start a new one with the + button above.",
+
+  "sidebar.action.new": "Create",
+  "sidebar.action.settings": "Settings",
+  "sidebar.action.logout": "Log out",
+  "sidebar.action.profile": "Edit profile",
+  "sidebar.create.dm": "New direct message",
+  "sidebar.create.room": "New room",
+  "sidebar.create.space": "New Space",
+
+  "sidebar.context.favorite": "Favorite",
+  "sidebar.context.unfavorite": "Remove from favorites",
+  "sidebar.context.mute": "Mute notifications",
+  "sidebar.context.unmute": "Unmute notifications",
+
+  "invite.accept": "Accept",
+  "invite.reject": "Decline",
+
+  "common.cancel": "Cancel",
+  "common.save": "Save",
+  "common.saving": "Saving…",
+  "common.create": "Create",
+  "common.creating": "Creating…",
+  "common.close": "Close",
+  "common.confirm": "Confirm",
+  "common.delete": "Delete",
+  "common.copy": "Copy",
+  "common.copied": "Copied",
+  "common.search": "Search",
+  "common.loading": "Loading…",
+  "common.empty": "No results",
+
+  "message.action.react": "React",
+  "message.action.reply": "Reply",
+  "message.action.thread": "Thread",
+  "message.action.forward": "Forward",
+  "message.action.copyMarkdown": "Copy markdown",
+  "message.action.pin": "Pin",
+  "message.action.unpin": "Unpin",
+  "message.action.edit": "Edit",
+  "message.action.delete": "Delete",
+
+  "input.placeholder.room": "Type a message",
+  "input.placeholder.thread": "Reply in thread",
+  "input.attach": "Attach file",
+  "input.emoji": "Emoji",
+  "input.send": "Send (⌘/Ctrl + Enter)",
+  "input.replyCancel": "Cancel reply",
+
+  "modal.newRoom.title": "Create room",
+  "modal.newSpace.title": "Create Space",
+  "modal.newDm.title": "Start direct message",
+  "modal.forward.title": "Forward message",
+  "modal.profile.title": "Edit profile",
+  "modal.roomSettings.title": "Room settings",
+  "modal.spaceSettings.title": "Space settings",
+  "modal.appSettings.title": "Settings",
+
+  "settings.section.general": "General",
+  "settings.section.account": "Account",
+  "settings.lang": "Display language",
+  "settings.lang.desc": "Defaults to your browser language.",
+  "settings.account.profile": "Edit profile",
+  "settings.account.logout": "Log out",
+
+  "search.placeholder.local": "Search (in loaded messages)…",
+  "search.placeholder.server": "Search (Enter)…",
+  "search.empty": "No results",
+  "search.loadMore": "Load more results",
+  "search.deepenLocal": "Load older messages to search",
+  "search.localCount": "{{hits}} of {{total}} loaded",
+
+  "roomInfo.title": "Room info",
+  "roomInfo.encrypted": "End-to-end encrypted",
+  "roomInfo.notEncrypted": "Not encrypted",
+  "roomInfo.members": "Members",
+  "roomInfo.invite": "Invite",
+  "roomInfo.leave": "Leave room",
+  "roomInfo.leaveConfirm": "Leave this room?",
+  "roomInfo.leaveWarnEncrypted":
+    "In encrypted rooms you may not be able to read previous messages even if you rejoin.",
+  "roomInfo.member.me": "(you)",
+
+  "footer.sync.starting": "starting",
+  "footer.sync.connecting": "connecting",
+  "footer.sync.synced": "synced",
+};

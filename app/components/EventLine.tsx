@@ -21,6 +21,7 @@ import {
   type Room,
 } from "matrix-js-sdk";
 import { memo, useState } from "react";
+import { useT } from "../lib/i18n";
 import { isPinned, togglePin } from "../lib/matrix";
 import { buildMentionContent, mentionsUser } from "../lib/mention";
 import { quotePreview, thumbnailSource } from "../lib/reply";
@@ -97,6 +98,7 @@ const EventLineInner = function EventLine({
   /** 점프 직후 잠깐 강조 */
   highlighted?: boolean;
 }) {
+  const t = useT();
   const [editing, setEditing] = useState(false);
   const [editDraft, setEditDraft] = useState("");
   const [busy, setBusy] = useState(false);
@@ -355,7 +357,7 @@ const EventLineInner = function EventLine({
               const rect = e.currentTarget.getBoundingClientRect();
               setPickerAnchor((v) => (v ? null : rect));
             }}
-            title="리액션"
+            title={t("message.action.react")}
           >
             <SmilePlus className="h-3.5 w-3.5" />
           </button>
@@ -364,7 +366,7 @@ const EventLineInner = function EventLine({
               type="button"
               className={actionBtn}
               onClick={() => onReply(ev)}
-              title="답장"
+              title={t("message.action.reply")}
             >
               <Reply className="h-3.5 w-3.5" />
             </button>
@@ -374,7 +376,7 @@ const EventLineInner = function EventLine({
               type="button"
               className={actionBtn}
               onClick={() => onOpenThread(ev.getId()!)}
-              title="스레드"
+              title={t("message.action.thread")}
             >
               <MessageSquarePlus className="h-3.5 w-3.5" />
             </button>
@@ -384,7 +386,7 @@ const EventLineInner = function EventLine({
               type="button"
               className={actionBtn}
               onClick={() => setForwarding(true)}
-              title="전달"
+              title={t("message.action.forward")}
             >
               <Forward className="h-3.5 w-3.5" />
             </button>
@@ -393,7 +395,7 @@ const EventLineInner = function EventLine({
             type="button"
             className={actionBtn}
             onClick={copyMarkdown}
-            title={copied ? "복사됨" : "마크다운 원본 복사"}
+            title={t(copied ? "common.copied" : "message.action.copyMarkdown")}
           >
             {copied ? (
               <Check className="h-3.5 w-3.5 text-green-400" />
@@ -406,7 +408,7 @@ const EventLineInner = function EventLine({
               type="button"
               className={actionBtn}
               onClick={pin}
-              title={pinned ? "고정 해제" : "고정"}
+              title={t(pinned ? "message.action.unpin" : "message.action.pin")}
             >
               {pinned ? (
                 <PinOff className="h-3.5 w-3.5" />
@@ -420,7 +422,7 @@ const EventLineInner = function EventLine({
               type="button"
               className={actionBtn}
               onClick={startEdit}
-              title="수정"
+              title={t("message.action.edit")}
             >
               <Pencil className="h-3.5 w-3.5" />
             </button>
@@ -430,7 +432,7 @@ const EventLineInner = function EventLine({
               type="button"
               className={actionBtn}
               onClick={remove}
-              title="삭제"
+              title={t("message.action.delete")}
             >
               <Trash2 className="h-3.5 w-3.5" />
             </button>
