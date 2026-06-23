@@ -1,4 +1,5 @@
 import { MessageSquareDashed } from "lucide-react";
+import { useT } from "../lib/i18n";
 
 export function meta() {
   return [{ title: "matrix-client" }];
@@ -6,10 +7,11 @@ export function meta() {
 
 /** 방 미선택 빈 화면 — 방 목록/초대는 사이드바가 담당 */
 export default function Home() {
+  const t = useT();
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-3 text-fg-3">
       <MessageSquareDashed className="h-8 w-8" strokeWidth={1.25} />
-      <p className="text-[14px]">대화를 선택하세요</p>
+      <p className="text-[14px]">{t("home.empty")}</p>
     </div>
   );
 }

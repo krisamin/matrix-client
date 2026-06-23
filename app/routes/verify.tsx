@@ -15,7 +15,7 @@ import {
 } from "../lib/matrix";
 
 export function meta() {
-  return [{ title: "기기 인증 — matrix-client" }];
+  return [{ title: "Verify — matrix-client" }];
 }
 
 type Step =

@@ -4,7 +4,7 @@ import { useNavigate } from "react-router";
 import { saveSession } from "../lib/session";
 
 export function meta() {
-  return [{ title: "인증 중 — matrix-client" }];
+  return [{ title: "Authenticating — matrix-client" }];
 }
 
 /** MAS scope에서 device id 추출: urn:matrix:org.matrix.msc2967.client:device:XXXX */

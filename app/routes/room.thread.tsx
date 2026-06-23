@@ -15,17 +15,19 @@ import { SearchPane } from "../components/SearchPane";
 import { Timeline, type TimelineHandle } from "../components/Timeline";
 import { useReadReceipt } from "../hooks/useRoomTimeline";
 import { useThreadTimeline } from "../hooks/useThreadTimeline";
+import { useT } from "../lib/i18n";
 import { buildMentionContent, type Mention } from "../lib/mention";
 import { quotePreview } from "../lib/reply";
 import { useRoomContext } from "./room";
 
 export function meta() {
-  return [{ title: "스레드 — matrix-client" }];
+  return [{ title: "Thread — matrix-client" }];
 }
 
 /** 스레드 페인 — 채팅 화면과 100% 동일한 구조 (헤더/타임라인/입력창).
  *  ?full=1이면 풀 화면(부모가 채팅 페인 숨김), 아니면 좌우 분할. */
 export default function ThreadView() {
+  const t = useT();
   const { client, room } = useRoomContext();
   const { roomId, threadId } = useParams<{
     roomId: string;
@@ -83,7 +85,7 @@ export default function ThreadView() {
     <>
       <DropZone
         className={`flex min-w-0 flex-1 flex-col ${full ? "" : "border-l border-line"}`}
-        label="스레드"
+        label={t("page.thread")}
         onFiles={(files) => uploadRef.current?.(files)}
       >
         <PaneHeader

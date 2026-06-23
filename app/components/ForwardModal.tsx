@@ -1,11 +1,12 @@
 import type { MatrixClient, MatrixEvent } from "matrix-js-sdk";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useT } from "../lib/i18n";
 import { forwardEvent } from "../lib/matrix";
 import { quotePreview } from "../lib/reply";
 import { RoomAvatar } from "./Avatar";
 
-/** 메시지 전달 모달 (B-final 톤). */
+/** {t("modal.forward.title")} 모달 (B-final 톤). */
 export function ForwardModal({
   client,
   event,
@@ -17,6 +18,7 @@ export function ForwardModal({
   onClose: () => void;
   onDone: (roomId: string) => void;
 }) {
+  const t = useT();
   const [term, setTerm] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -72,7 +74,9 @@ export function ForwardModal({
         role="presentation"
       >
         <header className="flex h-12 items-center border-b border-line px-5">
-          <h2 className="font-semibold text-fg-0">메시지 전달</h2>
+          <h2 className="font-semibold text-fg-0">
+            {t("modal.forward.title")}
+          </h2>
         </header>
         {preview && (
           <p className="truncate border-b border-line bg-bg-2/40 px-5 py-2 text-[12px] text-fg-3">
@@ -80,13 +84,15 @@ export function ForwardModal({
           </p>
         )}
         <label className="flex items-center gap-3 border-b border-line px-5 py-2.5">
-          <span className="w-12 shrink-0 text-[12px] text-fg-3">검색</span>
+          <span className="w-12 shrink-0 text-[12px] text-fg-3">
+            {t("common.search")}
+          </span>
           <input
             ref={inputRef}
             type="text"
             value={term}
             onChange={(e) => setTerm(e.target.value)}
-            placeholder="방 이름"
+            placeholder={t("ph.searchRoom")}
             className="flex-1 bg-transparent text-[13px] text-fg-0 outline-none placeholder:text-fg-3"
           />
         </label>
@@ -109,13 +115,15 @@ export function ForwardModal({
                 {r.name}
               </span>
               {busy === r.roomId && (
-                <span className="text-[12px] text-fg-3">전달 중…</span>
+                <span className="text-[12px] text-fg-3">
+                  {t("forward.sending")}
+                </span>
               )}
             </button>
           ))}
           {rooms.length === 0 && (
             <p className="px-5 py-6 text-center text-[13px] text-fg-3">
-              일치하는 방이 없어
+              {t("forward.empty")}
             </p>
           )}
         </div>

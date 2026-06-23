@@ -7,9 +7,10 @@ import type {
   Visibility,
 } from "matrix-js-sdk";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useT } from "../lib/i18n";
 import { createGroupRoom, getJoinedSpaces } from "../lib/matrix";
 
-/** 새 방 만들기 모달 (B-final 톤 + 고급 옵션 풀셋). */
+/** {t("modal.newRoom.title")} 모달 (B-final 톤 + 고급 옵션 풀셋). */
 export function NewRoomModal({
   client,
   onClose,
@@ -21,6 +22,7 @@ export function NewRoomModal({
   onCreated: (roomId: string) => void;
   defaultSpaceId?: string;
 }) {
+  const t = useT();
   const [name, setName] = useState("");
   const [topic, setTopic] = useState("");
   const [encrypted, setEncrypted] = useState(true);
@@ -101,14 +103,16 @@ export function NewRoomModal({
         role="presentation"
       >
         <header className="flex h-12 items-center border-b border-line px-5">
-          <h2 className="font-semibold text-fg-0">새 방 만들기</h2>
+          <h2 className="font-semibold text-fg-0">
+            {t("modal.newRoom.title")}
+          </h2>
         </header>
         <div className="max-h-[calc(80vh-7rem)] overflow-y-auto">
           <div className="flex flex-col divide-y divide-line">
             {/* 기본 */}
             <label className="flex items-center gap-3 px-5 py-2.5">
               <span className="w-24 shrink-0 text-[12px] text-fg-3">
-                방 이름
+                {t("field.roomName")}
               </span>
               <input
                 ref={inputRef}
@@ -118,12 +122,14 @@ export function NewRoomModal({
                 onKeyDown={(e) => {
                   if (e.key === "Enter") create();
                 }}
-                placeholder="예: 팀 잡담"
+                placeholder={t("ph.roomName")}
                 className="flex-1 bg-transparent text-[13px] text-fg-0 outline-none placeholder:text-fg-3"
               />
             </label>
             <label className="flex items-center gap-3 px-5 py-2.5">
-              <span className="w-24 shrink-0 text-[12px] text-fg-3">주제</span>
+              <span className="w-24 shrink-0 text-[12px] text-fg-3">
+                {t("field.topic")}
+              </span>
               <input
                 type="text"
                 value={topic}
@@ -131,7 +137,7 @@ export function NewRoomModal({
                 onKeyDown={(e) => {
                   if (e.key === "Enter") create();
                 }}
-                placeholder="방 설명 (선택)"
+                placeholder={t("ph.roomDesc")}
                 className="flex-1 bg-transparent text-[13px] text-fg-0 outline-none placeholder:text-fg-3"
               />
             </label>
@@ -145,7 +151,7 @@ export function NewRoomModal({
                   onChange={(e) => setParentSpaceId(e.target.value)}
                   className="flex-1 bg-transparent text-[13px] text-fg-0 outline-none"
                 >
-                  <option value="">없음 (최상위 방)</option>
+                  <option value="">{t("alias.noSpace")}</option>
                   {spaces.map((s) => (
                     <option key={s.roomId} value={s.roomId}>
                       {s.name || s.roomId}
@@ -156,7 +162,7 @@ export function NewRoomModal({
             )}
             <label className="flex cursor-pointer items-center gap-3 px-5 py-2.5">
               <span className="w-24 shrink-0 text-[12px] text-fg-3">
-                암호화
+                {t("field.encryption")}
               </span>
               <input
                 type="checkbox"
@@ -164,9 +170,7 @@ export function NewRoomModal({
                 onChange={(e) => setEncrypted(e.target.checked)}
                 className="accent-fg-1"
               />
-              <span className="text-[13px] text-fg-1">
-                종단간 암호화 (E2EE)
-              </span>
+              <span className="text-[13px] text-fg-1">{t("e2ee.on")}</span>
             </label>
 
             {/* 고급 토글 */}
@@ -180,7 +184,7 @@ export function NewRoomModal({
               ) : (
                 <ChevronRight className="h-3.5 w-3.5" />
               )}
-              고급 설정
+              {t("modal.advanced")}
             </button>
 
             {advancedOpen && (
@@ -188,7 +192,7 @@ export function NewRoomModal({
                 {/* 공개 디렉토리 */}
                 <label className="flex items-center gap-3 px-5 py-2.5">
                   <span className="w-24 shrink-0 text-[12px] text-fg-3">
-                    디렉토리
+                    {t("field.directory")}
                   </span>
                   <select
                     value={visibility}
@@ -197,15 +201,15 @@ export function NewRoomModal({
                     }
                     className="flex-1 bg-transparent text-[13px] text-fg-0 outline-none"
                   >
-                    <option value="private">비공개 (검색 안 됨)</option>
-                    <option value="public">공개 (방 목록에 노출)</option>
+                    <option value="private">{t("vis.privateDesc")}</option>
+                    <option value="public">{t("vis.publicDesc")}</option>
                   </select>
                 </label>
 
                 {/* 별칭 */}
                 <label className="flex items-center gap-3 px-5 py-2.5">
                   <span className="w-24 shrink-0 text-[12px] text-fg-3">
-                    별칭
+                    {t("field.alias")}
                   </span>
                   <div className="flex flex-1 items-center gap-1">
                     <span className="text-[13px] text-fg-3">#</span>
@@ -213,7 +217,7 @@ export function NewRoomModal({
                       type="text"
                       value={aliasLocalpart}
                       onChange={(e) => setAliasLocalpart(e.target.value)}
-                      placeholder="team-chat (선택)"
+                      placeholder={t("ph.aliasRoom")}
                       className="min-w-0 flex-1 bg-transparent text-[13px] text-fg-0 outline-none placeholder:text-fg-3"
                     />
                     {aliasPreview && (
@@ -225,31 +229,31 @@ export function NewRoomModal({
                 </label>
                 {aliasInvalid && (
                   <p className="px-5 py-1.5 text-[11px] text-red-400">
-                    영문/숫자/_-. 만 사용 가능
+                    {t("alias.invalidChars")}
                   </p>
                 )}
 
                 {/* 가입 규칙 */}
                 <label className="flex items-center gap-3 px-5 py-2.5">
                   <span className="w-24 shrink-0 text-[12px] text-fg-3">
-                    가입 방식
+                    {t("field.joinRule")}
                   </span>
                   <select
                     value={joinRule}
                     onChange={(e) => setJoinRule(e.target.value as JoinRule)}
                     className="flex-1 bg-transparent text-[13px] text-fg-0 outline-none"
                   >
-                    <option value="">기본 (초대받은 사람만)</option>
-                    <option value="invite">초대받은 사람만</option>
-                    <option value="public">누구나 (공개 방)</option>
-                    <option value="knock">노크 후 승인</option>
+                    <option value="">{t("join.default")}</option>
+                    <option value="invite">{t("join.invite")}</option>
+                    <option value="public">{t("join.public")}</option>
+                    <option value="knock">{t("join.knock")}</option>
                   </select>
                 </label>
 
                 {/* 게스트 */}
                 <label className="flex items-center gap-3 px-5 py-2.5">
                   <span className="w-24 shrink-0 text-[12px] text-fg-3">
-                    게스트
+                    {t("field.guest")}
                   </span>
                   <select
                     value={guestAccess}
@@ -258,16 +262,16 @@ export function NewRoomModal({
                     }
                     className="flex-1 bg-transparent text-[13px] text-fg-0 outline-none"
                   >
-                    <option value="">기본 (금지)</option>
-                    <option value="forbidden">금지</option>
-                    <option value="can_join">허용</option>
+                    <option value="">{t("guest.default")}</option>
+                    <option value="forbidden">{t("guest.forbidden")}</option>
+                    <option value="can_join">{t("guest.canJoin")}</option>
                   </select>
                 </label>
 
                 {/* 히스토리 */}
                 <label className="flex items-center gap-3 px-5 py-2.5">
                   <span className="w-24 shrink-0 text-[12px] text-fg-3">
-                    이전 메시지
+                    {t("field.history")}
                   </span>
                   <select
                     value={historyVisibility}
@@ -276,11 +280,13 @@ export function NewRoomModal({
                     }
                     className="flex-1 bg-transparent text-[13px] text-fg-0 outline-none"
                   >
-                    <option value="">기본 (참여 후부터)</option>
-                    <option value="invited">초대받은 시점부터</option>
-                    <option value="joined">참여한 시점부터</option>
-                    <option value="shared">공유 시점부터 (모두 가능)</option>
-                    <option value="world_readable">누구나 (게스트 포함)</option>
+                    <option value="">{t("hist.default")}</option>
+                    <option value="invited">{t("hist.invited")}</option>
+                    <option value="joined">{t("hist.joined")}</option>
+                    <option value="shared">{t("hist.shared.full")}</option>
+                    <option value="world_readable">
+                      {t("hist.worldReadableGuest")}
+                    </option>
                   </select>
                 </label>
               </>
@@ -297,7 +303,7 @@ export function NewRoomModal({
             onClick={onClose}
             className="flex-1 border-r border-line py-2.5 text-[13px] text-fg-2 hover:bg-bg-2 hover:text-fg-0"
           >
-            취소
+            {t("common.cancel")}
           </button>
           <button
             type="button"
@@ -305,7 +311,7 @@ export function NewRoomModal({
             disabled={busy || !name.trim() || aliasInvalid}
             className="flex-1 bg-bg-2 py-2.5 text-[13px] font-medium text-fg-0 hover:bg-bg-3 disabled:opacity-50"
           >
-            {busy ? "만드는 중…" : "만들기"}
+            {busy ? t("common.creating") : t("common.create")}
           </button>
         </div>
       </div>

@@ -4,12 +4,14 @@ import {
   registerOidcClient,
 } from "matrix-js-sdk";
 import { useState } from "react";
+import { useT } from "../lib/i18n";
 
 export function meta() {
-  return [{ title: "로그인 — matrix-client" }];
+  return [{ title: "Login — matrix-client" }];
 }
 
 export default function Login() {
+  const t = useT();
   const [homeserver, setHomeserver] = useState("https://matrix.krisam.in");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,7 +56,7 @@ export default function Login() {
   return (
     <main className="flex min-h-screen items-center justify-center">
       <div className="flex w-80 flex-col gap-4">
-        <h1 className="text-2xl font-bold">Matrix 로그인</h1>
+        <h1 className="text-2xl font-bold">{t("login.title")}</h1>
         <input
           className="rounded border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
           value={homeserver}
@@ -66,7 +68,7 @@ export default function Login() {
           disabled={busy}
           onClick={startLogin}
         >
-          {busy ? "이동 중..." : "OIDC로 로그인"}
+          {busy ? t("login.busy") : t("login.action")}
         </button>
         {error && <p className="text-sm text-red-500">{error}</p>}
       </div>

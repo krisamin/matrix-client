@@ -1,6 +1,7 @@
 import { Reply } from "lucide-react";
 import type { MatrixClient, MatrixEvent, Room } from "matrix-js-sdk";
 import { useEffect, useState } from "react";
+import { useT } from "../lib/i18n";
 import { getReplyToId, quotePreview, thumbnailSource } from "../lib/reply";
 import { QuoteThumbnail } from "./QuoteThumbnail";
 
@@ -18,6 +19,7 @@ export function ReplyQuote({
   replyToId: string;
   onClick?: () => void;
 }) {
+  const t = useT();
   const [original, setOriginal] = useState<MatrixEvent | null>(
     () => room.findEventById(replyToId) ?? null,
   );
@@ -49,7 +51,7 @@ export function ReplyQuote({
       type="button"
       onClick={onClick}
       className="mb-1 flex min-h-[22px] max-w-full items-center gap-1.5 rounded-md border-l-2 border-line-strong bg-bg-2 py-0.5 pl-2 pr-2.5 text-[12px] text-fg-2"
-      title="원문으로 이동"
+      title={t("reply.gotoOriginal")}
     >
       <Reply className="h-3 w-3 shrink-0" />
       {original ? (
@@ -62,7 +64,7 @@ export function ReplyQuote({
         </>
       ) : (
         <span className="truncate">
-          {failed ? "원문을 불러올 수 없습니다" : "원문 불러오는 중..."}
+          {failed ? t("reply.failed") : t("reply.loading")}
         </span>
       )}
     </button>

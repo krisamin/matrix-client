@@ -1,5 +1,6 @@
 import { Upload } from "lucide-react";
 import { useRef, useState } from "react";
+import { useT } from "../lib/i18n";
 
 /** 파일 드래그&드롭 영역 — 페인 전체를 감싸고, 파일을 끌고 들어오면
  *  점선 오버레이 표시, 놓으면 onFiles 콜백.
@@ -16,6 +17,7 @@ export function DropZone({
   onFiles: (files: File[]) => void;
   children: React.ReactNode;
 }) {
+  const t = useT();
   const [active, setActive] = useState(false);
   const depth = useRef(0);
 
@@ -62,7 +64,7 @@ export function DropZone({
           <div className="flex h-full w-full flex-col items-center justify-center gap-2.5 rounded-xl border-2 border-dashed border-line-strong">
             <Upload className="h-7 w-7 text-fg-1" />
             <p className="text-[14px] font-medium text-fg-0">
-              파일을 놓아서 업로드
+              {t("drop.hint")}
             </p>
             <p className="font-mono text-[11px] text-fg-2">{label}</p>
           </div>

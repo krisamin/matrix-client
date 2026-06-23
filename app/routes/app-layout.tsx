@@ -4,6 +4,7 @@ import { Link, Outlet, useNavigate, useOutletContext } from "react-router";
 import { ConnectionBanner } from "../components/ConnectionBanner";
 import { Lightbox } from "../components/Lightbox";
 import { Sidebar } from "../components/Sidebar";
+import { useT } from "../lib/i18n";
 import { ensureStarted, getReadyClient } from "../lib/matrix";
 import {
   attachNotifications,
@@ -24,6 +25,7 @@ export function useAppContext(): AppContext {
  *  세션 없으면 /login으로. 클라이언트는 여기서 한 번만 준비하고
  *  자식 라우트(home/room/thread)는 context로 받아 씀. */
 export default function AppLayout() {
+  const t = useT();
   const navigate = useNavigate();
   const [client, setClient] = useState<MatrixClient | null>(null);
   const [verified, setVerified] = useState<boolean | null>(null);
@@ -85,16 +87,15 @@ export default function AppLayout() {
         <ConnectionBanner client={client} />
         {verified === false && (
           <div className="flex h-8 shrink-0 items-center justify-center gap-2 border-b border-line bg-bg-2 text-[12px] text-fg-1">
-            이 기기가 아직 인증되지 않았습니다. 암호화된 메시지를 읽으려면 기기
-            인증이 필요합니다.
+            {t("verify.bannerText")}
             <Link to="/verify" className="font-medium text-fg-0 underline">
-              기기 인증
+              {t("verify.action")}
             </Link>
           </div>
         )}
         {notifPerm === "default" && (
           <div className="flex h-8 shrink-0 items-center justify-center gap-2 border-b border-line bg-bg-2 text-[12px] text-fg-1">
-            데스크톱 알림이 꺼져 있습니다.
+            {t("notif.bannerText")}
             <button
               type="button"
               className="font-medium text-fg-0 underline"
@@ -103,7 +104,7 @@ export default function AppLayout() {
                 setNotifPerm(notificationPermission());
               }}
             >
-              알림 켜기
+              {t("notif.action")}
             </button>
           </div>
         )}

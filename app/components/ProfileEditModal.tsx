@@ -1,10 +1,11 @@
 import { Loader2, Upload } from "lucide-react";
 import type { MatrixClient } from "matrix-js-sdk";
 import { useEffect, useRef, useState } from "react";
+import { useT } from "../lib/i18n";
 import { getMyProfile, setMyAvatar, setMyDisplayName } from "../lib/matrix";
 import { Avatar } from "./Avatar";
 
-/** 내 프로필 편집 모달 (B-final 톤). */
+/** 내 {t("modal.profile.title")} 모달 (B-final 톤). */
 export function ProfileEditModal({
   client,
   onClose,
@@ -12,6 +13,7 @@ export function ProfileEditModal({
   client: MatrixClient;
   onClose: () => void;
 }) {
+  const t = useT();
   const userId = client.getUserId() ?? "";
   const [name, setName] = useState("");
   const [initialName, setInitialName] = useState("");
@@ -60,7 +62,7 @@ export function ProfileEditModal({
     const f = e.target.files?.[0];
     if (!f) return;
     if (!f.type.startsWith("image/")) {
-      setError("이미지 파일만 가능해");
+      setError(t("profile.imageOnly"));
       return;
     }
     setError(null);
@@ -104,7 +106,9 @@ export function ProfileEditModal({
         role="presentation"
       >
         <header className="flex h-12 items-center border-b border-line pl-5">
-          <h2 className="font-semibold text-fg-0">프로필 편집</h2>
+          <h2 className="font-semibold text-fg-0">
+            {t("modal.profile.title")}
+          </h2>
         </header>
         {loading ? (
           <div className="flex items-center justify-center py-12 text-fg-3">
@@ -118,12 +122,12 @@ export function ProfileEditModal({
                 type="button"
                 className="group relative rounded-full"
                 onClick={() => fileRef.current?.click()}
-                title="아바타 변경"
+                title={t("profile.changeAvatar")}
               >
                 {previewUrl ? (
                   <img
                     src={previewUrl}
-                    alt="새 아바타 미리보기"
+                    alt={t("profile.changeAvatar")}
                     className="h-20 w-20 rounded-full object-cover"
                   />
                 ) : (
@@ -153,7 +157,7 @@ export function ProfileEditModal({
             <div className="flex flex-col divide-y divide-line">
               <label className="flex items-center gap-3 px-5 py-2.5">
                 <span className="w-24 shrink-0 text-[12px] text-fg-3">
-                  표시 이름
+                  {t("field.displayName")}
                 </span>
                 <input
                   type="text"
@@ -175,7 +179,7 @@ export function ProfileEditModal({
                 onClick={onClose}
                 className="flex-1 border-r border-line py-2.5 text-[13px] text-fg-2 hover:bg-bg-2 hover:text-fg-0"
               >
-                취소
+                {t("common.cancel")}
               </button>
               <button
                 type="button"
@@ -183,7 +187,7 @@ export function ProfileEditModal({
                 onClick={save}
                 className="flex-1 bg-bg-2 py-2.5 text-[13px] font-medium text-fg-0 hover:bg-bg-3 disabled:opacity-50"
               >
-                {busy ? "저장 중…" : "저장"}
+                {busy ? t("common.saving") : t("common.save")}
               </button>
             </div>
           </>

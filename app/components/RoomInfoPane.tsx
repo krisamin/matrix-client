@@ -13,6 +13,7 @@ import type { MatrixClient, Room, RoomMember } from "matrix-js-sdk";
 import { RoomMemberEvent, RoomStateEvent } from "matrix-js-sdk";
 import { useEffect, useMemo, useState } from "react";
 import { looksLikeUserId, useUserSearch } from "../hooks/useUserSearch";
+import { useT } from "../lib/i18n";
 import { getDmUserId } from "../lib/matrix";
 import { Avatar, RoomAvatar } from "./Avatar";
 import { PaneHeader, PaneHeaderButton } from "./PaneHeader";
@@ -75,6 +76,7 @@ export function RoomInfoPane({
   /** 방을 나간 뒤 호출 (라우팅은 호출부 책임) */
   onLeft: () => void;
 }) {
+  const t = useT();
   const [, force] = useState(0);
   const [copied, setCopied] = useState(false);
   // 초대 폼 상태
@@ -366,7 +368,7 @@ export function RoomInfoPane({
                   disabled={leaveBusy}
                   onClick={() => setLeaveArmed(false)}
                 >
-                  취소
+                  {t("common.cancel")}
                 </button>
                 <button
                   type="button"

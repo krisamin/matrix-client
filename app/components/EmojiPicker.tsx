@@ -2,6 +2,7 @@ import { Clock3, Search } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import emojiData from "unicode-emoji-json/data-by-group.json";
+import { useT } from "../lib/i18n";
 
 /** 리액션/입력에서 공용으로 쓰는 빠른 후보 — 최근 사용 기록이 없을 때 폴백 */
 export const QUICK_REACTIONS = ["👍", "❤️", "😂", "🎉", "😮", "👀"];
@@ -20,15 +21,15 @@ interface EmojiGroup {
 const GROUPS = emojiData as EmojiGroup[];
 
 const GROUP_META: Record<string, { label: string; icon: string }> = {
-  smileys_emotion: { label: "표정", icon: "😀" },
-  people_body: { label: "사람", icon: "👋" },
-  animals_nature: { label: "자연", icon: "🐻" },
-  food_drink: { label: "음식", icon: "🍔" },
-  travel_places: { label: "여행", icon: "✈️" },
-  activities: { label: "활동", icon: "⚽" },
-  objects: { label: "사물", icon: "💡" },
-  symbols: { label: "기호", icon: "🔣" },
-  flags: { label: "깃발", icon: "🚩" },
+  smileys_emotion: { label: "Smileys", icon: "😀" },
+  people_body: { label: "People", icon: "👋" },
+  animals_nature: { label: "Nature", icon: "🐻" },
+  food_drink: { label: "Food", icon: "🍔" },
+  travel_places: { label: "Travel", icon: "✈️" },
+  activities: { label: "Activities", icon: "⚽" },
+  objects: { label: "Objects", icon: "💡" },
+  symbols: { label: "Symbols", icon: "🔣" },
+  flags: { label: "Flags", icon: "🚩" },
 };
 
 /* ── 최근 사용 (localStorage) ── */
@@ -74,6 +75,7 @@ export function EmojiPicker({
   onPick: (emoji: string) => void;
   onClose: () => void;
 }) {
+  const t = useT();
   const [query, setQuery] = useState("");
   // 열려 있는 동안엔 고정 (픽 직후 목록이 출렁이지 않게)
   const [recents] = useState(loadRecents);
@@ -146,7 +148,7 @@ export function EmojiPicker({
           <Search className="h-3.5 w-3.5 shrink-0 text-fg-3" />
           <input
             className="min-w-0 flex-1 bg-transparent text-[13px] text-fg-0 outline-none placeholder:text-fg-3"
-            placeholder="이모지 검색 (영문)"
+            placeholder={t("emoji.search")}
             value={query}
             autoFocus
             onChange={(e) => setQuery(e.target.value)}
@@ -158,7 +160,7 @@ export function EmojiPicker({
           <button
             type="button"
             className="flex h-7 w-7 items-center justify-center rounded-md text-fg-2 hover:bg-bg-2 hover:text-fg-0"
-            title={recents.length > 0 ? "최근 사용" : "자주 사용"}
+            title={t(recents.length > 0 ? "emoji.recent" : "emoji.favorites")}
             onClick={() => jumpTo("recent")}
           >
             <Clock3 className="h-3.5 w-3.5" />
@@ -183,7 +185,7 @@ export function EmojiPicker({
           {results ? (
             results.length === 0 ? (
               <p className="px-1 py-4 text-center text-[12px] text-fg-3">
-                검색 결과 없음
+                {t("emoji.empty")}
               </p>
             ) : (
               <div className="grid grid-cols-8 gap-0.5 pt-2">
@@ -208,7 +210,7 @@ export function EmojiPicker({
                 }}
               >
                 <p className="sticky top-0 bg-bg-1 px-1 pb-1 pt-2 text-[11px] font-medium text-fg-2">
-                  {recents.length > 0 ? "최근 사용" : "자주 사용"}
+                  {t(recents.length > 0 ? "emoji.recent" : "emoji.favorites")}
                 </p>
                 <div className="grid grid-cols-8 gap-0.5">
                   {recentList.map((emoji) => (

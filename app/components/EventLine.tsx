@@ -506,7 +506,7 @@ const EventLineInner = function EventLine({
               className="font-medium text-fg-0 hover:underline"
               disabled={busy}
             >
-              저장
+              {t("common.save")}
             </button>
             <button
               type="button"

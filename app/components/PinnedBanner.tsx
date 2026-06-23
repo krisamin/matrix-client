@@ -2,6 +2,7 @@ import { Pin, X } from "lucide-react";
 import type { MatrixClient, Room } from "matrix-js-sdk";
 import { RoomStateEvent } from "matrix-js-sdk";
 import { useEffect, useState } from "react";
+import { useT } from "../lib/i18n";
 import { getPinnedEventIds, quotePreviewById, togglePin } from "../lib/matrix";
 
 /** 고정 메시지 배너 — 방 헤더 아래에 고정된 메시지 미리보기.
@@ -17,6 +18,7 @@ export function PinnedBanner({
   room: Room;
   onJumpTo: (eventId: string) => void;
 }) {
+  const t = useT();
   const [, force] = useState(0);
   const [idx, setIdx] = useState(0);
 
@@ -60,7 +62,7 @@ export function PinnedBanner({
           onJumpTo(currentId);
           if (pinnedIds.length > 1) setIdx((i) => (i + 1) % pinnedIds.length);
         }}
-        title="고정 메시지로 이동"
+        title={t("pinned.gotoMessage")}
       >
         {pinnedIds.length > 1 && (
           <span className="shrink-0 font-mono text-[11px] text-fg-3">
@@ -68,7 +70,7 @@ export function PinnedBanner({
           </span>
         )}
         <span className="min-w-0 flex-1 truncate text-[13px] text-fg-1">
-          {preview || "고정된 메시지"}
+          {preview || t("pinned.banner")}
         </span>
       </button>
       {canUnpin && (
@@ -76,7 +78,7 @@ export function PinnedBanner({
           type="button"
           className="shrink-0 rounded p-1 text-fg-3 hover:bg-bg-2 hover:text-fg-1"
           onClick={unpin}
-          title="고정 해제"
+          title={t("pinned.removePin")}
         >
           <X className="h-3.5 w-3.5" />
         </button>

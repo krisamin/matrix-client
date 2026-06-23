@@ -8,6 +8,7 @@ import type {
   Visibility,
 } from "matrix-js-sdk";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useT } from "../lib/i18n";
 import {
   banMember,
   canSendStateEvent,
@@ -46,6 +47,7 @@ export function RoomSettingsModal({
   room: Room;
   onClose: () => void;
 }) {
+  const _t = useT();
   const [tab, setTab] = useState<Tab>("general");
   const isSpace = room.isSpaceRoom();
 
@@ -144,6 +146,7 @@ function Row({
   children: React.ReactNode;
   description?: string;
 }) {
+  // Row는 t 필요 없음
   return (
     <div className="flex flex-col gap-1 px-5 py-2.5">
       <div className="flex items-center gap-3">
@@ -170,6 +173,7 @@ function Footer({
   onSave: () => void;
   saveLabel?: string;
 }) {
+  const t = useT();
   return (
     <div className="flex border-t border-line">
       <button
@@ -177,7 +181,7 @@ function Footer({
         onClick={onCancel}
         className="flex-1 border-r border-line py-2.5 text-[13px] text-fg-2 hover:bg-bg-2 hover:text-fg-0"
       >
-        취소
+        {t("common.cancel")}
       </button>
       <button
         type="button"
@@ -202,6 +206,7 @@ function GeneralTab({
   room: Room;
   onClose: () => void;
 }) {
+  const _t = useT();
   const initialName = room.name;
   const initialTopic =
     room.currentState.getStateEvents("m.room.topic", "")?.getContent().topic ??
@@ -351,6 +356,7 @@ function AccessTab({
   room: Room;
   onClose: () => void;
 }) {
+  const _t = useT();
   const myDomain = (client.getUserId() ?? "").split(":")[1] ?? "";
 
   // 현재 값 추출
@@ -546,6 +552,7 @@ function PermissionsTab({
   client: MatrixClient;
   room: Room;
 }) {
+  const t = useT();
   const myUserId = client.getUserId() ?? "";
   const [, force] = useState(0);
   const refresh = () => force((n) => n + 1);
@@ -692,7 +699,7 @@ function PermissionsTab({
                 onClick={() => setPendingTarget(null)}
                 className="flex-1 border-r border-line py-2.5 text-[13px] text-fg-2 hover:bg-bg-2 hover:text-fg-0"
               >
-                취소
+                {t("common.cancel")}
               </button>
               <button
                 type="button"
@@ -723,6 +730,7 @@ function DefaultPLEditor({
   pls: ReturnType<typeof getRoomPowerLevels>;
   canEdit: boolean;
 }) {
+  const _t = useT();
   const myUserId = client.getUserId() ?? "";
   const myLevel = pls.users[myUserId] ?? pls.users_default;
   const [busy, setBusy] = useState(false);
@@ -844,6 +852,7 @@ function DangerTab({
   room: Room;
   onClose: () => void;
 }) {
+  const t = useT();
   const myUserId = client.getUserId() ?? "";
   const [, force] = useState(0);
   const [busy, setBusy] = useState<string | null>(null);
@@ -973,7 +982,7 @@ function DangerTab({
           onClick={onClose}
           className="flex-1 py-2.5 text-[13px] text-fg-2 hover:bg-bg-2 hover:text-fg-0"
         >
-          닫기
+          {t("common.close")}
         </button>
       </div>
     </>

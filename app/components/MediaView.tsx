@@ -1,5 +1,6 @@
 import { type MatrixClient, type MatrixEvent, MsgType } from "matrix-js-sdk";
 import { useEffect, useState } from "react";
+import { useT } from "../lib/i18n";
 import { getMediaBlobUrl, type MediaSource } from "../lib/media";
 import { openLightbox, registerLightboxImage } from "./Lightbox";
 
@@ -11,6 +12,7 @@ export function MediaView({
   client: MatrixClient;
   ev: MatrixEvent;
 }) {
+  const t = useT();
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const content = ev.getContent();
@@ -26,7 +28,7 @@ export function MediaView({
     };
     const promise = getMediaBlobUrl(client, source);
     if (!promise) {
-      setError("미디어 URL 없음");
+      setError(t("media.notFound"));
       return;
     }
     let alive = true;
@@ -38,7 +40,7 @@ export function MediaView({
     return () => {
       alive = false;
     };
-  }, [client, ev]);
+  }, [client, ev, t]);
 
   // 이미지면 라이트박스 ←/→ 내비게이션 목록에 등록 (타임라인 마운트 동안)
   useEffect(() => {
@@ -47,13 +49,13 @@ export function MediaView({
       key: ev.getId() ?? blobUrl,
       ts: ev.getTs(),
       url: blobUrl,
-      name: (ev.getContent().body as string) ?? "이미지",
+      name: (ev.getContent().body as string) ?? t("media.imageAlt"),
     });
-  }, [msgtype, blobUrl, ev]);
+  }, [msgtype, blobUrl, ev, t]);
 
   if (error) return <span className="text-[12px] text-red-400">⚠ {error}</span>;
   if (!blobUrl)
-    return <span className="text-[12px] text-fg-3">미디어 불러오는 중...</span>;
+    return <span className="text-[12px] text-fg-3">{t("media.loading")}</span>;
 
   switch (msgtype) {
     case MsgType.Image:

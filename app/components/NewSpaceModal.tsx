@@ -6,9 +6,10 @@ import type {
   Visibility,
 } from "matrix-js-sdk";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useT } from "../lib/i18n";
 import { createSpace, getJoinedSpaces } from "../lib/matrix";
 
-/** 새 Space 만들기 모달 (B-final 톤 + 고급 옵션). */
+/** {t("modal.newSpace.title")} 모달 (B-final 톤 + 고급 옵션). */
 export function NewSpaceModal({
   client,
   onClose,
@@ -20,6 +21,7 @@ export function NewSpaceModal({
   onCreated: (spaceId: string) => void;
   defaultSpaceId?: string;
 }) {
+  const t = useT();
   const [name, setName] = useState("");
   const [topic, setTopic] = useState("");
   const [parentSpaceId, setParentSpaceId] = useState(defaultSpaceId ?? "");
@@ -92,15 +94,19 @@ export function NewSpaceModal({
         role="presentation"
       >
         <header className="flex h-12 items-center border-b border-line px-5">
-          <h2 className="font-semibold text-fg-0">새 Space 만들기</h2>
+          <h2 className="font-semibold text-fg-0">
+            {t("modal.newSpace.title")}
+          </h2>
         </header>
         <p className="border-b border-line bg-bg-2/40 px-5 py-2 text-[12px] text-fg-3">
-          Space는 방을 묶는 폴더예요. 메시지는 주고받지 않아요.
+          {t("modal.spaceFolder")}
         </p>
         <div className="max-h-[calc(80vh-9rem)] overflow-y-auto">
           <div className="flex flex-col divide-y divide-line">
             <label className="flex items-center gap-3 px-5 py-2.5">
-              <span className="w-24 shrink-0 text-[12px] text-fg-3">이름</span>
+              <span className="w-24 shrink-0 text-[12px] text-fg-3">
+                {t("field.spaceName")}
+              </span>
               <input
                 ref={inputRef}
                 type="text"
@@ -109,12 +115,14 @@ export function NewSpaceModal({
                 onKeyDown={(e) => {
                   if (e.key === "Enter") create();
                 }}
-                placeholder="예: 업무"
+                placeholder={t("ph.spaceName")}
                 className="flex-1 bg-transparent text-[13px] text-fg-0 outline-none placeholder:text-fg-3"
               />
             </label>
             <label className="flex items-center gap-3 px-5 py-2.5">
-              <span className="w-24 shrink-0 text-[12px] text-fg-3">설명</span>
+              <span className="w-24 shrink-0 text-[12px] text-fg-3">
+                {t("field.description")}
+              </span>
               <input
                 type="text"
                 value={topic}
@@ -122,21 +130,21 @@ export function NewSpaceModal({
                 onKeyDown={(e) => {
                   if (e.key === "Enter") create();
                 }}
-                placeholder="Space 설명 (선택)"
+                placeholder={t("ph.spaceDesc")}
                 className="flex-1 bg-transparent text-[13px] text-fg-0 outline-none placeholder:text-fg-3"
               />
             </label>
             {spaces.length > 0 && (
               <label className="flex items-center gap-3 px-5 py-2.5">
                 <span className="w-24 shrink-0 text-[12px] text-fg-3">
-                  상위 Space
+                  {t("field.parentSpace")}
                 </span>
                 <select
                   value={parentSpaceId}
                   onChange={(e) => setParentSpaceId(e.target.value)}
                   className="flex-1 bg-transparent text-[13px] text-fg-0 outline-none"
                 >
-                  <option value="">없음 (최상위 Space)</option>
+                  <option value="">{t("alias.noSpaceForSpace")}</option>
                   {spaces.map((s) => (
                     <option key={s.roomId} value={s.roomId}>
                       {s.name || s.roomId}
@@ -156,14 +164,14 @@ export function NewSpaceModal({
               ) : (
                 <ChevronRight className="h-3.5 w-3.5" />
               )}
-              고급 설정
+              {t("modal.advanced")}
             </button>
 
             {advancedOpen && (
               <>
                 <label className="flex items-center gap-3 px-5 py-2.5">
                   <span className="w-24 shrink-0 text-[12px] text-fg-3">
-                    디렉토리
+                    {t("field.directory")}
                   </span>
                   <select
                     value={visibility}
@@ -172,13 +180,13 @@ export function NewSpaceModal({
                     }
                     className="flex-1 bg-transparent text-[13px] text-fg-0 outline-none"
                   >
-                    <option value="private">비공개</option>
-                    <option value="public">공개 (목록에 노출)</option>
+                    <option value="private">{t("vis.private")}</option>
+                    <option value="public">{t("vis.publicSpaceDesc")}</option>
                   </select>
                 </label>
                 <label className="flex items-center gap-3 px-5 py-2.5">
                   <span className="w-24 shrink-0 text-[12px] text-fg-3">
-                    별칭
+                    {t("field.alias")}
                   </span>
                   <div className="flex flex-1 items-center gap-1">
                     <span className="text-[13px] text-fg-3">#</span>
@@ -186,7 +194,7 @@ export function NewSpaceModal({
                       type="text"
                       value={aliasLocalpart}
                       onChange={(e) => setAliasLocalpart(e.target.value)}
-                      placeholder="work-space (선택)"
+                      placeholder={t("ph.aliasSpace")}
                       className="min-w-0 flex-1 bg-transparent text-[13px] text-fg-0 outline-none placeholder:text-fg-3"
                     />
                     {aliasPreview && (
@@ -198,27 +206,27 @@ export function NewSpaceModal({
                 </label>
                 {aliasInvalid && (
                   <p className="px-5 py-1.5 text-[11px] text-red-400">
-                    영문/숫자/_-. 만 사용 가능
+                    {t("alias.invalidChars")}
                   </p>
                 )}
                 <label className="flex items-center gap-3 px-5 py-2.5">
                   <span className="w-24 shrink-0 text-[12px] text-fg-3">
-                    가입 방식
+                    {t("field.joinRule")}
                   </span>
                   <select
                     value={joinRule}
                     onChange={(e) => setJoinRule(e.target.value as JoinRule)}
                     className="flex-1 bg-transparent text-[13px] text-fg-0 outline-none"
                   >
-                    <option value="">기본 (초대받은 사람만)</option>
-                    <option value="invite">초대받은 사람만</option>
-                    <option value="public">누구나</option>
-                    <option value="knock">노크 후 승인</option>
+                    <option value="">{t("join.default")}</option>
+                    <option value="invite">{t("join.invite")}</option>
+                    <option value="public">{t("join.public")}</option>
+                    <option value="knock">{t("join.knock")}</option>
                   </select>
                 </label>
                 <label className="flex items-center gap-3 px-5 py-2.5">
                   <span className="w-24 shrink-0 text-[12px] text-fg-3">
-                    이전 정보
+                    {t("field.priorInfo")}
                   </span>
                   <select
                     value={historyVisibility}
@@ -227,11 +235,13 @@ export function NewSpaceModal({
                     }
                     className="flex-1 bg-transparent text-[13px] text-fg-0 outline-none"
                   >
-                    <option value="">기본</option>
-                    <option value="invited">초대받은 시점부터</option>
-                    <option value="joined">참여한 시점부터</option>
-                    <option value="shared">공유 시점부터</option>
-                    <option value="world_readable">누구나</option>
+                    <option value="">{t("hist.spaceDefault")}</option>
+                    <option value="invited">{t("hist.invited")}</option>
+                    <option value="joined">{t("hist.joined")}</option>
+                    <option value="shared">{t("hist.shared")}</option>
+                    <option value="world_readable">
+                      {t("hist.worldReadable")}
+                    </option>
                   </select>
                 </label>
               </>
@@ -248,7 +258,7 @@ export function NewSpaceModal({
             onClick={onClose}
             className="flex-1 border-r border-line py-2.5 text-[13px] text-fg-2 hover:bg-bg-2 hover:text-fg-0"
           >
-            취소
+            {t("common.cancel")}
           </button>
           <button
             type="button"
@@ -256,7 +266,7 @@ export function NewSpaceModal({
             disabled={busy || !name.trim() || aliasInvalid}
             className="flex-1 bg-bg-2 py-2.5 text-[13px] font-medium text-fg-0 hover:bg-bg-3 disabled:opacity-50"
           >
-            {busy ? "만드는 중…" : "만들기"}
+            {busy ? t("common.creating") : t("common.create")}
           </button>
         </div>
       </div>

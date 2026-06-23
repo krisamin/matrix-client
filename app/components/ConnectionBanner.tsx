@@ -1,5 +1,6 @@
 import { ClientEvent, type MatrixClient, SyncState } from "matrix-js-sdk";
 import { useEffect, useState } from "react";
+import { useT } from "../lib/i18n";
 
 /** sync 상태 추적 훅 — 오프라인/재연결 배너용 */
 export function useSyncState(client: MatrixClient | null): SyncState | null {
@@ -20,6 +21,7 @@ export function useSyncState(client: MatrixClient | null): SyncState | null {
 
 /** 연결 끊김/재연결 배너. 정상(Syncing/Prepared)일 땐 안 보임 */
 export function ConnectionBanner({ client }: { client: MatrixClient | null }) {
+  const t = useT();
   const state = useSyncState(client);
   const [reconnecting, setReconnecting] = useState(false);
 
@@ -28,11 +30,11 @@ export function ConnectionBanner({ client }: { client: MatrixClient | null }) {
 
   const isError = state === SyncState.Error;
   const label = isError
-    ? "연결 끊김 — 재연결 시도 중..."
+    ? t("connection.disconnected")
     : state === SyncState.Reconnecting
-      ? "재연결 중..."
+      ? t("connection.reconnecting")
       : state === SyncState.Catchup
-        ? "밀린 메시지 동기화 중..."
+        ? t("connection.catchingUp")
         : "동기화 중...";
 
   return (

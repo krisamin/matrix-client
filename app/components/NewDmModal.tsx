@@ -1,6 +1,7 @@
 import type { MatrixClient } from "matrix-js-sdk";
 import { useEffect, useRef, useState } from "react";
 import { looksLikeUserId, useUserSearch } from "../hooks/useUserSearch";
+import { useT } from "../lib/i18n";
 import { startDirectMessage } from "../lib/matrix";
 import { UserResultRow } from "./UserResultRow";
 
@@ -14,6 +15,7 @@ export function NewDmModal({
   onClose: () => void;
   onStarted: (roomId: string) => void;
 }) {
+  const t = useT();
   const [term, setTerm] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -63,16 +65,18 @@ export function NewDmModal({
         role="presentation"
       >
         <header className="flex h-12 items-center border-b border-line px-5">
-          <h2 className="font-semibold text-fg-0">새 대화 시작</h2>
+          <h2 className="font-semibold text-fg-0">{t("modal.newDm.title")}</h2>
         </header>
         <label className="flex items-center gap-3 border-b border-line px-5 py-2.5">
-          <span className="w-12 shrink-0 text-[12px] text-fg-3">검색</span>
+          <span className="w-12 shrink-0 text-[12px] text-fg-3">
+            {t("common.search")}
+          </span>
           <input
             ref={inputRef}
             type="text"
             value={term}
             onChange={(e) => setTerm(e.target.value)}
-            placeholder="이름 또는 @user:server"
+            placeholder={t("ph.searchUser")}
             className="flex-1 bg-transparent text-[13px] text-fg-0 outline-none placeholder:text-fg-3"
           />
         </label>
@@ -108,17 +112,17 @@ export function NewDmModal({
             results.length === 0 &&
             trimmed.length > 0 && (
               <p className="px-5 py-6 text-center text-[13px] text-fg-3">
-                결과 없음. @user:server 형태로 직접 입력 가능
+                {t("newDm.empty")}
               </p>
             )}
           {searching && (
             <p className="px-5 py-6 text-center text-[13px] text-fg-3">
-              검색 중…
+              {t("newDm.searching")}
             </p>
           )}
           {trimmed.length === 0 && (
             <p className="px-5 py-6 text-center text-[13px] text-fg-3">
-              이름이나 MXID를 입력해줘
+              {t("newDm.enterName")}
             </p>
           )}
         </div>
