@@ -81,12 +81,17 @@ export function TextInput({
 }) {
   // disabled일 때 컨테이너에도 opacity 적용 — prefix/suffix까지 흐려지도록
   const disabledCls = disabled ? "opacity-50" : "";
+  // input padding: prefix/suffix와 붙은 쪽은 좁게(pl-1.5/pr-1.5), 없는 쪽은
+  // 일반 인셋(pl-3/pr-5). 결과: input 자체가 row의 인풋 영역을 꽉 채워
+  // input box 어디 클릭해도 포커스 (마로 요청 — 클릭영역이 input 자체).
+  const inputPadX = `${prefix !== undefined ? "pl-1.5" : "pl-3"} ${suffix !== undefined ? "pr-1.5" : "pr-5"}`;
+  const inputAlign = align === "right" ? "text-right font-mono" : "";
   return (
-    <span
-      className={`flex flex-1 items-center gap-1.5 py-2.5 pl-3 pr-5 text-[13px] ${disabledCls}`}
-    >
+    <span className={`flex flex-1 items-stretch text-[13px] ${disabledCls}`}>
       {prefix !== undefined && (
-        <span className="shrink-0 text-fg-3">{prefix}</span>
+        <span className="flex shrink-0 items-center py-2.5 pl-3 text-fg-3">
+          {prefix}
+        </span>
       )}
       <input
         ref={ref}
@@ -97,10 +102,10 @@ export function TextInput({
         placeholder={placeholder}
         onKeyDown={onKeyDown}
         autoFocus={autoFocus}
-        className={`min-w-0 ${width ?? "flex-1"} bg-transparent ${align === "right" ? "text-right font-mono" : ""} text-fg-0 outline-none placeholder:text-fg-3`}
+        className={`min-w-0 ${width ?? "flex-1"} bg-transparent py-2.5 ${inputPadX} ${inputAlign} text-fg-0 outline-none placeholder:text-fg-3`}
       />
       {suffix !== undefined && (
-        <span className="shrink-0 truncate text-[11px] text-fg-3">
+        <span className="flex shrink-0 items-center truncate py-2.5 pr-5 text-[11px] text-fg-3">
           {suffix}
         </span>
       )}
