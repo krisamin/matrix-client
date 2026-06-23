@@ -54,12 +54,19 @@ export function AppSettingsModal({
             <button
               type="button"
               onClick={() => setProfileOpen(true)}
-              className="flex w-full items-center gap-3 px-5 py-3 text-left text-[13px] text-fg-1 hover:bg-bg-2 hover:text-fg-0"
+              className="flex w-full items-stretch text-left hover:bg-bg-2"
             >
-              <UserCog className="h-4 w-4 shrink-0 text-fg-3" />
-              <span className="flex-1">{t("settings.account.profile")}</span>
-              <span className="font-mono text-[11px] text-fg-3">
-                {client.getUserId()}
+              <span className="flex w-24 shrink-0 items-center pl-5 text-[12px] text-fg-3">
+                {t("settings.account.profile")}
+              </span>
+              <span className="flex flex-1 items-center gap-1.5 py-2.5 pl-3 pr-5 text-[13px] text-fg-1">
+                <UserCog className="h-3.5 w-3.5 shrink-0 text-fg-3" />
+                <span className="flex-1 truncate">
+                  {t("settings.account.editProfile")}
+                </span>
+                <span className="shrink-0 truncate font-mono text-[11px] text-fg-3">
+                  {client.getUserId()}
+                </span>
               </span>
             </button>
             <button
@@ -68,10 +75,15 @@ export function AppSettingsModal({
                 onClose();
                 onLogout();
               }}
-              className="flex w-full items-center gap-3 px-5 py-3 text-left text-[13px] text-fg-1 hover:bg-bg-2 hover:text-red-300"
+              className="flex w-full items-stretch text-left hover:bg-bg-2 hover:text-red-300"
             >
-              <LogOut className="h-4 w-4 shrink-0 text-fg-3" />
-              <span className="flex-1">{t("settings.account.logout")}</span>
+              <span className="flex w-24 shrink-0 items-center pl-5 text-[12px] text-fg-3">
+                {t("settings.account.session")}
+              </span>
+              <span className="flex flex-1 items-center gap-1.5 py-2.5 pl-3 pr-5 text-[13px] text-fg-1">
+                <LogOut className="h-3.5 w-3.5 shrink-0 text-fg-3" />
+                <span className="flex-1">{t("settings.account.logout")}</span>
+              </span>
             </button>
           </FieldGroup>
         </div>

@@ -374,6 +374,8 @@ export const ko = {
   "danger.unbanAction": "추방 해제",
   "danger.excludeSelf": " (나 제외)",
   "roomInfo.section.danger": "위험 영역",
+  "settings.account.editProfile": "프로필 편집",
+  "settings.account.session": "세션",
 } as const;
 
 export type DictKey = keyof typeof ko;

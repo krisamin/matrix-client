@@ -282,15 +282,6 @@ export function SearchPane({
             {t("search.deepenLocal2")}
           </button>
         )}
-
-        {/* 로컬 모드 안내 (첫 진입) */}
-        {localMode && !query.trim() && (
-          <p className="px-5 py-6 text-[12px] leading-relaxed text-fg-3">
-            {scope === "thread"
-              ? t("search.hint.thread")
-              : t("search.hint.local")}
-          </p>
-        )}
       </div>
     </section>
   );

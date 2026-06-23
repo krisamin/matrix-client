@@ -139,25 +139,20 @@ export function NewRoomModal({
         </FieldGroup>
 
         {/* 고급 토글 */}
-        <button
-          type="button"
+        <SectionHeader
           onClick={() => setAdvancedOpen((v) => !v)}
-          className="flex w-full items-stretch text-left hover:bg-bg-3"
+          actions={
+            <span className="flex items-center pr-5 text-fg-3">
+              {advancedOpen ? (
+                <ChevronDown className="h-3.5 w-3.5" />
+              ) : (
+                <ChevronRight className="h-3.5 w-3.5" />
+              )}
+            </span>
+          }
         >
-          <SectionHeader
-            actions={
-              <span className="flex items-center pr-5 text-fg-3">
-                {advancedOpen ? (
-                  <ChevronDown className="h-3.5 w-3.5" />
-                ) : (
-                  <ChevronRight className="h-3.5 w-3.5" />
-                )}
-              </span>
-            }
-          >
-            {t("modal.advanced")}
-          </SectionHeader>
-        </button>
+          {t("modal.advanced")}
+        </SectionHeader>
 
         {advancedOpen && (
           <FieldGroup>

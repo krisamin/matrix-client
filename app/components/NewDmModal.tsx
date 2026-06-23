@@ -100,11 +100,6 @@ export function NewDmModal({
             {t("newDm.searching")}
           </p>
         )}
-        {trimmed.length === 0 && (
-          <p className="px-5 py-6 text-center text-[13px] text-fg-3">
-            {t("newDm.enterName")}
-          </p>
-        )}
       </div>
     </Modal>
   );

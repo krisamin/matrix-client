@@ -79,9 +79,6 @@ export function NewSpaceModal({
   return (
     <Modal onClose={onClose} size="md">
       <ModalHeader title={t("modal.newSpace.title")} />
-      <p className="shrink-0 border-b border-line bg-bg-2/40 px-5 py-2 text-[12px] text-fg-3">
-        {t("modal.spaceFolder")}
-      </p>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         <FieldGroup>
@@ -120,25 +117,20 @@ export function NewSpaceModal({
           )}
         </FieldGroup>
 
-        <button
-          type="button"
+        <SectionHeader
           onClick={() => setAdvancedOpen((v) => !v)}
-          className="flex w-full items-stretch text-left hover:bg-bg-3"
+          actions={
+            <span className="flex items-center pr-5 text-fg-3">
+              {advancedOpen ? (
+                <ChevronDown className="h-3.5 w-3.5" />
+              ) : (
+                <ChevronRight className="h-3.5 w-3.5" />
+              )}
+            </span>
+          }
         >
-          <SectionHeader
-            actions={
-              <span className="flex items-center pr-5 text-fg-3">
-                {advancedOpen ? (
-                  <ChevronDown className="h-3.5 w-3.5" />
-                ) : (
-                  <ChevronRight className="h-3.5 w-3.5" />
-                )}
-              </span>
-            }
-          >
-            {t("modal.advanced")}
-          </SectionHeader>
-        </button>
+          {t("modal.advanced")}
+        </SectionHeader>
 
         {advancedOpen && (
           <FieldGroup>

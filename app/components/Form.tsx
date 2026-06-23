@@ -25,7 +25,7 @@ export function Field({
 }) {
   return (
     <label className="flex flex-col">
-      <div className="flex items-stretch">
+      <div className="flex min-h-10 items-stretch">
         <span
           className={`flex ${labelWidth} shrink-0 items-center pl-5 text-[12px] text-fg-3`}
         >
@@ -169,20 +169,37 @@ export function TextArea({
  *    border 누락/이중 걱정 없음.
  *
  *  actions: 우측에 정사각(h-full) 액션 버튼을 둘 때 사용. 헤더 높이는 자동
- *  h-9로 늘어나서 버튼이 헤더 영역을 꽉 채움 (PaneHeader 컨벤션과 통일). */
+ *  h-9로 늘어나서 버튼이 헤더 영역을 꽉 채움 (PaneHeader 컨벤션과 통일).
+ *  onClick: 헤더 전체를 클릭 가능한 토글로 사용할 때 (예: Advanced 펼침). */
 export function SectionHeader({
   children,
   actions,
+  onClick,
 }: {
   children: ReactNode;
   actions?: ReactNode;
+  onClick?: () => void;
 }) {
-  return (
-    <div className="flex h-9 items-stretch border-y border-line bg-bg-2 text-[11px] font-semibold uppercase tracking-wider text-fg-1 first:border-t-0">
+  const baseCls =
+    "flex h-9 w-full items-stretch border-y border-line bg-bg-2 text-[11px] font-semibold uppercase tracking-wider text-fg-1 first:border-t-0";
+  const inner = (
+    <>
       <span className="flex flex-1 items-center pl-5">{children}</span>
       {actions && <div className="flex items-stretch">{actions}</div>}
-    </div>
+    </>
   );
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className={`${baseCls} text-left hover:bg-bg-3`}
+      >
+        {inner}
+      </button>
+    );
+  }
+  return <div className={baseCls}>{inner}</div>;
 }
 
 /** divide-y 그리드 컨테이너 — Field들을 감싸 일관 라인 톤 유지. */

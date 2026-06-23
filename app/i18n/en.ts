@@ -365,4 +365,6 @@ export const en: Record<keyof typeof ko, string> = {
   "danger.unbanAction": "Unban",
   "danger.excludeSelf": " (excluding you)",
   "roomInfo.section.danger": "Danger zone",
+  "settings.account.editProfile": "Edit profile",
+  "settings.account.session": "Session",
 };
