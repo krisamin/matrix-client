@@ -1,4 +1,4 @@
-import { Ban, Loader2, ShieldOff, UserMinus } from "lucide-react";
+import { Ban, Loader2, ShieldOff, Upload, UserMinus } from "lucide-react";
 import type {
   GuestAccess,
   HistoryVisibility,
@@ -7,7 +7,7 @@ import type {
   Room,
   Visibility,
 } from "matrix-js-sdk";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   banMember,
   canSendStateEvent,
@@ -24,6 +24,7 @@ import {
   setUserPowerLevel,
   unbanMember,
 } from "../lib/matrix";
+import { RoomAvatar } from "./Avatar";
 
 type Tab = "general" | "access" | "permissions" | "danger";
 
@@ -189,12 +190,36 @@ function GeneralTab({
   const [name, setName] = useState(initialName);
   const [topic, setTopic] = useState(initialTopic);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const canName = canSendStateEvent(room, client, "m.room.name");
   const canTopic = canSendStateEvent(room, client, "m.room.topic");
   const canAvatar = canSendStateEvent(room, client, "m.room.avatar");
+
+  // 새로 고른 파일의 로컬 미리보기 (objectURL) — ProfileEdit 패턴 그대로
+  useEffect(() => {
+    if (!pendingFile) {
+      setPreviewUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(pendingFile);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [pendingFile]);
+
+  function pickFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    if (!f.type.startsWith("image/")) {
+      setError("이미지 파일만 가능해");
+      return;
+    }
+    setError(null);
+    setPendingFile(f);
+  }
 
   const dirty =
     name.trim() !== initialName ||
@@ -229,6 +254,43 @@ function GeneralTab({
   return (
     <>
       <div className="min-h-0 flex-1 overflow-y-auto">
+        {/* 아바타 영역 — ProfileEditModal과 동일한 헤더 띠 톤.
+         *  현재 방 아바타가 즉시 보이고 (RoomAvatar는 mxc 자동 해석),
+         *  클릭/호버 Upload 오버레이로 이미지 변경. 새 파일 고르면 로컬 미리보기. */}
+        <div className="flex flex-col items-center gap-2 border-b border-line bg-bg-2/30 px-5 py-5">
+          <button
+            type="button"
+            className="group relative rounded-md disabled:cursor-not-allowed"
+            onClick={() => fileRef.current?.click()}
+            disabled={!canAvatar}
+            title={canAvatar ? "아바타 변경" : "권한 없음"}
+          >
+            {previewUrl ? (
+              <img
+                src={previewUrl}
+                alt="새 아바타 미리보기"
+                className="h-20 w-20 rounded-md object-cover"
+              />
+            ) : (
+              <RoomAvatar client={client} room={room} size={80} />
+            )}
+            {canAvatar && (
+              <span className="absolute inset-0 flex items-center justify-center rounded-md bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+                <Upload className="h-5 w-5 text-white" />
+              </span>
+            )}
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={pickFile}
+          />
+          <span className="font-mono text-[11px] text-fg-3">{room.roomId}</span>
+        </div>
+
+        {/* 필드 — divide-y row */}
         <div className="flex flex-col divide-y divide-line">
           <Row label="방 이름">
             <input
@@ -247,18 +309,6 @@ function GeneralTab({
               onChange={(e) => setTopic(e.target.value)}
               placeholder="(설명 없음)"
               className="flex-1 bg-transparent text-[13px] text-fg-0 outline-none placeholder:text-fg-3 disabled:opacity-50"
-            />
-          </Row>
-          <Row
-            label="아바타"
-            description={canAvatar ? "이미지 파일 선택" : "권한 없음"}
-          >
-            <input
-              type="file"
-              accept="image/*"
-              disabled={!canAvatar}
-              onChange={(e) => setPendingFile(e.target.files?.[0] ?? null)}
-              className="text-[12px] text-fg-2 file:mr-3 file:rounded-md file:border-0 file:bg-bg-2 file:px-3 file:py-1 file:text-[12px] file:text-fg-1 file:hover:bg-bg-3"
             />
           </Row>
           {error && (
