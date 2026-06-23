@@ -26,7 +26,7 @@ import {
   unbanMember,
 } from "../lib/matrix";
 import { RoomAvatar } from "./Avatar";
-import { TextInput } from "./Form";
+import { SectionHeader, TextInput } from "./Form";
 
 type Tab = "general" | "access" | "permissions" | "danger";
 
@@ -622,9 +622,9 @@ function PermissionsTab({
         )}
         <div className="flex flex-col divide-y divide-line">
           {/* 멤버 역할 */}
-          <div className="px-5 py-2 text-[11px] font-medium text-fg-3">
+          <SectionHeader>
             {t("perm.section.members", { count: members.length })}
-          </div>
+          </SectionHeader>
           {members.map((m) => {
             const lvl = pls.users[m.userId] ?? pls.users_default;
             const role = levelToRole(lvl);
@@ -671,9 +671,7 @@ function PermissionsTab({
           })}
 
           {/* 기본 액션 PL */}
-          <div className="px-5 py-2 text-[11px] font-medium text-fg-3">
-            {t("perm.section.defaults")}
-          </div>
+          <SectionHeader>{t("perm.section.defaults")}</SectionHeader>
           <DefaultPLEditor
             client={client}
             room={room}
@@ -974,9 +972,9 @@ function DangerTab({
 
           {banned.length > 0 && (
             <>
-              <div className="px-5 py-2 text-[11px] font-medium text-fg-3">
+              <SectionHeader>
                 {t("danger.section.banned", { count: banned.length })}
-              </div>
+              </SectionHeader>
               {banned.map((m) => (
                 <div
                   key={m.userId}

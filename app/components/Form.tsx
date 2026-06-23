@@ -178,7 +178,7 @@ export function SectionHeader({
   actions?: ReactNode;
 }) {
   return (
-    <div className="flex h-9 items-stretch border-y border-line bg-bg-2/30 text-[11px] font-medium text-fg-3 first:border-t-0">
+    <div className="flex h-9 items-stretch border-y border-line bg-bg-2 text-[11px] font-semibold uppercase tracking-wider text-fg-1 first:border-t-0">
       <span className="flex flex-1 items-center pl-5">{children}</span>
       {actions && <div className="flex items-stretch">{actions}</div>}
     </div>

@@ -211,8 +211,8 @@ export function RoomInfoPane({
       </PaneHeader>
 
       <div className="min-h-0 flex-1 overflow-y-auto bg-bg-1">
-        {/* 방 프로필 — 헤더 띠 톤 (모달 헤더 영역과 같은 가족) */}
-        <div className="flex flex-col items-center gap-2.5 border-b border-line bg-bg-2/30 px-5 py-6">
+        {/* 방 프로필 — 헤더 띠 톤 (border-b는 다음 SectionHeader가 책임) */}
+        <div className="flex flex-col items-center gap-2.5 bg-bg-2/30 px-5 py-6">
           <RoomAvatar client={client} room={room} size={56} />
           <p className="max-w-full truncate text-[15px] font-semibold text-fg-0">
             {room.name}
