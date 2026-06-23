@@ -110,8 +110,8 @@ export function NewRoomModal({
         <div className="max-h-[calc(80vh-7rem)] overflow-y-auto">
           <div className="flex flex-col divide-y divide-line">
             {/* 기본 */}
-            <label className="flex items-center gap-3 px-5 py-2.5">
-              <span className="w-24 shrink-0 text-[12px] text-fg-3">
+            <label className="flex items-stretch">
+              <span className="flex w-24 shrink-0 items-center pl-5 text-[12px] text-fg-3">
                 {t("field.roomName")}
               </span>
               <input
@@ -123,11 +123,11 @@ export function NewRoomModal({
                   if (e.key === "Enter") create();
                 }}
                 placeholder={t("ph.roomName")}
-                className="flex-1 bg-transparent text-[13px] text-fg-0 outline-none placeholder:text-fg-3"
+                className="flex-1 bg-transparent py-2.5 pl-3 pr-5 text-[13px] text-fg-0 outline-none placeholder:text-fg-3"
               />
             </label>
-            <label className="flex items-center gap-3 px-5 py-2.5">
-              <span className="w-24 shrink-0 text-[12px] text-fg-3">
+            <label className="flex items-stretch">
+              <span className="flex w-24 shrink-0 items-center pl-5 text-[12px] text-fg-3">
                 {t("field.topic")}
               </span>
               <input
@@ -138,18 +138,18 @@ export function NewRoomModal({
                   if (e.key === "Enter") create();
                 }}
                 placeholder={t("ph.roomDesc")}
-                className="flex-1 bg-transparent text-[13px] text-fg-0 outline-none placeholder:text-fg-3"
+                className="flex-1 bg-transparent py-2.5 pl-3 pr-5 text-[13px] text-fg-0 outline-none placeholder:text-fg-3"
               />
             </label>
             {spaces.length > 0 && (
-              <label className="flex items-center gap-3 px-5 py-2.5">
-                <span className="w-24 shrink-0 text-[12px] text-fg-3">
+              <label className="flex items-stretch">
+                <span className="flex w-24 shrink-0 items-center pl-5 text-[12px] text-fg-3">
                   상위 Space
                 </span>
                 <select
                   value={parentSpaceId}
                   onChange={(e) => setParentSpaceId(e.target.value)}
-                  className="flex-1 bg-transparent text-[13px] text-fg-0 outline-none"
+                  className="flex-1 bg-transparent py-2.5 pl-3 pr-5 text-[13px] text-fg-0 outline-none"
                 >
                   <option value="">{t("alias.noSpace")}</option>
                   {spaces.map((s) => (
@@ -161,7 +161,7 @@ export function NewRoomModal({
               </label>
             )}
             <label className="flex cursor-pointer items-center gap-3 px-5 py-2.5">
-              <span className="w-24 shrink-0 text-[12px] text-fg-3">
+              <span className="flex w-24 shrink-0 items-center pl-5 text-[12px] text-fg-3">
                 {t("field.encryption")}
               </span>
               <input
@@ -190,8 +190,8 @@ export function NewRoomModal({
             {advancedOpen && (
               <>
                 {/* 공개 디렉토리 */}
-                <label className="flex items-center gap-3 px-5 py-2.5">
-                  <span className="w-24 shrink-0 text-[12px] text-fg-3">
+                <label className="flex items-stretch">
+                  <span className="flex w-24 shrink-0 items-center pl-5 text-[12px] text-fg-3">
                     {t("field.directory")}
                   </span>
                   <select
@@ -199,7 +199,7 @@ export function NewRoomModal({
                     onChange={(e) =>
                       setVisibility(e.target.value as Visibility)
                     }
-                    className="flex-1 bg-transparent text-[13px] text-fg-0 outline-none"
+                    className="flex-1 bg-transparent py-2.5 pl-3 pr-5 text-[13px] text-fg-0 outline-none"
                   >
                     <option value="private">{t("vis.privateDesc")}</option>
                     <option value="public">{t("vis.publicDesc")}</option>
@@ -207,8 +207,8 @@ export function NewRoomModal({
                 </label>
 
                 {/* 별칭 */}
-                <label className="flex items-center gap-3 px-5 py-2.5">
-                  <span className="w-24 shrink-0 text-[12px] text-fg-3">
+                <label className="flex items-stretch">
+                  <span className="flex w-24 shrink-0 items-center pl-5 text-[12px] text-fg-3">
                     {t("field.alias")}
                   </span>
                   <div className="flex flex-1 items-center gap-1">
@@ -234,14 +234,14 @@ export function NewRoomModal({
                 )}
 
                 {/* 가입 규칙 */}
-                <label className="flex items-center gap-3 px-5 py-2.5">
-                  <span className="w-24 shrink-0 text-[12px] text-fg-3">
+                <label className="flex items-stretch">
+                  <span className="flex w-24 shrink-0 items-center pl-5 text-[12px] text-fg-3">
                     {t("field.joinRule")}
                   </span>
                   <select
                     value={joinRule}
                     onChange={(e) => setJoinRule(e.target.value as JoinRule)}
-                    className="flex-1 bg-transparent text-[13px] text-fg-0 outline-none"
+                    className="flex-1 bg-transparent py-2.5 pl-3 pr-5 text-[13px] text-fg-0 outline-none"
                   >
                     <option value="">{t("join.default")}</option>
                     <option value="invite">{t("join.invite")}</option>
@@ -251,8 +251,8 @@ export function NewRoomModal({
                 </label>
 
                 {/* 게스트 */}
-                <label className="flex items-center gap-3 px-5 py-2.5">
-                  <span className="w-24 shrink-0 text-[12px] text-fg-3">
+                <label className="flex items-stretch">
+                  <span className="flex w-24 shrink-0 items-center pl-5 text-[12px] text-fg-3">
                     {t("field.guest")}
                   </span>
                   <select
@@ -260,7 +260,7 @@ export function NewRoomModal({
                     onChange={(e) =>
                       setGuestAccess(e.target.value as GuestAccess)
                     }
-                    className="flex-1 bg-transparent text-[13px] text-fg-0 outline-none"
+                    className="flex-1 bg-transparent py-2.5 pl-3 pr-5 text-[13px] text-fg-0 outline-none"
                   >
                     <option value="">{t("guest.default")}</option>
                     <option value="forbidden">{t("guest.forbidden")}</option>
@@ -269,8 +269,8 @@ export function NewRoomModal({
                 </label>
 
                 {/* 히스토리 */}
-                <label className="flex items-center gap-3 px-5 py-2.5">
-                  <span className="w-24 shrink-0 text-[12px] text-fg-3">
+                <label className="flex items-stretch">
+                  <span className="flex w-24 shrink-0 items-center pl-5 text-[12px] text-fg-3">
                     {t("field.history")}
                   </span>
                   <select
@@ -278,7 +278,7 @@ export function NewRoomModal({
                     onChange={(e) =>
                       setHistoryVisibility(e.target.value as HistoryVisibility)
                     }
-                    className="flex-1 bg-transparent text-[13px] text-fg-0 outline-none"
+                    className="flex-1 bg-transparent py-2.5 pl-3 pr-5 text-[13px] text-fg-0 outline-none"
                   >
                     <option value="">{t("hist.default")}</option>
                     <option value="invited">{t("hist.invited")}</option>

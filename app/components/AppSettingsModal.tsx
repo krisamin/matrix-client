@@ -1,6 +1,6 @@
 import { LogOut, UserCog } from "lucide-react";
 import type { MatrixClient } from "matrix-js-sdk";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useI18n } from "../lib/i18n";
 import {
   detectBrowserLocale,
@@ -8,9 +8,11 @@ import {
   type LocalePref,
   SUPPORTED_LOCALES,
 } from "../lib/locale";
+import { Field, FieldGroup, SectionHeader, Select } from "./Form";
+import { Modal, ModalHeader } from "./Modal";
 import { ProfileEditModal } from "./ProfileEditModal";
 
-/** 앱 전역 설정 모달 — B-final 톤 (헤더 + divide-y row + 풀폭 푸터). */
+/** 앱 전역 설정 모달 — 공용 Modal/Form 컴포넌트 사용. */
 export function AppSettingsModal({
   client,
   onClose,
@@ -22,95 +24,60 @@ export function AppSettingsModal({
 }) {
   const { t, pref, setPref } = useI18n();
   const [profileOpen, setProfileOpen] = useState(false);
-  // "자동" 옵션 라벨에 현재 감지된 브라우저 언어 표시 — 사용자에게 어떤 언어로
-  // 적용될지 명시적으로 보여줌.
+  // "자동" 옵션 라벨에 현재 감지된 브라우저 언어 표시.
   const detected = detectBrowserLocale();
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 pt-[15vh]"
-      onClick={onClose}
-      role="presentation"
-    >
-      <div
-        className="w-[460px] max-w-[90vw] overflow-hidden rounded-md border border-line bg-bg-1 shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-        role="presentation"
-      >
-        <header className="flex h-12 items-center border-b border-line pl-5">
-          <h2 className="font-semibold text-fg-0">
-            {t("modal.appSettings.title")}
-          </h2>
-        </header>
+    <>
+      <Modal onClose={onClose} size="md">
+        <ModalHeader title={t("modal.appSettings.title")} />
 
-        {/* 일반 섹션 */}
-        <div className="border-b border-line bg-bg-2/30 px-5 py-2 text-[11px] font-medium text-fg-3">
-          {t("settings.section.general")}
-        </div>
-        <div className="flex flex-col divide-y divide-line">
-          {/* row 패턴 v2: 라벨/select 각자 자체 padding을 가져 row 영역을 꽉 채움.
-           *  결과: row 어디 클릭해도 select가 포커스/드롭다운 열림 (라벨 옆
-           *  빈 공간 클릭해도). 이전엔 label에 px-5 py-2.5라 select 클릭
-           *  영역이 자기 텍스트 폭까지만이었음. */}
-          <label className="flex items-stretch">
-            <span className="flex w-24 shrink-0 items-center pl-5 text-[12px] text-fg-3">
-              {t("settings.lang")}
-            </span>
-            <select
-              value={pref}
-              onChange={(e) => setPref(e.target.value as LocalePref)}
-              className="flex-1 bg-transparent py-2.5 pl-3 pr-5 text-[13px] text-fg-0 outline-none"
-            >
-              <option value="auto">
-                {t("settings.lang.auto")} ({LOCALE_LABEL[detected]})
-              </option>
-              {SUPPORTED_LOCALES.map((l) => (
-                <option key={l} value={l}>
-                  {LOCALE_LABEL[l]}
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <SectionHeader>{t("settings.section.general")}</SectionHeader>
+          <FieldGroup>
+            <Field label={t("settings.lang")}>
+              <Select value={pref} onChange={(v) => setPref(v as LocalePref)}>
+                <option value="auto">
+                  {t("settings.lang.auto")} ({LOCALE_LABEL[detected]})
                 </option>
-              ))}
-            </select>
-          </label>
+                {SUPPORTED_LOCALES.map((l) => (
+                  <option key={l} value={l}>
+                    {LOCALE_LABEL[l]}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          </FieldGroup>
+
+          <SectionHeader>{t("settings.section.account")}</SectionHeader>
+          <FieldGroup>
+            <button
+              type="button"
+              onClick={() => setProfileOpen(true)}
+              className="flex w-full items-center gap-3 px-5 py-3 text-left text-[13px] text-fg-1 hover:bg-bg-2 hover:text-fg-0"
+            >
+              <UserCog className="h-4 w-4 shrink-0 text-fg-3" />
+              <span className="flex-1">{t("settings.account.profile")}</span>
+              <span className="font-mono text-[11px] text-fg-3">
+                {client.getUserId()}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                onLogout();
+              }}
+              className="flex w-full items-center gap-3 px-5 py-3 text-left text-[13px] text-fg-1 hover:bg-bg-2 hover:text-red-300"
+            >
+              <LogOut className="h-4 w-4 shrink-0 text-fg-3" />
+              <span className="flex-1">{t("settings.account.logout")}</span>
+            </button>
+          </FieldGroup>
         </div>
 
-        {/* 계정 섹션 */}
-        <div className="border-y border-line bg-bg-2/30 px-5 py-2 text-[11px] font-medium text-fg-3">
-          {t("settings.section.account")}
-        </div>
-        <div className="flex flex-col divide-y divide-line">
-          <button
-            type="button"
-            onClick={() => setProfileOpen(true)}
-            className="flex w-full items-center gap-3 px-5 py-3 text-left text-[13px] text-fg-1 hover:bg-bg-2 hover:text-fg-0"
-          >
-            <UserCog className="h-4 w-4 shrink-0 text-fg-3" />
-            <span className="flex-1">{t("settings.account.profile")}</span>
-            <span className="font-mono text-[11px] text-fg-3">
-              {client.getUserId()}
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              onClose();
-              onLogout();
-            }}
-            className="flex w-full items-center gap-3 px-5 py-3 text-left text-[13px] text-fg-1 hover:bg-bg-2 hover:text-red-300"
-          >
-            <LogOut className="h-4 w-4 shrink-0 text-fg-3" />
-            <span className="flex-1">{t("settings.account.logout")}</span>
-          </button>
-        </div>
-
-        <div className="flex border-t border-line">
+        {/* 단일 닫기 푸터 (취소/저장 패턴 아님) */}
+        <div className="flex shrink-0 border-t border-line">
           <button
             type="button"
             onClick={onClose}
@@ -119,7 +86,7 @@ export function AppSettingsModal({
             {t("common.close")}
           </button>
         </div>
-      </div>
+      </Modal>
 
       {profileOpen && (
         <ProfileEditModal
@@ -127,6 +94,6 @@ export function AppSettingsModal({
           onClose={() => setProfileOpen(false)}
         />
       )}
-    </div>
+    </>
   );
 }

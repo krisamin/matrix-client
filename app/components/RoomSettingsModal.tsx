@@ -152,7 +152,9 @@ function Row({
   return (
     <div className="flex flex-col gap-1 px-5 py-2.5">
       <div className="flex items-center gap-3">
-        <span className="w-24 shrink-0 text-[12px] text-fg-3">{label}</span>
+        <span className="flex w-24 shrink-0 items-center pl-5 text-[12px] text-fg-3">
+          {label}
+        </span>
         <div className="flex flex-1 items-center">{children}</div>
       </div>
       {description && (
@@ -328,7 +330,7 @@ function GeneralTab({
               value={name}
               disabled={!canName}
               onChange={(e) => setName(e.target.value)}
-              className="flex-1 bg-transparent text-[13px] text-fg-0 outline-none placeholder:text-fg-3 disabled:opacity-50"
+              className="flex-1 bg-transparent py-2.5 pl-3 pr-5 text-[13px] text-fg-0 outline-none placeholder:text-fg-3 disabled:opacity-50"
             />
           </Row>
           <Row label={t("roomSettings.field.topic")}>
@@ -338,7 +340,7 @@ function GeneralTab({
               disabled={!canTopic}
               onChange={(e) => setTopic(e.target.value)}
               placeholder={t("roomSettings.topic.placeholder")}
-              className="flex-1 bg-transparent text-[13px] text-fg-0 outline-none placeholder:text-fg-3 disabled:opacity-50"
+              className="flex-1 bg-transparent py-2.5 pl-3 pr-5 text-[13px] text-fg-0 outline-none placeholder:text-fg-3 disabled:opacity-50"
             />
           </Row>
           {error && (
@@ -500,7 +502,7 @@ function AccessTab({
               onChange={(e) =>
                 setDirectory(e.target.value as "public" | "private")
               }
-              className="flex-1 bg-transparent text-[13px] text-fg-0 outline-none disabled:opacity-50"
+              className="flex-1 bg-transparent py-2.5 pl-3 pr-5 text-[13px] text-fg-0 outline-none disabled:opacity-50"
             >
               <option value="private">{t("vis.private")}</option>
               <option value="public">{t("vis.public")}</option>
@@ -511,7 +513,7 @@ function AccessTab({
               value={joinRule}
               disabled={!canJoin}
               onChange={(e) => setJoinRule(e.target.value as JoinRule)}
-              className="flex-1 bg-transparent text-[13px] text-fg-0 outline-none disabled:opacity-50"
+              className="flex-1 bg-transparent py-2.5 pl-3 pr-5 text-[13px] text-fg-0 outline-none disabled:opacity-50"
             >
               <option value="invite">{t("join.invite")}</option>
               <option value="public">{t("join.public")}</option>
@@ -524,7 +526,7 @@ function AccessTab({
               value={guestAccess}
               disabled={!canGuest}
               onChange={(e) => setGuestAccess(e.target.value as GuestAccess)}
-              className="flex-1 bg-transparent text-[13px] text-fg-0 outline-none disabled:opacity-50"
+              className="flex-1 bg-transparent py-2.5 pl-3 pr-5 text-[13px] text-fg-0 outline-none disabled:opacity-50"
             >
               <option value="forbidden">{t("guest.forbidden")}</option>
               <option value="can_join">{t("guest.canJoin")}</option>
@@ -537,7 +539,7 @@ function AccessTab({
               onChange={(e) =>
                 setHistoryVis(e.target.value as HistoryVisibility)
               }
-              className="flex-1 bg-transparent text-[13px] text-fg-0 outline-none disabled:opacity-50"
+              className="flex-1 bg-transparent py-2.5 pl-3 pr-5 text-[13px] text-fg-0 outline-none disabled:opacity-50"
             >
               <option value="invited">{t("hist.invited")}</option>
               <option value="joined">{t("hist.joined")}</option>

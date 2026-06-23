@@ -5,8 +5,10 @@ import { useT } from "../lib/i18n";
 import { forwardEvent } from "../lib/matrix";
 import { quotePreview } from "../lib/reply";
 import { RoomAvatar } from "./Avatar";
+import { Field, FieldGroup, TextInput } from "./Form";
+import { Modal, ModalHeader } from "./Modal";
 
-/** {t("modal.forward.title")} 모달 (B-final 톤). */
+/** 메시지 전달 모달. */
 export function ForwardModal({
   client,
   event,
@@ -27,14 +29,6 @@ export function ForwardModal({
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
 
   const rooms = useMemo(() => {
     const all = client
@@ -63,72 +57,55 @@ export function ForwardModal({
   }
 
   return createPortal(
-    <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 pt-[15vh]"
-      onClick={onClose}
-      role="presentation"
-    >
-      <div
-        className="w-[420px] max-w-[90vw] overflow-hidden rounded-md border border-line bg-bg-1 shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-        role="presentation"
-      >
-        <header className="flex h-12 items-center border-b border-line px-5">
-          <h2 className="font-semibold text-fg-0">
-            {t("modal.forward.title")}
-          </h2>
-        </header>
-        {preview && (
-          <p className="truncate border-b border-line bg-bg-2/40 px-5 py-2 text-[12px] text-fg-3">
-            {preview}
-          </p>
-        )}
-        <label className="flex items-center gap-3 border-b border-line px-5 py-2.5">
-          <span className="w-12 shrink-0 text-[12px] text-fg-3">
-            {t("common.search")}
-          </span>
-          <input
+    <Modal onClose={onClose} size="md">
+      <ModalHeader title={t("modal.forward.title")} />
+      {preview && (
+        <p className="shrink-0 truncate border-b border-line bg-bg-2/40 px-5 py-2 text-[12px] text-fg-3">
+          {preview}
+        </p>
+      )}
+      <FieldGroup>
+        <Field label={t("common.search")} labelWidth="w-12">
+          <TextInput
             ref={inputRef}
-            type="text"
             value={term}
-            onChange={(e) => setTerm(e.target.value)}
+            onChange={setTerm}
             placeholder={t("ph.searchRoom")}
-            className="flex-1 bg-transparent text-[13px] text-fg-0 outline-none placeholder:text-fg-3"
           />
-        </label>
-        {error && (
-          <p className="border-b border-line px-5 py-2 text-[12px] text-red-400">
-            {error}
+        </Field>
+      </FieldGroup>
+      {error && (
+        <p className="shrink-0 border-b border-line px-5 py-2 text-[12px] text-red-400">
+          {error}
+        </p>
+      )}
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        {rooms.map((r) => (
+          <button
+            key={r.roomId}
+            type="button"
+            disabled={busy !== null}
+            onClick={() => forward(r.roomId)}
+            className="flex w-full items-center gap-2.5 border-b border-line px-5 py-2 text-left last:border-b-0 hover:bg-bg-2 disabled:opacity-50"
+          >
+            <RoomAvatar client={client} room={r} size={28} />
+            <span className="min-w-0 flex-1 truncate text-[13px] text-fg-0">
+              {r.name}
+            </span>
+            {busy === r.roomId && (
+              <span className="text-[12px] text-fg-3">
+                {t("forward.sending")}
+              </span>
+            )}
+          </button>
+        ))}
+        {rooms.length === 0 && (
+          <p className="px-5 py-6 text-center text-[13px] text-fg-3">
+            {t("forward.empty")}
           </p>
         )}
-        <div className="max-h-[40vh] overflow-y-auto">
-          {rooms.map((r) => (
-            <button
-              key={r.roomId}
-              type="button"
-              disabled={busy !== null}
-              onClick={() => forward(r.roomId)}
-              className="flex w-full items-center gap-2.5 border-b border-line px-5 py-2 text-left last:border-b-0 hover:bg-bg-2 disabled:opacity-50"
-            >
-              <RoomAvatar client={client} room={r} size={28} />
-              <span className="min-w-0 flex-1 truncate text-[13px] text-fg-0">
-                {r.name}
-              </span>
-              {busy === r.roomId && (
-                <span className="text-[12px] text-fg-3">
-                  {t("forward.sending")}
-                </span>
-              )}
-            </button>
-          ))}
-          {rooms.length === 0 && (
-            <p className="px-5 py-6 text-center text-[13px] text-fg-3">
-              {t("forward.empty")}
-            </p>
-          )}
-        </div>
       </div>
-    </div>,
+    </Modal>,
     document.body,
   );
 }
