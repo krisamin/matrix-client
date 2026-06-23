@@ -163,11 +163,24 @@ export function TextArea({
   );
 }
 
-/** 섹션 헤더 (Form 안에서 그룹 구분). */
-export function SectionHeader({ children }: { children: ReactNode }) {
+/** 섹션 헤더 (Form 안에서 그룹 구분).
+ *  위/아래 모두 border를 가져서 SectionHeader 자체가 그룹 사이 경계 책임.
+ *  → 호출부에서 SectionHeader가 연속으로 나오거나 FieldGroup 사이에 끼어도
+ *    border 누락/이중 걱정 없음.
+ *
+ *  actions: 우측에 정사각(h-full) 액션 버튼을 둘 때 사용. 헤더 높이는 자동
+ *  h-9로 늘어나서 버튼이 헤더 영역을 꽉 채움 (PaneHeader 컨벤션과 통일). */
+export function SectionHeader({
+  children,
+  actions,
+}: {
+  children: ReactNode;
+  actions?: ReactNode;
+}) {
   return (
-    <div className="border-b border-line bg-bg-2/30 px-5 py-2 text-[11px] font-medium text-fg-3">
-      {children}
+    <div className="flex h-9 items-stretch border-y border-line bg-bg-2/30 text-[11px] font-medium text-fg-3 first:border-t-0">
+      <span className="flex flex-1 items-center pl-5">{children}</span>
+      {actions && <div className="flex items-stretch">{actions}</div>}
     </div>
   );
 }

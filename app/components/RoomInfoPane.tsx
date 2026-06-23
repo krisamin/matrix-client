@@ -16,6 +16,7 @@ import { looksLikeUserId, useUserSearch } from "../hooks/useUserSearch";
 import { useT } from "../lib/i18n";
 import { getDmUserId } from "../lib/matrix";
 import { Avatar, RoomAvatar } from "./Avatar";
+import { SectionHeader } from "./Form";
 import { PaneHeader, PaneHeaderButton } from "./PaneHeader";
 import { RoomSettingsModal } from "./RoomSettingsModal";
 import { roleLabel, UserProfileCard } from "./UserProfileCard";
@@ -209,62 +210,54 @@ export function RoomInfoPane({
         </h2>
       </PaneHeader>
 
-      <div className="min-h-0 flex-1 overflow-y-auto bg-bg-0">
-        {/* 방 프로필 — 카드 컨테이너 (SpaceView 섹션 톤과 같은 가족) */}
-        <div className="m-3 overflow-hidden rounded-md border border-line bg-bg-1">
-          <div className="flex flex-col items-center gap-2.5 px-5 py-6">
-            <RoomAvatar client={client} room={room} size={56} />
-            <p className="max-w-full truncate text-[15px] font-semibold text-fg-0">
-              {room.name}
+      <div className="min-h-0 flex-1 overflow-y-auto bg-bg-1">
+        {/* 방 프로필 — 헤더 띠 톤 (모달 헤더 영역과 같은 가족) */}
+        <div className="flex flex-col items-center gap-2.5 border-b border-line bg-bg-2/30 px-5 py-6">
+          <RoomAvatar client={client} room={room} size={56} />
+          <p className="max-w-full truncate text-[15px] font-semibold text-fg-0">
+            {room.name}
+          </p>
+          {topic && (
+            <p className="selectable max-w-full whitespace-pre-wrap break-words text-center text-[12px] leading-relaxed text-fg-2">
+              {topic}
             </p>
-            {topic && (
-              <p className="selectable max-w-full whitespace-pre-wrap break-words text-center text-[12px] leading-relaxed text-fg-2">
-                {topic}
-              </p>
+          )}
+          {/* roomId 복사 — DM이면 상대 userId가 더 유용 */}
+          <button
+            type="button"
+            className="flex max-w-full items-center gap-1.5 rounded-md px-2 py-1 font-mono text-[11px] text-fg-3 hover:bg-bg-2 hover:text-fg-1"
+            title={t("roomInfo.copy.title")}
+            onClick={copyRoomId}
+          >
+            <span className="truncate">{dmUserId ?? room.roomId}</span>
+            {copied ? (
+              <Check className="h-3 w-3 shrink-0 text-green-400" />
+            ) : (
+              <Copy className="h-3 w-3 shrink-0" />
             )}
-            {/* roomId 복사 — DM이면 상대 userId가 더 유용 */}
-            <button
-              type="button"
-              className="flex max-w-full items-center gap-1.5 rounded-md px-2 py-1 font-mono text-[11px] text-fg-3 hover:bg-bg-2 hover:text-fg-1"
-              title={t("roomInfo.copy.title")}
-              onClick={copyRoomId}
-            >
-              <span className="truncate">{dmUserId ?? room.roomId}</span>
-              {copied ? (
-                <Check className="h-3 w-3 shrink-0 text-green-400" />
-              ) : (
-                <Copy className="h-3 w-3 shrink-0" />
-              )}
-            </button>
-            {/* E2EE 상태 */}
-            <span
-              className={`flex items-center gap-1.5 rounded-md border border-line px-2.5 py-1 text-[11px] ${
-                encrypted ? "text-fg-1" : "text-fg-3"
-              }`}
-            >
-              {encrypted ? (
-                <>
-                  <Lock className="h-3 w-3" /> {t("roomInfo.e2ee.on")}
-                </>
-              ) : (
-                <>
-                  <LockOpen className="h-3 w-3" /> {t("roomInfo.e2ee.off")}
-                </>
-              )}
-            </span>
-          </div>
+          </button>
+          {/* E2EE 상태 */}
+          <span
+            className={`flex items-center gap-1.5 rounded-md border border-line px-2.5 py-1 text-[11px] ${
+              encrypted ? "text-fg-1" : "text-fg-3"
+            }`}
+          >
+            {encrypted ? (
+              <>
+                <Lock className="h-3 w-3" /> {t("roomInfo.e2ee.on")}
+              </>
+            ) : (
+              <>
+                <LockOpen className="h-3 w-3" /> {t("roomInfo.e2ee.off")}
+              </>
+            )}
+          </span>
         </div>
 
-        {/* 멤버 섹션 — SpaceView와 같은 카드 + h-10 헤더 + 우측 정사각 액션 */}
-        <div className="mx-3 mb-3 overflow-hidden rounded-md border border-line bg-bg-1">
-          <div className="flex h-10 items-center border-b border-line bg-bg-2/30 pl-5">
-            <h2 className="flex-1 text-[12px] font-medium text-fg-2">
-              {t("roomInfo.section.members")}
-              <span className="ml-1.5 font-mono text-[11px] text-fg-3">
-                {members.length}
-              </span>
-            </h2>
-            {canInvite && (
+        {/* 멤버 섹션 — SectionHeader + 우측 +초대 액션 */}
+        <SectionHeader
+          actions={
+            canInvite && (
               <button
                 type="button"
                 className="flex aspect-square h-full shrink-0 items-center justify-center text-fg-2 hover:bg-bg-2 hover:text-fg-0"
@@ -276,137 +269,141 @@ export function RoomInfoPane({
               >
                 <UserPlus className="h-3.5 w-3.5" />
               </button>
+            )
+          }
+        >
+          {t("roomInfo.section.members")}
+          <span className="ml-1.5 font-mono text-[11px] text-fg-3">
+            {members.length}
+          </span>
+        </SectionHeader>
+        {/* 초대 폼 — 섹션 헤더 바로 아래 슬라이드인 */}
+        {inviteOpen && (
+          <div className="flex flex-col border-b border-line bg-bg-2/20">
+            <label className="flex items-center gap-2 border-b border-line px-5 py-2">
+              <span className="shrink-0 text-[11px] text-fg-3">
+                {t("roomInfo.search.label")}
+              </span>
+              <input
+                className="flex-1 bg-transparent text-[12px] text-fg-0 outline-none placeholder:text-fg-3"
+                placeholder={t("roomInfo.search.placeholder")}
+                value={inviteTerm}
+                autoFocus
+                onChange={(e) => setInviteTerm(e.target.value)}
+              />
+            </label>
+            {inviteMsg && (
+              <p className="border-b border-line px-5 py-1.5 text-[11px] text-fg-2">
+                {inviteMsg}
+              </p>
             )}
-          </div>
-          {/* 초대 폼 — 헤더 바로 아래 슬라이드인 */}
-          {inviteOpen && (
-            <div className="flex flex-col border-b border-line bg-bg-2/20">
-              <label className="flex items-center gap-2 border-b border-line px-5 py-2">
-                <span className="shrink-0 text-[11px] text-fg-3">
-                  {t("roomInfo.search.label")}
-                </span>
-                <input
-                  className="flex-1 bg-transparent text-[12px] text-fg-0 outline-none placeholder:text-fg-3"
-                  placeholder={t("roomInfo.search.placeholder")}
-                  value={inviteTerm}
-                  autoFocus
-                  onChange={(e) => setInviteTerm(e.target.value)}
-                />
-              </label>
-              {inviteMsg && (
-                <p className="border-b border-line px-5 py-1.5 text-[11px] text-fg-2">
-                  {inviteMsg}
-                </p>
-              )}
-              {(() => {
-                const trimmed = inviteTerm.trim();
-                const directEntry =
-                  looksLikeUserId(trimmed) &&
-                  !inviteResults.some((r) => r.userId === trimmed) &&
-                  !excludeIds.has(trimmed)
-                    ? trimmed
-                    : null;
-                return (
-                  <div className="max-h-[30vh] overflow-y-auto">
-                    {directEntry && (
-                      <UserResultRow
-                        client={client}
-                        userId={directEntry}
-                        busy={inviteBusy}
-                        onClick={() => invite(directEntry)}
-                      />
-                    )}
-                    {inviteResults.map((r) => (
-                      <UserResultRow
-                        key={r.userId}
-                        client={client}
-                        userId={r.userId}
-                        displayName={r.displayName}
-                        avatarUrl={r.avatarUrl}
-                        busy={inviteBusy}
-                        onClick={() => invite(r.userId)}
-                      />
-                    ))}
-                    {inviteSearching && (
+            {(() => {
+              const trimmed = inviteTerm.trim();
+              const directEntry =
+                looksLikeUserId(trimmed) &&
+                !inviteResults.some((r) => r.userId === trimmed) &&
+                !excludeIds.has(trimmed)
+                  ? trimmed
+                  : null;
+              return (
+                <div className="max-h-[30vh] overflow-y-auto">
+                  {directEntry && (
+                    <UserResultRow
+                      client={client}
+                      userId={directEntry}
+                      busy={inviteBusy}
+                      onClick={() => invite(directEntry)}
+                    />
+                  )}
+                  {inviteResults.map((r) => (
+                    <UserResultRow
+                      key={r.userId}
+                      client={client}
+                      userId={r.userId}
+                      displayName={r.displayName}
+                      avatarUrl={r.avatarUrl}
+                      busy={inviteBusy}
+                      onClick={() => invite(r.userId)}
+                    />
+                  ))}
+                  {inviteSearching && (
+                    <p className="px-5 py-3 text-center text-[12px] text-fg-3">
+                      {t("roomInfo.search.searching")}
+                    </p>
+                  )}
+                  {!inviteSearching &&
+                    !directEntry &&
+                    inviteResults.length === 0 &&
+                    trimmed.length > 0 && (
                       <p className="px-5 py-3 text-center text-[12px] text-fg-3">
-                        {t("roomInfo.search.searching")}
+                        {t("roomInfo.search.notFound")}
                       </p>
                     )}
-                    {!inviteSearching &&
-                      !directEntry &&
-                      inviteResults.length === 0 &&
-                      trimmed.length > 0 && (
-                        <p className="px-5 py-3 text-center text-[12px] text-fg-3">
-                          {t("roomInfo.search.notFound")}
-                        </p>
-                      )}
-                  </div>
-                );
-              })()}
-            </div>
-          )}
-          <ul className="flex flex-col divide-y divide-line">
-            {members.map((m) => (
-              <MemberRow
-                key={m.userId}
-                client={client}
-                member={m}
-                isMe={m.userId === myUserId}
-                onClick={(rect) =>
-                  setProfile((v) =>
-                    v?.userId === m.userId
-                      ? null
-                      : { userId: m.userId, anchor: rect },
-                  )
-                }
-              />
-            ))}
-          </ul>
-        </div>
+                </div>
+              );
+            })()}
+          </div>
+        )}
+        <ul className="flex flex-col divide-y divide-line">
+          {members.map((m) => (
+            <MemberRow
+              key={m.userId}
+              client={client}
+              member={m}
+              isMe={m.userId === myUserId}
+              onClick={(rect) =>
+                setProfile((v) =>
+                  v?.userId === m.userId
+                    ? null
+                    : { userId: m.userId, anchor: rect },
+                )
+              }
+            />
+          ))}
+        </ul>
 
-        {/* 위험 영역: 방 나가기 (별도 카드) */}
-        <div className="mx-3 mb-3 overflow-hidden rounded-md border border-line bg-bg-1">
-          {leaveArmed ? (
-            <>
-              <p className="border-b border-line px-5 py-3 text-[12px] text-fg-2">
-                {t("roomInfo.leave.confirm")}
-                {encrypted && t("roomInfo.leave.warn")}
-              </p>
-              <div className="flex">
-                <button
-                  type="button"
-                  className="flex-1 border-r border-line py-2.5 text-[13px] text-fg-2 hover:bg-bg-2 hover:text-fg-0 disabled:opacity-50"
-                  disabled={leaveBusy}
-                  onClick={() => setLeaveArmed(false)}
-                >
-                  {t("common.cancel")}
-                </button>
-                <button
-                  type="button"
-                  className="flex flex-1 items-center justify-center gap-1.5 bg-red-950/40 py-2.5 text-[13px] font-medium text-red-300 hover:bg-red-900/50 disabled:opacity-50"
-                  disabled={leaveBusy}
-                  onClick={leave}
-                >
-                  {leaveBusy ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    <LogOut className="h-3 w-3" />
-                  )}
-                  {t("roomInfo.leave.confirmBtn")}
-                </button>
-              </div>
-            </>
-          ) : (
-            <button
-              type="button"
-              className="flex w-full items-center justify-center gap-1.5 py-2.5 text-[13px] text-fg-2 hover:bg-bg-2 hover:text-red-300"
-              onClick={() => setLeaveArmed(true)}
-            >
-              <LogOut className="h-3 w-3" />
-              {t("roomInfo.leave.action")}
-            </button>
-          )}
-        </div>
+        {/* 위험 영역 — SectionHeader로 시각 구분, 풀폭 버튼 */}
+        <SectionHeader>{t("roomInfo.section.danger")}</SectionHeader>
+        {leaveArmed ? (
+          <>
+            <p className="border-b border-line px-5 py-3 text-[12px] text-fg-2">
+              {t("roomInfo.leave.confirm")}
+              {encrypted && t("roomInfo.leave.warn")}
+            </p>
+            <div className="flex">
+              <button
+                type="button"
+                className="flex-1 border-r border-line py-2.5 text-[13px] text-fg-2 hover:bg-bg-2 hover:text-fg-0 disabled:opacity-50"
+                disabled={leaveBusy}
+                onClick={() => setLeaveArmed(false)}
+              >
+                {t("common.cancel")}
+              </button>
+              <button
+                type="button"
+                className="flex flex-1 items-center justify-center gap-1.5 bg-red-950/40 py-2.5 text-[13px] font-medium text-red-300 hover:bg-red-900/50 disabled:opacity-50"
+                disabled={leaveBusy}
+                onClick={leave}
+              >
+                {leaveBusy ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <LogOut className="h-3 w-3" />
+                )}
+                {t("roomInfo.leave.confirmBtn")}
+              </button>
+            </div>
+          </>
+        ) : (
+          <button
+            type="button"
+            className="flex w-full items-center justify-center gap-1.5 py-2.5 text-[13px] text-fg-2 hover:bg-bg-2 hover:text-red-300"
+            onClick={() => setLeaveArmed(true)}
+          >
+            <LogOut className="h-3 w-3" />
+            {t("roomInfo.leave.action")}
+          </button>
+        )}
       </div>
       {profile && (
         <UserProfileCard

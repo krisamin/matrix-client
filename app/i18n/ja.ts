@@ -363,4 +363,5 @@ export const ja: Record<keyof typeof ko, string> = {
   "danger.ban": "BAN",
   "danger.unbanAction": "BAN解除",
   "danger.excludeSelf": " (自分を除く)",
+  "roomInfo.section.danger": "危険ゾーン",
 };

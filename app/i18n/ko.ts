@@ -373,6 +373,7 @@ export const ko = {
   "danger.ban": "추방",
   "danger.unbanAction": "추방 해제",
   "danger.excludeSelf": " (나 제외)",
+  "roomInfo.section.danger": "위험 영역",
 } as const;
 
 export type DictKey = keyof typeof ko;

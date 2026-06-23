@@ -364,4 +364,5 @@ export const en: Record<keyof typeof ko, string> = {
   "danger.ban": "Ban",
   "danger.unbanAction": "Unban",
   "danger.excludeSelf": " (excluding you)",
+  "roomInfo.section.danger": "Danger zone",
 };
