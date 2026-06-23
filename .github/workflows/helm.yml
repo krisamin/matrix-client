@@ -2,10 +2,10 @@ name: Helm
 
 on:
   push:
-    branches: [main]
+    branches: [master]
     paths: ["charts/**"]
   pull_request:
-    branches: [main]
+    branches: [master]
     paths: ["charts/**"]
   workflow_dispatch:
 
