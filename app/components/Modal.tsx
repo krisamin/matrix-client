@@ -8,18 +8,22 @@ import { useEffect } from "react";
  *  - B-final 톤: rounded-md / border-line / bg-bg-1 / shadow-2xl
  *
  *  @param size 폭 프리셋. "sm"=380, "md"=460(기본), "lg"=560, "xl"=720, "full"=커스텀
- *  @param topInset 상단 여백 (vh 단위). 기본 15. RoomSettings처럼 큰 모달은 10. */
+ *  @param topInset 상단 여백 (vh 단위). 기본 15. RoomSettings처럼 큰 모달은 10.
+ *  @param fixedHeight true면 모달 높이를 60vh로 고정 — 콘텐츠 변화에도 안
+ *    들썩임 (Advanced 토글 같은 동적 펼침에 유용). 기본 false. */
 export function Modal({
   onClose,
   children,
   size = "md",
   topInset = 15,
+  fixedHeight = false,
   className = "",
 }: {
   onClose: () => void;
   children: ReactNode;
   size?: "sm" | "md" | "lg" | "xl" | "full";
   topInset?: number;
+  fixedHeight?: boolean;
   className?: string;
 }) {
   useEffect(() => {
@@ -49,7 +53,7 @@ export function Modal({
       role="presentation"
     >
       <div
-        className={`flex max-h-[80vh] flex-col overflow-hidden rounded-md border border-line bg-bg-1 shadow-2xl ${sizeClass} ${className}`}
+        className={`flex ${fixedHeight ? "h-[60vh]" : "max-h-[80vh]"} flex-col overflow-hidden rounded-md border border-line bg-bg-1 shadow-2xl ${sizeClass} ${className}`}
         onClick={(e) => e.stopPropagation()}
         role="presentation"
       >

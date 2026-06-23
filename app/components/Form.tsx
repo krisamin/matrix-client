@@ -1,3 +1,4 @@
+import { ChevronDown } from "lucide-react";
 import type { ReactNode, RefObject } from "react";
 
 /** 모달의 폼 row — 라벨/입력이 자체 padding으로 row 영역을 꽉 채워
@@ -113,7 +114,9 @@ export function TextInput({
   );
 }
 
-/** Field 내부에 들어가는 select — 자체 padding으로 row 꽉 채움. */
+/** Field 내부에 들어가는 select — 자체 padding으로 row 꽉 채움.
+ *  native chevron 제거(appearance:none)하고 우측에 우리 chevron 오버레이 →
+ *  TextInput과 텍스트 시작 위치(pl-3)가 정확히 같음. */
 export function Select({
   value,
   onChange,
@@ -126,14 +129,19 @@ export function Select({
   children: ReactNode;
 }) {
   return (
-    <select
-      value={value}
-      disabled={disabled}
-      onChange={(e) => onChange(e.target.value)}
-      className="flex-1 bg-transparent py-2.5 pl-3 pr-5 text-[13px] text-fg-0 outline-none disabled:opacity-50"
-    >
-      {children}
-    </select>
+    <span className="relative flex flex-1 items-stretch">
+      <select
+        value={value}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full appearance-none bg-transparent py-2.5 pl-3 pr-9 text-[13px] text-fg-0 outline-none disabled:opacity-50"
+      >
+        {children}
+      </select>
+      <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-5 text-fg-3">
+        <ChevronDown className="h-3.5 w-3.5" />
+      </span>
+    </span>
   );
 }
 
