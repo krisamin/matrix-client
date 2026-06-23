@@ -23,19 +23,19 @@ on Rust crypto.
 - React Router v7 (SSR + client islands)
 - TypeScript, Tailwind CSS v4, Biome
 - matrix-js-sdk + matrix-rust-sdk-crypto-wasm
-- Bun (package manager + dev server)
+- pnpm + Vite (dev server, build)
 
 ## Getting started
 
 ```bash
-bun install
-bun run dev          # http://localhost:5173
-bun run build        # production build
-bun run typecheck    # tsc --noEmit
-bun run lint         # biome check
+pnpm install
+pnpm dev          # http://localhost:5173
+pnpm build        # production build
+pnpm typecheck    # tsc --noEmit
+pnpm lint         # biome check
 ```
 
-> **Bun only.** Do not use `npm`/`yarn` — `package-lock.json` will conflict with `bun.lock`.
+> **pnpm only.** Do not mix with `npm`/`yarn` — lockfiles will conflict with `pnpm-lock.yaml`.
 
 ### Configuration
 

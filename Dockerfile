@@ -1,17 +1,18 @@
-FROM oven/bun:1-alpine AS deps
-WORKDIR /app
-COPY package.json bun.lock ./
-RUN bun install --frozen-lockfile
+# pnpm + nginx 정적 SPA 빌드.
+# install/build 모두 동일 node 런타임 — 일관성 우선.
 
-# build는 node 런타임으로 — react-router의 build pipeline이 react-dom/server를
-# resolve할 때 bun runtime이 server.bun.js를 잡아 'renderToPipeableStream'
-# export 누락 에러를 냄. node에서는 server.node.js를 정상 resolve.
+FROM node:20-alpine AS deps
+WORKDIR /app
+RUN corepack enable && corepack prepare pnpm@10 --activate
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
+
 FROM node:20-alpine AS build
 WORKDIR /app
+RUN corepack enable && corepack prepare pnpm@10 --activate
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN ./node_modules/.bin/react-router typegen \
-  && ./node_modules/.bin/react-router build
+RUN pnpm run typecheck && pnpm run build
 
 # Runtime: nginx serves the SPA build directly. /index.html is the app shell;
 # all other unknown routes also fall back to it (client-side routing).
