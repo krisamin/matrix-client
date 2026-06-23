@@ -277,9 +277,10 @@ export function RoomInfoPane({
             {members.length}
           </span>
         </SectionHeader>
-        {/* 초대 폼 — 섹션 헤더 바로 아래 슬라이드인 */}
+        {/* 초대 폼 — 섹션 헤더 바로 아래 슬라이드인. wrapper의 border-b
+            제거 — 자식 label/p가 각자 border-b로 처리. */}
         {inviteOpen && (
-          <div className="flex flex-col border-b border-line bg-bg-2/20">
+          <div className="flex flex-col bg-bg-2/20">
             <label className="flex items-center gap-2 border-b border-line px-5 py-2">
               <span className="shrink-0 text-[11px] text-fg-3">
                 {t("roomInfo.search.label")}

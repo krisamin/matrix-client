@@ -3,6 +3,7 @@ import type { MatrixClient, MatrixEvent, Room } from "matrix-js-sdk";
 import type { ISearchResults } from "matrix-js-sdk/lib/@types/search";
 import { useMemo, useRef, useState } from "react";
 import { useT } from "../lib/i18n";
+import { SectionHeader } from "./Form";
 import { PaneHeader, PaneHeaderButton } from "./PaneHeader";
 
 function formatDateTime(ts: number): string {
@@ -216,37 +217,35 @@ export function SearchPane({
         />
       </PaneHeader>
 
-      <div className="min-h-0 flex-1 overflow-y-auto bg-bg-0">
-        {/* 결과 카운트 */}
+      <div className="min-h-0 flex-1 overflow-y-auto bg-bg-1">
+        {/* 결과 카운트 — SectionHeader 톤으로 */}
         {!localMode && serverHits && (
-          <p className="px-5 py-2 font-mono text-[11px] text-fg-3">
+          <SectionHeader>
             {t("search.serverCount", { q: searched, n: serverCount })}
-          </p>
+          </SectionHeader>
         )}
         {localMode && query.trim() && (
-          <p className="px-5 py-2 font-mono text-[11px] text-fg-3">
+          <SectionHeader>
             {t("search.localCountFull", {
               total: events.length,
               hits: localHits.length,
             })}
             {localHits.length >= 200 && t("search.localMax")}
-          </p>
+          </SectionHeader>
         )}
 
         {hits.length > 0 && (
-          <div className="m-3 mt-0 overflow-hidden rounded-md border border-line bg-bg-1">
-            <ul className="flex flex-col divide-y divide-line">
-              {hits.map((ev) => (
-                <li key={ev.getId()}>
-                  <ResultRow
-                    ev={ev}
-                    query={localMode ? query.trim() : searched}
-                    onJump={onJump}
-                  />
-                </li>
-              ))}
-            </ul>
-          </div>
+          <ul className="flex flex-col divide-y divide-line">
+            {hits.map((ev) => (
+              <li key={ev.getId()}>
+                <ResultRow
+                  ev={ev}
+                  query={localMode ? query.trim() : searched}
+                  onJump={onJump}
+                />
+              </li>
+            ))}
+          </ul>
         )}
 
         {showEmpty && (
@@ -262,11 +261,11 @@ export function SearchPane({
           </div>
         )}
 
-        {/* 더 보기 — 서버: next_batch / E2EE: 과거 백필 */}
+        {/* 더 보기 — 풀폭 푸터 톤 (모달 푸터와 일관) */}
         {!busy && !localMode && serverResultsRef.current?.next_batch && (
           <button
             type="button"
-            className="mx-3 mb-3 flex w-[calc(100%-1.5rem)] items-center justify-center gap-1.5 rounded-md border border-line bg-bg-1 py-2.5 text-[13px] text-fg-2 hover:bg-bg-2 hover:text-fg-0"
+            className="flex w-full items-center justify-center gap-1.5 border-y border-line bg-bg-2 py-2.5 text-[13px] font-medium text-fg-1 hover:bg-bg-3 hover:text-fg-0"
             onClick={moreServer}
           >
             <ChevronDown className="h-3.5 w-3.5" />
@@ -276,7 +275,7 @@ export function SearchPane({
         {!busy && localMode && query.trim() && hasMore && (
           <button
             type="button"
-            className="mx-3 mb-3 flex w-[calc(100%-1.5rem)] items-center justify-center gap-1.5 rounded-md border border-line bg-bg-1 py-2.5 text-[13px] text-fg-2 hover:bg-bg-2 hover:text-fg-0"
+            className="flex w-full items-center justify-center gap-1.5 border-y border-line bg-bg-2 py-2.5 text-[13px] font-medium text-fg-1 hover:bg-bg-3 hover:text-fg-0"
             onClick={deepenLocal}
           >
             <History className="h-3.5 w-3.5" />

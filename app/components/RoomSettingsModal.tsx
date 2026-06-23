@@ -849,15 +849,17 @@ function DefaultPLEditor({
         </div>
       ))}
       {canEdit && (
-        <div className="flex items-center justify-end gap-2 px-5 py-2">
+        <div className="flex border-t border-line">
           {error && (
-            <span className="mr-auto text-[12px] text-red-400">{error}</span>
+            <p className="flex-1 px-5 py-2.5 text-[12px] text-red-400">
+              {error}
+            </p>
           )}
           <button
             type="button"
             onClick={save}
             disabled={busy || !dirty}
-            className="rounded-md bg-bg-2 px-3 py-1 text-[12px] font-medium text-fg-0 hover:bg-bg-3 disabled:opacity-50"
+            className={`${error ? "" : "flex-1"} bg-bg-2 px-5 py-2.5 text-[13px] font-medium text-fg-0 hover:bg-bg-3 disabled:opacity-50`}
           >
             {busy ? t("perm.saving") : t("perm.saveDefaults")}
           </button>
@@ -935,38 +937,40 @@ function DangerTab({
     <>
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="flex flex-col divide-y divide-line">
-          <div className="px-5 py-2 text-[11px] font-medium text-fg-3">
+          <SectionHeader>
             {t("perm.section.members", { count: members.length })}
             {t("danger.excludeSelf")}
-          </div>
+          </SectionHeader>
           {members.map((m) => (
-            <div key={m.userId} className="flex items-center gap-2 px-5 py-2">
-              <span className="min-w-0 flex-1 truncate text-[13px] text-fg-1">
-                {m.name}
+            <div key={m.userId} className="flex items-stretch">
+              <span className="flex min-w-0 flex-1 items-center truncate py-2.5 pl-5 text-[13px] text-fg-1">
+                <span className="truncate">{m.name}</span>
               </span>
-              <button
-                type="button"
-                onClick={() => doKick(m.userId)}
-                disabled={!canKick || busy === m.userId}
-                title={t("danger.kick.title")}
-                className="flex items-center gap-1 rounded-md border border-line px-2 py-1 text-[11px] text-fg-2 hover:bg-bg-2 hover:text-fg-0 disabled:opacity-50"
-              >
-                <UserMinus className="h-3 w-3" />
-                {t("danger.kick")}
-              </button>
-              <button
-                type="button"
-                onClick={() => doBan(m.userId)}
-                disabled={!canKick || busy === m.userId}
-                title={t("danger.ban.title")}
-                className="flex items-center gap-1 rounded-md border border-line px-2 py-1 text-[11px] text-red-400 hover:bg-red-950/30 disabled:opacity-50"
-              >
-                <Ban className="h-3 w-3" />
-                {t("danger.ban")}
-              </button>
-              {busy === m.userId && (
-                <Loader2 className="h-3 w-3 animate-spin text-fg-3" />
-              )}
+              <div className="flex shrink-0 items-center gap-2 py-2 pr-5">
+                <button
+                  type="button"
+                  onClick={() => doKick(m.userId)}
+                  disabled={!canKick || busy === m.userId}
+                  title={t("danger.kick.title")}
+                  className="flex items-center gap-1 rounded-md border border-line px-2 py-1 text-[11px] text-fg-2 hover:bg-bg-2 hover:text-fg-0 disabled:opacity-50"
+                >
+                  <UserMinus className="h-3 w-3" />
+                  {t("danger.kick")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => doBan(m.userId)}
+                  disabled={!canKick || busy === m.userId}
+                  title={t("danger.ban.title")}
+                  className="flex items-center gap-1 rounded-md border border-line px-2 py-1 text-[11px] text-red-400 hover:bg-red-950/30 disabled:opacity-50"
+                >
+                  <Ban className="h-3 w-3" />
+                  {t("danger.ban")}
+                </button>
+                {busy === m.userId && (
+                  <Loader2 className="h-3 w-3 animate-spin text-fg-3" />
+                )}
+              </div>
             </div>
           ))}
 
@@ -976,22 +980,21 @@ function DangerTab({
                 {t("danger.section.banned", { count: banned.length })}
               </SectionHeader>
               {banned.map((m) => (
-                <div
-                  key={m.userId}
-                  className="flex items-center gap-2 px-5 py-2"
-                >
-                  <span className="min-w-0 flex-1 truncate text-[13px] text-fg-2">
-                    {m.name}
+                <div key={m.userId} className="flex items-stretch">
+                  <span className="flex min-w-0 flex-1 items-center truncate py-2.5 pl-5 text-[13px] text-fg-2">
+                    <span className="truncate">{m.name}</span>
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => doUnban(m.userId)}
-                    disabled={busy === m.userId}
-                    className="flex items-center gap-1 rounded-md border border-line px-2 py-1 text-[11px] text-fg-2 hover:bg-bg-2 hover:text-fg-0 disabled:opacity-50"
-                  >
-                    <ShieldOff className="h-3 w-3" />
-                    {t("danger.unbanAction")}
-                  </button>
+                  <div className="flex shrink-0 items-center gap-2 py-2 pr-5">
+                    <button
+                      type="button"
+                      onClick={() => doUnban(m.userId)}
+                      disabled={busy === m.userId}
+                      className="flex items-center gap-1 rounded-md border border-line px-2 py-1 text-[11px] text-fg-2 hover:bg-bg-2 hover:text-fg-0 disabled:opacity-50"
+                    >
+                      <ShieldOff className="h-3 w-3" />
+                      {t("danger.unbanAction")}
+                    </button>
+                  </div>
                 </div>
               ))}
             </>
