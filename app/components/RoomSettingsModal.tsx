@@ -26,6 +26,7 @@ import {
   unbanMember,
 } from "../lib/matrix";
 import { RoomAvatar } from "./Avatar";
+import { TextInput } from "./Form";
 
 type Tab = "general" | "access" | "permissions" | "danger";
 
@@ -476,20 +477,14 @@ function AccessTab({
             label={t("field.alias")}
             description={t("roomSettings.alias.format", { server: myDomain })}
           >
-            <div className="flex flex-1 items-center gap-1 py-2.5 pl-3 pr-5">
-              <span className="text-[13px] text-fg-3">#</span>
-              <input
-                type="text"
-                value={aliasLocalpart}
-                disabled={!canAlias}
-                onChange={(e) => setAliasLocalpart(e.target.value)}
-                placeholder={t("roomSettings.alias.none")}
-                className="min-w-0 flex-1 bg-transparent text-[13px] text-fg-0 outline-none placeholder:text-fg-3 disabled:opacity-50"
-              />
-              {aliasLocalpart && (
-                <span className="text-[11px] text-fg-3">:{myDomain}</span>
-              )}
-            </div>
+            <TextInput
+              value={aliasLocalpart}
+              onChange={setAliasLocalpart}
+              disabled={!canAlias}
+              placeholder={t("roomSettings.alias.none")}
+              prefix="#"
+              suffix={aliasLocalpart ? `:${myDomain}` : undefined}
+            />
           </Row>
           {aliasInvalid && (
             <p className="px-5 py-1.5 text-[11px] text-red-400">
@@ -844,24 +839,21 @@ function DefaultPLEditor({
           <span className="flex w-28 shrink-0 items-center pl-5 text-[12px] text-fg-2">
             {r.label}
           </span>
-          <input
-            type="number"
-            min={0}
-            max={100}
-            value={r.value}
+          <TextInput
+            value={String(r.value)}
+            onChange={(v) => r.set(Number(v) || 0)}
             disabled={!canEdit}
-            onChange={(e) => r.set(Number(e.target.value))}
-            className="w-16 bg-transparent py-2.5 pl-3 pr-5 text-right font-mono text-[13px] text-fg-0 outline-none disabled:opacity-50"
-          />
-          <span className="flex items-center pr-5 text-[11px] text-fg-3">
-            {t("perm.basicHint", {
+            type="number"
+            align="right"
+            width="w-12"
+            suffix={t("perm.basicHint", {
               level:
                 r.label === t("perm.action.sendMsg") ||
                 r.label === t("perm.action.invite")
                   ? 0
                   : 50,
             })}
-          </span>
+          />
         </div>
       ))}
       {canEdit && (

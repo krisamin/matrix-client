@@ -42,7 +42,12 @@ export function Field({
   );
 }
 
-/** Field 내부에 들어가는 텍스트 인풋 — 자체 padding으로 row 꽉 채움. */
+/** Field 내부 텍스트 인풋. prefix/suffix slot으로 # 같은 인라인 데코 가능.
+ *
+ *  Field row 패딩(py-2.5 pl-3 pr-5)은 *컨테이너*가 가지고 input 자체는
+ *  unstyled — prefix/suffix와 input이 같은 inset 안에서 자연스럽게 흐름.
+ *
+ *  예: <TextInput prefix="#" suffix=":server.com" ... /> */
 export function TextInput({
   value,
   onChange,
@@ -52,28 +57,54 @@ export function TextInput({
   ref,
   autoFocus,
   onKeyDown,
+  prefix,
+  suffix,
+  align = "left",
+  width,
 }: {
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
   disabled?: boolean;
-  type?: "text" | "email";
+  type?: "text" | "email" | "number";
   ref?: RefObject<HTMLInputElement | null>;
   autoFocus?: boolean;
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  /** 좌측 데코 (예: '#', 검색 아이콘). 텍스트면 fg-3 톤 */
+  prefix?: ReactNode;
+  /** 우측 데코 (예: ':server.com', 단위). 텍스트면 fg-3 톤 */
+  suffix?: ReactNode;
+  /** 텍스트 정렬 — 숫자 입력은 'right' */
+  align?: "left" | "right";
+  /** 명시적 input width (Tailwind 클래스, 예 'w-16'). 숫자 입력 등에 사용. */
+  width?: string;
 }) {
+  // disabled일 때 컨테이너에도 opacity 적용 — prefix/suffix까지 흐려지도록
+  const disabledCls = disabled ? "opacity-50" : "";
   return (
-    <input
-      ref={ref}
-      type={type}
-      value={value}
-      disabled={disabled}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      onKeyDown={onKeyDown}
-      autoFocus={autoFocus}
-      className="flex-1 bg-transparent py-2.5 pl-3 pr-5 text-[13px] text-fg-0 outline-none placeholder:text-fg-3 disabled:opacity-50"
-    />
+    <span
+      className={`flex flex-1 items-center gap-1.5 py-2.5 pl-3 pr-5 text-[13px] ${disabledCls}`}
+    >
+      {prefix !== undefined && (
+        <span className="shrink-0 text-fg-3">{prefix}</span>
+      )}
+      <input
+        ref={ref}
+        type={type}
+        value={value}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        onKeyDown={onKeyDown}
+        autoFocus={autoFocus}
+        className={`min-w-0 ${width ?? "flex-1"} bg-transparent ${align === "right" ? "text-right font-mono" : ""} text-fg-0 outline-none placeholder:text-fg-3`}
+      />
+      {suffix !== undefined && (
+        <span className="shrink-0 truncate text-[11px] text-fg-3">
+          {suffix}
+        </span>
+      )}
+    </span>
   );
 }
 
@@ -101,7 +132,7 @@ export function Select({
   );
 }
 
-/** Field 내부 다른 변종 textarea (멀티라인). */
+/** Field 내부 multiline textarea. */
 export function TextArea({
   value,
   onChange,
@@ -127,8 +158,7 @@ export function TextArea({
   );
 }
 
-/** 섹션 헤더 (Form 안에서 그룹 구분).
- *  AppSettingsModal의 'General'/'Account' 같은 톤. */
+/** 섹션 헤더 (Form 안에서 그룹 구분). */
 export function SectionHeader({ children }: { children: ReactNode }) {
   return (
     <div className="border-b border-line bg-bg-2/30 px-5 py-2 text-[11px] font-medium text-fg-3">

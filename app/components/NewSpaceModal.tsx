@@ -152,21 +152,13 @@ export function NewSpaceModal({
                   : aliasPreview || undefined
               }
             >
-              <span className="flex flex-1 items-center gap-1 py-2.5 pl-3 pr-5">
-                <span className="text-[13px] text-fg-3">#</span>
-                <input
-                  type="text"
-                  value={aliasLocalpart}
-                  onChange={(e) => setAliasLocalpart(e.target.value)}
-                  placeholder={t("ph.aliasSpace")}
-                  className="min-w-0 flex-1 bg-transparent text-[13px] text-fg-0 outline-none placeholder:text-fg-3"
-                />
-                {myDomain && (
-                  <span className="truncate text-[11px] text-fg-3">
-                    :{myDomain}
-                  </span>
-                )}
-              </span>
+              <TextInput
+                value={aliasLocalpart}
+                onChange={setAliasLocalpart}
+                placeholder={t("ph.aliasSpace")}
+                prefix="#"
+                suffix={myDomain ? `:${myDomain}` : undefined}
+              />
             </Field>
             <Field label={t("field.joinRule")}>
               <Select

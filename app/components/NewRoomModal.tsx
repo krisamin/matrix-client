@@ -172,21 +172,13 @@ export function NewRoomModal({
               }
             >
               {/* 별칭 row — # prefix 시각만 보여주고 입력은 localpart만. */}
-              <span className="flex flex-1 items-center gap-1 py-2.5 pl-3 pr-5">
-                <span className="text-[13px] text-fg-3">#</span>
-                <input
-                  type="text"
-                  value={aliasLocalpart}
-                  onChange={(e) => setAliasLocalpart(e.target.value)}
-                  placeholder={t("ph.aliasRoom")}
-                  className="min-w-0 flex-1 bg-transparent text-[13px] text-fg-0 outline-none placeholder:text-fg-3"
-                />
-                {myDomain && (
-                  <span className="truncate text-[11px] text-fg-3">
-                    :{myDomain}
-                  </span>
-                )}
-              </span>
+              <TextInput
+                value={aliasLocalpart}
+                onChange={setAliasLocalpart}
+                placeholder={t("ph.aliasRoom")}
+                prefix="#"
+                suffix={myDomain ? `:${myDomain}` : undefined}
+              />
             </Field>
             <Field label={t("field.joinRule")}>
               <Select
