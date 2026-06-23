@@ -1,5 +1,4 @@
-import { KeyRound } from "lucide-react";
-import { Bell } from "lucide-react";
+import { Bell, KeyRound } from "lucide-react";
 import type { MatrixClient } from "matrix-js-sdk";
 import { useEffect, useState } from "react";
 import { Link, Outlet, useNavigate, useOutletContext } from "react-router";
@@ -37,10 +36,14 @@ export default function AppLayout() {
   const [verified, setVerified] = useState<boolean | null>(null);
   const [notifPerm, setNotifPerm] = useState(notificationPermission());
   const [verifyDismissed, setVerifyDismissed] = useState(
-    () => typeof window !== "undefined" && localStorage.getItem(VERIFY_DISMISS_KEY) === "1",
+    () =>
+      typeof window !== "undefined" &&
+      localStorage.getItem(VERIFY_DISMISS_KEY) === "1",
   );
   const [notifDismissed, setNotifDismissed] = useState(
-    () => typeof window !== "undefined" && localStorage.getItem(NOTIF_DISMISS_KEY) === "1",
+    () =>
+      typeof window !== "undefined" &&
+      localStorage.getItem(NOTIF_DISMISS_KEY) === "1",
   );
 
   useEffect(() => {

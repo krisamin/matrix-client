@@ -408,6 +408,14 @@ export const ko = {
   "login.discoveryFailed": "홈서버 확인 실패: {{message}}",
   "login.actionOidc": "OIDC로 로그인",
   "login.actionPassword": "로그인",
+  "login.identifier": "아이디",
+  "login.tab.signin": "로그인",
+  "login.tab.signup": "회원가입",
+  "login.signup.title": "계정 만들기",
+  "login.signup.complexFlows":
+    "이 서버는 추가 인증 단계가 필요해요 ({{flows}}). 서버의 회원가입 페이지를 직접 이용해 주세요.",
+  "login.actionSignup": "계정 만들기",
+  "login.noSupportedFlow": "지원하는 로그인 방식이 없습니다.",
 } as const;
 
 export type DictKey = keyof typeof ko;

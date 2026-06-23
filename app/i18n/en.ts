@@ -398,4 +398,12 @@ export const en: Record<keyof typeof ko, string> = {
   "login.discoveryFailed": "Failed to reach homeserver: {{message}}",
   "login.actionOidc": "Sign in with OIDC",
   "login.actionPassword": "Sign in",
+  "login.identifier": "Username or email",
+  "login.tab.signin": "Sign in",
+  "login.tab.signup": "Sign up",
+  "login.signup.title": "Create account",
+  "login.signup.complexFlows":
+    "This homeserver requires additional steps ({{flows}}). Please use the server's own registration page.",
+  "login.actionSignup": "Create account",
+  "login.noSupportedFlow": "No supported login methods.",
 };

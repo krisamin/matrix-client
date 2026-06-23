@@ -1,5 +1,5 @@
-import { ClientEvent, type MatrixClient, SyncState } from "matrix-js-sdk";
 import { Loader2, RefreshCw, WifiOff } from "lucide-react";
+import { ClientEvent, type MatrixClient, SyncState } from "matrix-js-sdk";
 import { useEffect, useState } from "react";
 import { useT } from "../lib/i18n";
 import { Toast } from "./Toast";

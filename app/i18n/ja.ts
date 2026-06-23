@@ -388,7 +388,8 @@ export const ja: Record<keyof typeof ko, string> = {
   "connection.syncing": "同期中",
   "connection.retryNow": "今すぐ再試行",
   "verify.toast.title": "デバイス認証が必要です",
-  "verify.toast.body": "暗号化されたメッセージを読むにはこのデバイスを認証してください。",
+  "verify.toast.body":
+    "暗号化されたメッセージを読むにはこのデバイスを認証してください。",
   "notif.toast.title": "デスクトップ通知",
   "notif.toast.body": "新しいメッセージを通知で受け取るには許可してください。",
   "login.username": "ユーザー名",
@@ -398,4 +399,12 @@ export const ja: Record<keyof typeof ko, string> = {
   "login.discoveryFailed": "ホームサーバーへの接続失敗: {{message}}",
   "login.actionOidc": "OIDCでログイン",
   "login.actionPassword": "ログイン",
+  "login.identifier": "ユーザー名/メール",
+  "login.tab.signin": "ログイン",
+  "login.tab.signup": "サインアップ",
+  "login.signup.title": "アカウント作成",
+  "login.signup.complexFlows":
+    "このサーバーは追加の認証ステップが必要です ({{flows}})。サーバーの登録ページをご利用ください。",
+  "login.actionSignup": "アカウントを作成",
+  "login.noSupportedFlow": "サポートされているログイン方式がありません。",
 };

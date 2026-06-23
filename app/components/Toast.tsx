@@ -41,9 +41,7 @@ export function Toast({
   return (
     <div className="msg-in pointer-events-auto flex flex-col overflow-hidden rounded-md border border-line bg-bg-1 shadow-2xl">
       <div className="flex items-start gap-2.5 px-4 py-3">
-        {icon && (
-          <span className={`mt-0.5 shrink-0 ${accentCls}`}>{icon}</span>
-        )}
+        {icon && <span className={`mt-0.5 shrink-0 ${accentCls}`}>{icon}</span>}
         <div className="min-w-0 flex-1">
           <p className={`text-[13px] font-medium ${accentCls}`}>{title}</p>
           {body && (
