@@ -603,7 +603,7 @@ function PermissionsTab({
     // 대상이 나보다 PL 높으면 차단
     const targetLevel = pls.users[userId] ?? pls.users_default;
     if (targetLevel >= myLevel && userId !== myUserId) {
-      setError("자신보다 권한이 같거나 높은 사람은 변경할 수 없어");
+      setError(t("perm.cantChangeHigher"));
       return;
     }
     await applyLevel(userId, newLevel);
@@ -642,16 +642,18 @@ function PermissionsTab({
             const isMe = m.userId === myUserId;
             const canEditThis = canEditPL && (isMe ? lvl > 0 : lvl < myLevel);
             return (
-              <div key={m.userId} className="flex items-center gap-3 px-5 py-2">
-                <span className="min-w-0 flex-1 truncate text-[13px] text-fg-1">
-                  {m.name}
+              <div key={m.userId} className="flex items-stretch">
+                <span className="flex min-w-0 flex-1 items-center gap-1.5 truncate py-2.5 pl-5 text-[13px] text-fg-1">
+                  <span className="truncate">{m.name}</span>
                   {isMe && (
                     <span className="ml-1.5 text-[11px] text-fg-3">
                       {t("perm.member.me")}
                     </span>
                   )}
                 </span>
-                <span className="font-mono text-[11px] text-fg-3">{lvl}</span>
+                <span className="flex items-center px-2 py-2.5 font-mono text-[11px] text-fg-3">
+                  {lvl}
+                </span>
                 {canEditThis ? (
                   <select
                     value={role}
@@ -671,7 +673,9 @@ function PermissionsTab({
                     <option value="관리자">{t("perm.role.admin")} (100)</option>
                   </select>
                 ) : (
-                  <span className="text-[12px] text-fg-2">{role}</span>
+                  <span className="flex items-center py-2.5 pr-5 text-[12px] text-fg-2">
+                    {role}
+                  </span>
                 )}
               </div>
             );
@@ -707,7 +711,7 @@ function PermissionsTab({
             onClick={(e) => e.stopPropagation()}
             role="presentation"
           >
-            <header className="flex h-12 items-center border-b border-line px-5">
+            <header className="flex h-12 items-center border-b border-line pl-5">
               <h3 className="font-semibold text-fg-0">
                 {t("perm.demoteSelf.title")}
               </h3>
@@ -785,7 +789,7 @@ function DefaultPLEditor({
       redact,
     );
     if (max > myLevel) {
-      setError(`내 권한(${myLevel})보다 높은 값은 설정할 수 없어`);
+      setError(t("perm.cantSetHigher", { level: myLevel }));
       return;
     }
     setBusy(true);
@@ -836,8 +840,10 @@ function DefaultPLEditor({
   return (
     <>
       {rows.map((r) => (
-        <div key={r.label} className="flex items-center gap-3 px-5 py-2">
-          <span className="w-24 shrink-0 text-[12px] text-fg-2">{r.label}</span>
+        <div key={r.label} className="flex items-stretch">
+          <span className="flex w-28 shrink-0 items-center pl-5 text-[12px] text-fg-2">
+            {r.label}
+          </span>
           <input
             type="number"
             min={0}
@@ -847,7 +853,7 @@ function DefaultPLEditor({
             onChange={(e) => r.set(Number(e.target.value))}
             className="w-16 bg-transparent py-2.5 pl-3 pr-5 text-right font-mono text-[13px] text-fg-0 outline-none disabled:opacity-50"
           />
-          <span className="text-[11px] text-fg-3">
+          <span className="flex items-center pr-5 text-[11px] text-fg-3">
             {t("perm.basicHint", {
               level:
                 r.label === t("perm.action.sendMsg") ||
@@ -869,7 +875,7 @@ function DefaultPLEditor({
             disabled={busy || !dirty}
             className="rounded-md bg-bg-2 px-3 py-1 text-[12px] font-medium text-fg-0 hover:bg-bg-3 disabled:opacity-50"
           >
-            {busy ? "저장 중…" : "기본 권한 저장"}
+            {busy ? t("perm.saving") : t("perm.saveDefaults")}
           </button>
         </div>
       )}
@@ -946,7 +952,8 @@ function DangerTab({
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="flex flex-col divide-y divide-line">
           <div className="px-5 py-2 text-[11px] font-medium text-fg-3">
-            {t("perm.section.members", { count: members.length })} (나 제외)
+            {t("perm.section.members", { count: members.length })}
+            {t("danger.excludeSelf")}
           </div>
           {members.map((m) => (
             <div key={m.userId} className="flex items-center gap-2 px-5 py-2">
@@ -961,7 +968,7 @@ function DangerTab({
                 className="flex items-center gap-1 rounded-md border border-line px-2 py-1 text-[11px] text-fg-2 hover:bg-bg-2 hover:text-fg-0 disabled:opacity-50"
               >
                 <UserMinus className="h-3 w-3" />
-                강퇴
+                {t("danger.kick")}
               </button>
               <button
                 type="button"
@@ -971,7 +978,7 @@ function DangerTab({
                 className="flex items-center gap-1 rounded-md border border-line px-2 py-1 text-[11px] text-red-400 hover:bg-red-950/30 disabled:opacity-50"
               >
                 <Ban className="h-3 w-3" />
-                추방
+                {t("danger.ban")}
               </button>
               {busy === m.userId && (
                 <Loader2 className="h-3 w-3 animate-spin text-fg-3" />
@@ -999,7 +1006,7 @@ function DangerTab({
                     className="flex items-center gap-1 rounded-md border border-line px-2 py-1 text-[11px] text-fg-2 hover:bg-bg-2 hover:text-fg-0 disabled:opacity-50"
                   >
                     <ShieldOff className="h-3 w-3" />
-                    추방 해제
+                    {t("danger.unbanAction")}
                   </button>
                 </div>
               ))}

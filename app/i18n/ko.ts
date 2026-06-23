@@ -365,6 +365,14 @@ export const ko = {
   "oidc.failed": "로그인 실패: {{error}}",
   "oidc.retry": "다시 시도",
   "oidc.exchange": "토큰 교환 중...",
+  "perm.cantChangeHigher": "자신보다 권한이 같거나 높은 사람은 변경할 수 없어",
+  "perm.cantSetHigher": "내 권한({{level}})보다 높은 값은 설정할 수 없어",
+  "perm.saveDefaults": "기본 권한 저장",
+  "perm.saving": "저장 중…",
+  "danger.kick": "강퇴",
+  "danger.ban": "추방",
+  "danger.unbanAction": "추방 해제",
+  "danger.excludeSelf": " (나 제외)",
 } as const;
 
 export type DictKey = keyof typeof ko;

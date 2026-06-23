@@ -356,4 +356,12 @@ export const en: Record<keyof typeof ko, string> = {
   "oidc.failed": "Login failed: {{error}}",
   "oidc.retry": "Retry",
   "oidc.exchange": "Exchanging token…",
+  "perm.cantChangeHigher": "Can't change someone with equal or higher level",
+  "perm.cantSetHigher": "Can't set higher than your level ({{level}})",
+  "perm.saveDefaults": "Save defaults",
+  "perm.saving": "Saving…",
+  "danger.kick": "Kick",
+  "danger.ban": "Ban",
+  "danger.unbanAction": "Unban",
+  "danger.excludeSelf": " (excluding you)",
 };

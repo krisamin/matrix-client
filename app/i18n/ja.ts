@@ -355,4 +355,12 @@ export const ja: Record<keyof typeof ko, string> = {
   "oidc.failed": "ログイン失敗: {{error}}",
   "oidc.retry": "再試行",
   "oidc.exchange": "トークン交換中…",
+  "perm.cantChangeHigher": "自分以上のレベルは変更不可",
+  "perm.cantSetHigher": "自分のレベル ({{level}}) より高い値は設定不可",
+  "perm.saveDefaults": "デフォルトを保存",
+  "perm.saving": "保存中…",
+  "danger.kick": "キック",
+  "danger.ban": "BAN",
+  "danger.unbanAction": "BAN解除",
+  "danger.excludeSelf": " (自分を除く)",
 };
