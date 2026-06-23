@@ -44,6 +44,52 @@ The login screen accepts any homeserver URL that exposes OIDC discovery
 `https://matrix.krisam.in`; change it on the login page or hardcode in
 `app/routes/login.tsx`.
 
+
+## Deploy
+
+The build is a static SPA — no server runtime, no environment variables
+required at the server side. All session/auth state lives in the browser
+(localStorage + IndexedDB).
+
+### Docker
+
+```bash
+docker compose up --build
+# → http://localhost:8080
+```
+
+The bundled image is `nginx:1.27-alpine` serving `/build/client`. SPA
+fallback is wired in `docker/nginx.conf` — any unknown path falls back to
+`index.html` so client-side routing works.
+
+### Helm / Kubernetes
+
+```bash
+helm install my-chat ./charts/matrix-client \
+  --set image.repository=ghcr.io/your-org/matrix-client \
+  --set image.tag=v0.1.0 \
+  --set ingress.enabled=true \
+  --set ingress.hosts[0].host=chat.example.com \
+  --set ingress.hosts[0].paths[0].path=/ \
+  --set ingress.hosts[0].paths[0].pathType=Prefix \
+  --set config.defaultHomeserver=https://matrix.example.com
+```
+
+`config.defaultHomeserver` rewrites the bundled fallback URL at pod
+startup (a `sed` over the JS bundle inside `postStart`). Users can still
+override it on the login screen — their last-used homeserver is sticky in
+localStorage.
+
+### Login
+
+The login screen auto-detects what the homeserver supports:
+
+- **OIDC** (e.g. matrix-authentication-service) — single button, dynamic
+  client registration + PKCE.
+- **Password** (legacy `m.login.password`) — username + password fields.
+- **Anything else** — surfaces the unsupported flow types so the operator
+  can tell what's missing.
+
 ## Project layout
 
 ```

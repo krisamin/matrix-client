@@ -72,7 +72,13 @@ export function getReadyClient(): Promise<MatrixClient> | null {
           refreshToken?: string;
         }>)
       | undefined;
-    if (session.refreshToken && session.redirectUri && session.idTokenClaims) {
+    if (
+      session.refreshToken &&
+      session.redirectUri &&
+      session.idTokenClaims &&
+      session.issuer &&
+      session.clientId
+    ) {
       class PersistingRefresher extends OidcTokenRefresher {
         protected async persistTokens(tokens: {
           accessToken: string;

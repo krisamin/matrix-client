@@ -1,0 +1,11 @@
+apiVersion: v2
+name: matrix-client
+description: A clean, opinionated Matrix chat client (static SPA served by nginx).
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/krisamin/matrix-client
+sources:
+  - https://github.com/krisamin/matrix-client
+maintainers:
+  - name: krisamin

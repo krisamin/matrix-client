@@ -395,6 +395,19 @@ export const ko = {
   "verify.failed": "실패: {{message}}",
   "verify.retry": "다시 시도",
   "presence.away": "자리 비움",
+  "connection.syncing": "동기화 중",
+  "connection.retryNow": "지금 재시도",
+  "verify.toast.title": "기기 인증이 필요합니다",
+  "verify.toast.body": "암호화된 메시지를 읽으려면 기기를 인증하세요.",
+  "notif.toast.title": "데스크톱 알림",
+  "notif.toast.body": "새 메시지를 알림으로 받으려면 권한을 허용해 주세요.",
+  "login.username": "아이디",
+  "login.password": "비밀번호",
+  "login.checking": "로그인 방식 확인 중…",
+  "login.unsupportedFlows": "지원하지 않는 로그인 방식: {{flows}}",
+  "login.discoveryFailed": "홈서버 확인 실패: {{message}}",
+  "login.actionOidc": "OIDC로 로그인",
+  "login.actionPassword": "로그인",
 } as const;
 
 export type DictKey = keyof typeof ko;

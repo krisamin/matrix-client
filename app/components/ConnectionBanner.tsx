@@ -1,8 +1,10 @@
 import { ClientEvent, type MatrixClient, SyncState } from "matrix-js-sdk";
+import { Loader2, RefreshCw, WifiOff } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useT } from "../lib/i18n";
+import { Toast } from "./Toast";
 
-/** sync 상태 추적 훅 — 오프라인/재연결 배너용 */
+/** sync 상태 추적 훅 — 오프라인/재연결 토스트용. */
 export function useSyncState(client: MatrixClient | null): SyncState | null {
   const [state, setState] = useState<SyncState | null>(null);
 
@@ -19,8 +21,9 @@ export function useSyncState(client: MatrixClient | null): SyncState | null {
   return state;
 }
 
-/** 연결 끊김/재연결 배너. 정상(Syncing/Prepared)일 땐 안 보임 */
-export function ConnectionBanner({ client }: { client: MatrixClient | null }) {
+/** 연결 상태 토스트 — 정상(Syncing/Prepared)일 땐 안 뜸.
+ *  ToastStack 안에서 자동으로 좌하단에 쌓임. */
+export function ConnectionToast({ client }: { client: MatrixClient | null }) {
   const t = useT();
   const state = useSyncState(client);
   const [reconnecting, setReconnecting] = useState(false);
@@ -29,40 +32,49 @@ export function ConnectionBanner({ client }: { client: MatrixClient | null }) {
   if (state === SyncState.Syncing || state === SyncState.Prepared) return null;
 
   const isError = state === SyncState.Error;
-  const label = isError
+  const variant = isError ? "error" : "warn";
+  const title = isError
     ? t("connection.disconnected")
     : state === SyncState.Reconnecting
       ? t("connection.reconnecting")
       : state === SyncState.Catchup
         ? t("connection.catchingUp")
-        : "동기화 중...";
+        : t("connection.syncing");
+
+  const icon = isError ? (
+    <WifiOff className="h-3.5 w-3.5" />
+  ) : (
+    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+  );
 
   return (
-    <div
-      className={`flex h-8 shrink-0 items-center justify-center gap-2 border-b border-line text-[12px] ${
-        isError ? "bg-red-950/60 text-red-300" : "bg-bg-2 text-amber-300"
-      }`}
-    >
-      <span className="animate-pulse">●</span>
-      {label}
-      {isError && (
-        <button
-          type="button"
-          className="rounded bg-bg-3 px-2 py-0.5 font-medium text-fg-0 hover:bg-line-strong disabled:opacity-50"
-          disabled={reconnecting}
-          onClick={async () => {
-            setReconnecting(true);
-            try {
-              // retryImmediately: 백오프 대기를 건너뛰고 즉시 재시도
-              client.retryImmediately();
-            } finally {
-              setTimeout(() => setReconnecting(false), 2000);
+    <Toast
+      icon={icon}
+      title={title}
+      variant={variant}
+      action={
+        isError
+          ? {
+              label: (
+                <span className="flex items-center justify-center gap-1.5">
+                  <RefreshCw
+                    className={`h-3 w-3 ${reconnecting ? "animate-spin" : ""}`}
+                  />
+                  {t("connection.retryNow")}
+                </span>
+              ),
+              onClick: async () => {
+                if (reconnecting) return;
+                setReconnecting(true);
+                try {
+                  client.retryImmediately();
+                } finally {
+                  setTimeout(() => setReconnecting(false), 2000);
+                }
+              },
             }
-          }}
-        >
-          지금 재시도
-        </button>
-      )}
-    </div>
+          : undefined
+      }
+    />
   );
 }

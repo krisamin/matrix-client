@@ -6,8 +6,9 @@ export interface MatrixSession {
   refreshToken?: string;
   userId: string;
   deviceId: string;
-  issuer: string;
-  clientId: string;
+  /** OIDC 로그인 시에만 채워짐. password 로그인이면 비어있음. */
+  issuer?: string;
+  clientId?: string;
   /** 토큰 갱신(OidcTokenRefresher)에 필요 */
   redirectUri?: string;
   idTokenClaims?: IdTokenClaims;

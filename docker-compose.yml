@@ -1,0 +1,15 @@
+# Local development with Docker.
+#
+#   docker compose up --build
+#
+# Exposes the SPA at http://localhost:8080. The bundled image is a static
+# build; configure the homeserver in the login screen at runtime (the
+# default URL is hardcoded in app/routes/login.tsx, falling back to the
+# user's last-used homeserver from localStorage).
+services:
+  matrix-client:
+    build: .
+    image: matrix-client:local
+    ports:
+      - "8080:80"
+    restart: unless-stopped

@@ -1,22 +1,19 @@
-FROM node:20-alpine AS development-dependencies-env
-COPY . /app
+FROM oven/bun:1-alpine AS deps
 WORKDIR /app
-RUN npm ci
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
 
-FROM node:20-alpine AS production-dependencies-env
-COPY ./package.json package-lock.json /app/
+FROM oven/bun:1-alpine AS build
 WORKDIR /app
-RUN npm ci --omit=dev
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+RUN bun run build
 
-FROM node:20-alpine AS build-env
-COPY . /app/
-COPY --from=development-dependencies-env /app/node_modules /app/node_modules
-WORKDIR /app
-RUN npm run build
-
-FROM node:20-alpine
-COPY ./package.json package-lock.json /app/
-COPY --from=production-dependencies-env /app/node_modules /app/node_modules
-COPY --from=build-env /app/build /app/build
-WORKDIR /app
-CMD ["npm", "run", "start"]
+# Runtime: nginx serves the SPA build directly. /index.html is the app shell;
+# all other unknown routes also fall back to it (client-side routing).
+FROM nginx:1.27-alpine AS runtime
+COPY --from=build /app/build/client /usr/share/nginx/html
+COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80
+HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
+  CMD wget -q -O /dev/null http://localhost/ || exit 1

@@ -1,0 +1,58 @@
+# Default values for matrix-client.
+# Override on the command line with --set or via -f my-values.yaml.
+
+image:
+  repository: ghcr.io/krisamin/matrix-client
+  tag: ""              # defaults to .Chart.AppVersion when empty
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+# Pod-level resource requests/limits. Tune for your cluster — the SPA is
+# tiny (nginx + ~70KB gzipped JS) so very small requests are fine.
+resources:
+  requests:
+    cpu: 10m
+    memory: 24Mi
+  limits:
+    cpu: 200m
+    memory: 64Mi
+
+service:
+  type: ClusterIP
+  port: 80
+
+# Public URL. Disable to skip Ingress and expose via your own gateway.
+ingress:
+  enabled: false
+  className: ""        # e.g. "nginx", "traefik"
+  annotations: {}
+  hosts:
+    - host: chat.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+    # - hosts: [chat.example.com]
+    #   secretName: chat-example-com-tls
+
+# Default homeserver URL injected at startup. The SPA stores per-user
+# overrides in localStorage; this only sets the *first-load* default.
+# Set to "" to keep the in-source default (matrix.org).
+config:
+  defaultHomeserver: ""
+
+# Pod-level overrides
+podAnnotations: {}
+podSecurityContext:
+  fsGroup: 101
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 101
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: [ALL]
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

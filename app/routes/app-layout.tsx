@@ -1,9 +1,12 @@
+import { KeyRound } from "lucide-react";
+import { Bell } from "lucide-react";
 import type { MatrixClient } from "matrix-js-sdk";
 import { useEffect, useState } from "react";
 import { Link, Outlet, useNavigate, useOutletContext } from "react-router";
-import { ConnectionBanner } from "../components/ConnectionBanner";
+import { ConnectionToast } from "../components/ConnectionBanner";
 import { Lightbox } from "../components/Lightbox";
 import { Sidebar } from "../components/Sidebar";
+import { Toast, ToastStack } from "../components/Toast";
 import { useT } from "../lib/i18n";
 import { ensureStarted, getReadyClient } from "../lib/matrix";
 import {
@@ -11,6 +14,9 @@ import {
   notificationPermission,
   requestNotificationPermission,
 } from "../lib/notifications";
+
+const VERIFY_DISMISS_KEY = "matrix-client:verify-toast-dismissed";
+const NOTIF_DISMISS_KEY = "matrix-client:notif-toast-dismissed";
 
 export interface AppContext {
   client: MatrixClient;
@@ -30,6 +36,12 @@ export default function AppLayout() {
   const [client, setClient] = useState<MatrixClient | null>(null);
   const [verified, setVerified] = useState<boolean | null>(null);
   const [notifPerm, setNotifPerm] = useState(notificationPermission());
+  const [verifyDismissed, setVerifyDismissed] = useState(
+    () => typeof window !== "undefined" && localStorage.getItem(VERIFY_DISMISS_KEY) === "1",
+  );
+  const [notifDismissed, setNotifDismissed] = useState(
+    () => typeof window !== "undefined" && localStorage.getItem(NOTIF_DISMISS_KEY) === "1",
+  );
 
   useEffect(() => {
     const promise = getReadyClient();
@@ -84,33 +96,49 @@ export default function AppLayout() {
     <div className="flex h-screen overflow-hidden">
       <Sidebar client={client} />
       <main className="flex min-w-0 flex-1 flex-col">
-        <ConnectionBanner client={client} />
-        {verified === false && (
-          <div className="flex h-8 shrink-0 items-center justify-center gap-2 border-b border-line bg-bg-2 text-[12px] text-fg-1">
-            {t("verify.bannerText")}
-            <Link to="/verify" className="font-medium text-fg-0 underline">
-              {t("verify.action")}
-            </Link>
-          </div>
-        )}
-        {notifPerm === "default" && (
-          <div className="flex h-8 shrink-0 items-center justify-center gap-2 border-b border-line bg-bg-2 text-[12px] text-fg-1">
-            {t("notif.bannerText")}
-            <button
-              type="button"
-              className="font-medium text-fg-0 underline"
-              onClick={async () => {
-                await requestNotificationPermission();
-                setNotifPerm(notificationPermission());
-              }}
-            >
-              {t("notif.action")}
-            </button>
-          </div>
-        )}
         <Outlet context={{ client } satisfies AppContext} />
       </main>
       <Lightbox />
+      <ToastStack>
+        <ConnectionToast client={client} />
+        {verified === false && !verifyDismissed && (
+          <Toast
+            icon={<KeyRound className="h-3.5 w-3.5" />}
+            title={t("verify.toast.title")}
+            body={t("verify.toast.body")}
+            action={{
+              label: (
+                <Link to="/verify" className="block">
+                  {t("verify.action")}
+                </Link>
+              ),
+              onClick: () => navigate("/verify"),
+            }}
+            onDismiss={() => {
+              localStorage.setItem(VERIFY_DISMISS_KEY, "1");
+              setVerifyDismissed(true);
+            }}
+          />
+        )}
+        {notifPerm === "default" && !notifDismissed && (
+          <Toast
+            icon={<Bell className="h-3.5 w-3.5" />}
+            title={t("notif.toast.title")}
+            body={t("notif.toast.body")}
+            action={{
+              label: t("notif.action"),
+              onClick: async () => {
+                await requestNotificationPermission();
+                setNotifPerm(notificationPermission());
+              },
+            }}
+            onDismiss={() => {
+              localStorage.setItem(NOTIF_DISMISS_KEY, "1");
+              setNotifDismissed(true);
+            }}
+          />
+        )}
+      </ToastStack>
     </div>
   );
 }
