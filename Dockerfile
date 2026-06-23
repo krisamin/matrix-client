@@ -10,8 +10,8 @@ FROM node:20-alpine AS build
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN node node_modules/@react-router/dev/dist/cli.js typegen \
-  && node node_modules/@react-router/dev/dist/cli.js build
+RUN ./node_modules/.bin/react-router typegen \
+  && ./node_modules/.bin/react-router build
 
 # Runtime: nginx serves the SPA build directly. /index.html is the app shell;
 # all other unknown routes also fall back to it (client-side routing).
