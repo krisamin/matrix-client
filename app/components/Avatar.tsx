@@ -85,6 +85,8 @@ function AvatarInner({
     <img
       src={url}
       alt=""
+      loading="lazy"
+      decoding="async"
       className="shrink-0 object-cover"
       style={{ width: size, height: size, borderRadius }}
     />

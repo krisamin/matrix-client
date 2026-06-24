@@ -20,14 +20,14 @@ import {
   RelationType,
   type Room,
 } from "matrix-js-sdk";
-import { memo, useState } from "react";
+import { Suspense, lazy, memo, useState } from "react";
 import { useT } from "../lib/i18n";
 import { isPinned, togglePin } from "../lib/matrix";
 import { buildMentionContent, mentionsUser } from "../lib/mention";
 import { quotePreview, thumbnailSource } from "../lib/reply";
 import { MEDIA_MSGTYPES } from "../lib/timeline";
 import { extractPreviewUrls } from "../lib/url-preview";
-import { EmojiPicker } from "./EmojiPicker";
+
 import { ForwardModal } from "./ForwardModal";
 import { MediaView } from "./MediaView";
 import { MessageBody } from "./MessageBody";
@@ -39,6 +39,10 @@ import { isToolProgressEvent, ToolCallChip } from "./ToolCallChip";
 import { UrlPreviews } from "./UrlPreview";
 import { UserProfileCard } from "./UserProfileCard";
 
+
+const EmojiPicker = lazy(() =>
+  import("./EmojiPicker").then((m) => ({ default: m.EmojiPicker })),
+);
 function formatTime(ts: number): string {
   return new Date(ts).toLocaleTimeString("ko-KR", {
     hour: "2-digit",
@@ -438,13 +442,17 @@ const EventLineInner = function EventLine({
           )}
         </div>
       )}
-      {/* 이모지 피커 — 버튼 앵커 기준 포털 (스크롤 컨테이너 영향 없음) */}
+      {/* 이모지 피커 — 버튼 앵커 기준 포털 (스크롤 컨테이너 영향 없음).
+          lazy 분리되어 있어 첫 마운트에서 청크 fetch — Suspense fallback은
+          null(피커가 즉시 안 떠도 시각 disturbance 없음). */}
       {pickerAnchor && (
-        <EmojiPicker
-          anchor={pickerAnchor}
-          onPick={react}
-          onClose={() => setPickerAnchor(null)}
-        />
+        <Suspense fallback={null}>
+          <EmojiPicker
+            anchor={pickerAnchor}
+            onPick={react}
+            onClose={() => setPickerAnchor(null)}
+          />
+        </Suspense>
       )}
       {/* 발신자 프로필 카드 */}
       {profileAnchor && ev.getSender() && (

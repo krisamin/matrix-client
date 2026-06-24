@@ -1,14 +1,18 @@
 import { Paperclip, SendHorizontal, SmilePlus, X } from "lucide-react";
 import type { MatrixClient, MatrixEvent, Room } from "matrix-js-sdk";
-import { useEffect, useRef, useState } from "react";
+import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { useT } from "../lib/i18n";
 import { uploadAndSendFile } from "../lib/media";
 import { type Mention, searchMembers } from "../lib/mention";
 import { quotePreview } from "../lib/reply";
 import { useSendTyping } from "../lib/typing";
 import { Avatar } from "./Avatar";
-import { EmojiPicker } from "./EmojiPicker";
 
+
+
+const EmojiPicker = lazy(() =>
+  import("./EmojiPicker").then((m) => ({ default: m.EmojiPicker })),
+);
 /** 입력창 최대 높이(px). 이 높이를 넘으면 textarea 내부 스크롤. */
 const MAX_INPUT_PX = 200;
 
@@ -357,11 +361,13 @@ export function MessageInput({
         </button>
       </form>
       {emojiAnchor && (
-        <EmojiPicker
-          anchor={emojiAnchor}
-          onPick={insertEmoji}
-          onClose={() => setEmojiAnchor(null)}
-        />
+        <Suspense fallback={null}>
+          <EmojiPicker
+            anchor={emojiAnchor}
+            onPick={insertEmoji}
+            onClose={() => setEmojiAnchor(null)}
+          />
+        </Suspense>
       )}
     </div>
   );

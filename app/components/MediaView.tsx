@@ -67,6 +67,8 @@ export function MediaView({
           title="크게 보기"
         >
           <img
+            loading="lazy"
+            decoding="async"
             src={blobUrl}
             alt={content.body ?? "이미지"}
             className="max-h-80 max-w-full rounded-lg border border-line object-contain"
