@@ -443,6 +443,14 @@ export const ko = {
   "shortcuts.newline": "줄바꿈",
   "shortcuts.reply": "답장 (호버 시)",
   "shortcuts.help": "이 도움말",
+  "sort.title": "방 정렬",
+  "sort.activity": "마지막 활동순",
+  "sort.unread": "안 읽음 우선",
+  "sort.alpha": "이름순",
+  "home.hint.switch": "방 빠른 전환",
+  "home.hint.shortcuts": "단축키 안내",
+  "sidebar.empty.title": "아직 방이 없어요",
+  "sidebar.empty.hint": "좌상단 + 버튼으로 방을 만들거나 DM을 시작하세요",
 } as const;
 
 export type DictKey = keyof typeof ko;

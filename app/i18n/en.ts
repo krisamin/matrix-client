@@ -434,4 +434,12 @@ export const en: Record<keyof typeof ko, string> = {
   "shortcuts.newline": "New line",
   "shortcuts.reply": "Reply (hover)",
   "shortcuts.help": "Show this help",
+  "sort.title": "Sort rooms",
+  "sort.activity": "Recent activity",
+  "sort.unread": "Unread first",
+  "sort.alpha": "Alphabetical",
+  "home.hint.switch": "Quick switch room",
+  "home.hint.shortcuts": "Show shortcuts",
+  "sidebar.empty.title": "No rooms yet",
+  "sidebar.empty.hint": "Use the + button to create a room or start a DM",
 };

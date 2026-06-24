@@ -3,6 +3,7 @@ import {
   Check,
   ChevronDown,
   ChevronRight,
+  ArrowUpDown,
   FolderPlus,
   Hash,
   MessageSquareText,
@@ -24,6 +25,7 @@ import {
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { useRooms } from "../hooks/useRooms";
+import { saveRoomSort } from "../lib/room-sort";
 import { useI18n, useT } from "../lib/i18n";
 import {
   isFavourite,
@@ -490,12 +492,13 @@ function SectionLabel({
 export function Sidebar({ client }: { client: MatrixClient }) {
   const navigate = useNavigate();
   const params = useParams<{ roomId?: string; threadId?: string }>();
-  const { rooms, invites, syncState } = useRooms(client);
+  const { rooms, invites, syncState, sort, setSort } = useRooms(client);
   const [inviteBusy, setInviteBusy] = useState<string | null>(null);
   const [newDmOpen, setNewDmOpen] = useState(false);
   const [newRoomOpen, setNewRoomOpen] = useState(false);
   const [newSpaceOpen, setNewSpaceOpen] = useState(false);
   const [createMenuOpen, setCreateMenuOpen] = useState(false);
+  const [sortMenuOpen, setSortMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [appSettingsOpen, setAppSettingsOpen] = useState(false);
   const { t } = useI18n();
@@ -563,6 +566,50 @@ export function Sidebar({ client }: { client: MatrixClient }) {
         >
           <span className="truncate font-medium text-fg-0">{localpart}</span>
         </button>
+        <div className="relative flex h-full">
+          <button
+            type="button"
+            className="flex aspect-square h-full shrink-0 items-center justify-center text-fg-2 hover:bg-bg-2 hover:text-fg-0"
+            onClick={() => setSortMenuOpen((v) => !v)}
+            title={t("sort.title")}
+          >
+            <ArrowUpDown className="h-[14px] w-[14px]" />
+          </button>
+          {sortMenuOpen && (
+            <>
+              <div
+                className="fixed inset-0 z-20"
+                onClick={() => setSortMenuOpen(false)}
+                role="presentation"
+              />
+              <div className="absolute right-0 top-full z-30 mt-1 flex w-[140px] flex-col overflow-hidden rounded-md border border-line bg-bg-1 shadow-2xl">
+                {(
+                  [
+                    ["activity", t("sort.activity")],
+                    ["unread", t("sort.unread")],
+                    ["alpha", t("sort.alpha")],
+                  ] as const
+                ).map(([key, label]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => {
+                      saveRoomSort(key);
+                      setSort(key);
+                      setSortMenuOpen(false);
+                    }}
+                    className={`px-3 py-2 text-left text-[13px] hover:bg-bg-2 ${
+                      sort === key ? "text-fg-0" : "text-fg-2"
+                    }`}
+                  >
+                    {sort === key ? "✓ " : "  "}
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
         <div className="relative flex h-full">
           <button
             type="button"

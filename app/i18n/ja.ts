@@ -435,4 +435,12 @@ export const ja: Record<keyof typeof ko, string> = {
   "shortcuts.newline": "改行",
   "shortcuts.reply": "返信 (ホバー時)",
   "shortcuts.help": "ヘルプ表示",
+  "sort.title": "ルーム並び替え",
+  "sort.activity": "最近の活動",
+  "sort.unread": "未読を先頭",
+  "sort.alpha": "名前順",
+  "home.hint.switch": "ルーム高速切替",
+  "home.hint.shortcuts": "ショートカット表示",
+  "sidebar.empty.title": "ルームがまだありません",
+  "sidebar.empty.hint": "+ ボタンでルームを作成またはDMを開始",
 };
