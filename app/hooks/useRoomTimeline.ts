@@ -85,28 +85,36 @@ export function useRoomTimeline(client: MatrixClient, roomId: string) {
     lastSigRef.current = "\u0000init";
 
     // 보이는 이벤트가 최소치를 넘거나 타임라인 끝에 닿을 때까지 backwards 페이지네이션
+    // limit 30: 메시지 짧은 방에서 1회 50개=과도. 30이면 점진적 + decryption 부담 분산.
+    // ref guard: 빠른 방 전환 + scroll 시 fillUntilVisible과 loadOlder 동시 진입 방지.
     const fillUntilVisible = async (r: Room) => {
-      const tlSet = tlSetRef.current;
-      for (let i = 0; i < 10 && visibleEvents(r, tlSet).length < 15; i++) {
-        if (gen !== genRef.current) return; // 방 전환됨 — 중단
-        const timeline = tlSet?.getLiveTimeline() ?? r.getLiveTimeline();
-        let more: boolean;
-        try {
-          more = await client.paginateEventTimeline(timeline, {
-            backwards: true,
-            limit: 50,
-          });
-        } catch (e) {
-          console.warn("[fillUntilVisible] paginate 실패:", e);
-          break;
+      if (loadingOlderRef.current) return;
+      loadingOlderRef.current = true;
+      try {
+        const tlSet = tlSetRef.current;
+        for (let i = 0; i < 10 && visibleEvents(r, tlSet).length < 15; i++) {
+          if (gen !== genRef.current) return; // 방 전환됨 — 중단
+          const timeline = tlSet?.getLiveTimeline() ?? r.getLiveTimeline();
+          let more: boolean;
+          try {
+            more = await client.paginateEventTimeline(timeline, {
+              backwards: true,
+              limit: 30,
+            });
+          } catch (e) {
+            console.warn("[fillUntilVisible] paginate 실패:", e);
+            break;
+          }
+          if (gen !== genRef.current) return; // await 사이 방 전환됨
+          decryptPending(client, timeline.getEvents());
+          commit(r, gen);
+          if (!more) {
+            if (gen === genRef.current) setHasMore(false);
+            break;
+          }
         }
-        if (gen !== genRef.current) return; // await 사이 방 전환됨
-        decryptPending(client, timeline.getEvents());
-        commit(r, gen);
-        if (!more) {
-          if (gen === genRef.current) setHasMore(false);
-          break;
-        }
+      } finally {
+        loadingOlderRef.current = false;
       }
     };
 

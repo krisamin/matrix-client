@@ -158,13 +158,22 @@ function RoomNode({
   const fav = isFavourite(room);
   const muted = isMuted(client, room);
 
-  // 스레드 최신 활동순 정렬 — lastReply().ts(없으면 rootEvent.ts) 내림차순.
-  // 새 스레드/답글이 오면 자연스럽게 맨 위로 올라오고, SDK 기본(생성순)을 덮어씀.
-  const sortedThreads = [...threads].sort((a, b) => {
-    const tsA = a.lastReply()?.getTs() ?? a.rootEvent?.getTs() ?? 0;
-    const tsB = b.lastReply()?.getTs() ?? b.rootEvent?.getTs() ?? 0;
-    return tsB - tsA;
-  });
+  // 스레드 정렬:
+  //  - useTimelineSet=true 경로: /v1/rooms/{roomId}/threads 응답이 이미
+  //    latest_event ts 내림차순(서버 보장). MSC3856 기본 정렬.
+  //    timelineSet events는 backwards 응답을 prepend해 자연 reverse →
+  //    역순(.reverse())으로 뒤집으면 최신이 위로. lastReply 기반 재정렬은
+  //    하지 않음 — All/My 두 응답이 비동기로 도착하며 lastReply 갱신 시
+  //    순서가 두 번 흔들리는 문제 회피.
+  //  - getThreads() fallback 경로(MSC3856 미지원): SDK가 생성순으로 주니
+  //    lastReply ts로 직접 정렬해서 최신 활동을 위로.
+  const sortedThreads = useTimelineSet
+    ? [...threads].reverse()
+    : [...threads].sort((a, b) => {
+        const tsA = a.lastReply()?.getTs() ?? a.rootEvent?.getTs() ?? 0;
+        const tsB = b.lastReply()?.getTs() ?? b.rootEvent?.getTs() ?? 0;
+        return tsB - tsA;
+      });
 
   const showChildren = hasThreads && (expanded || active);
 
