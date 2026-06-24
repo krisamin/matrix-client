@@ -75,12 +75,18 @@ function RoomNode({
   //    옵션이 켜진 client에서 timelineSets[0/1] 빈 EventTimelineSet 생성.
   // 2) fetchRoomThreads(): /v1/rooms/{roomId}/threads (MSC3856) 또는
   //    /messages 필터로 thread root 목록 받아 timelineSet에 채움.
-  // 둘 다 끝나면 syncHasMore로 token 평가.
+  //
+  // ★ active 방에서만 발사. 방 100개 사이드바면 100개 RoomNode가 동시
+  // mount되는데, 각각 fetch 발사하면 서버에 100 req + 메인 스레드 폭주
+  // → 사이드바 클릭 시 "응답없음" 유발. active일 때만 하면 사용자가 보는
+  // 방의 thread만 즉시 채워지고 나머지는 클릭 시점에 fetch.
   useEffect(() => {
+    if (!active) return;
     let cancelled = false;
     (async () => {
       try {
         await room.createThreadsTimelineSets();
+        if (cancelled) return;
         await room.fetchRoomThreads();
       } catch {
         // 실패해도 timeline에 있는 thread는 그대로 보이니 무시
@@ -89,7 +95,7 @@ function RoomNode({
       syncHasMore();
       force((n) => n + 1);
     })();
-    // 새 thread / 답글 / 삭제 시 리렌더 + hasMore 재평가
+    // 새 thread / 답글 / 삭제 시 리렌더 + hasMore 재평가 (active 방만 구독)
     const bump = () => {
       if (cancelled) return;
       syncHasMore();
@@ -107,7 +113,7 @@ function RoomNode({
       room.off(ThreadEvent.Delete, bump);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [room]);
+  }, [room, active]);
   // Thread 리스트 source 분기:
   //  - 서버가 MSC3856 (/v1/rooms/{roomId}/threads) 지원 → threadsTimelineSets
   //    [0]만 표시 (Element와 동일, 옛 메시지 스크롤로 thread가 임의 추가
