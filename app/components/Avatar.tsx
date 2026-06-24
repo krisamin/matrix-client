@@ -1,5 +1,5 @@
 import type { MatrixClient, Room } from "matrix-js-sdk";
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import {
   PRESENCE_LABEL,
   type Presence,
@@ -36,7 +36,7 @@ export function PresenceDot({
 
 /** 아바타 — Space/룸은 정사각형(4px 라운드), DM 유저는 완전 원형.
  *  mxc 아바타가 없거나 로딩 전엔 이니셜 블록 표시 */
-export function Avatar({
+function AvatarInner({
   client,
   mxcUrl,
   name,
@@ -136,3 +136,5 @@ export function RoomAvatar({
     />
   );
 }
+
+export const Avatar = memo(AvatarInner);

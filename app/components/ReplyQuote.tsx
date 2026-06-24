@@ -1,6 +1,6 @@
 import { Reply } from "lucide-react";
 import type { MatrixClient, MatrixEvent, Room } from "matrix-js-sdk";
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { useT } from "../lib/i18n";
 import { getReplyToId, quotePreview, thumbnailSource } from "../lib/reply";
 import { QuoteThumbnail } from "./QuoteThumbnail";
@@ -8,7 +8,7 @@ import { QuoteThumbnail } from "./QuoteThumbnail";
 export { getReplyToId };
 
 /** 답장 원문 인용 박스 (높이 22px 통일). 원문이 로컬에 없으면 서버에서 가져옴. */
-export function ReplyQuote({
+function ReplyQuoteInner({
   client,
   room,
   replyToId,
@@ -70,3 +70,5 @@ export function ReplyQuote({
     </button>
   );
 }
+
+export const ReplyQuote = memo(ReplyQuoteInner);

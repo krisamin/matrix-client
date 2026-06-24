@@ -1,7 +1,7 @@
 import DOMPurify from "dompurify";
 import hljs from "highlight.js/lib/common";
 import type { MatrixClient, MatrixEvent } from "matrix-js-sdk";
-import { useEffect, useMemo, useRef } from "react";
+import { memo, useEffect, useMemo, useRef } from "react";
 import { getReplyToId } from "../lib/reply";
 
 /** Matrix 스펙(11.2.1.7 m.room.message msgtypes)이 허용하는 HTML 태그 —
@@ -260,7 +260,7 @@ function revealTyping(root: HTMLElement, fromOffset: number): () => void {
  *  (문자열 단계에서 색을 박아 깜빡임 없음) + 복사 버튼 제공.
  *  수정(m.replace)된 이벤트는 SDK가 getContent()에서 최신 내용을
  *  돌려주므로 추가 처리 불필요. */
-export function MessageBody({
+function MessageBodyInner({
   client,
   ev,
 }: {
@@ -376,3 +376,5 @@ export function MessageBody({
     />
   );
 }
+
+export const MessageBody = memo(MessageBodyInner);
