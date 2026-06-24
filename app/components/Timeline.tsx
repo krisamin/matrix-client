@@ -378,7 +378,10 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
                 return (
                   <div
                     key={row.key}
-                    className="msg-in flex items-center gap-1.5 px-5 py-0.5 text-[12px] text-fg-2"
+                    // typing은 timeline의 마지막 행 — 아래에 컨테이너 py-3(12px)
+                    // 만큼 빈 공간이 생겨 입력창과 너무 떨어져 보임. -mb-2로
+                    // 살짝 끌어내려 위 메시지/아래 입력창과 비슷한 간격 유지.
+                    className="msg-in -mb-2 flex items-center gap-1.5 px-5 py-0.5 text-[12px] text-fg-2"
                   >
                     <span className="flex gap-0.5">
                       <span className="typing-dot h-1 w-1 rounded-full bg-fg-2" />
