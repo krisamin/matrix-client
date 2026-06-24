@@ -378,7 +378,7 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
                 return (
                   <div
                     key={row.key}
-                    className="msg-in flex items-center gap-1.5 px-5 pt-1 pb-0.5 text-[12px] text-fg-2"
+                    className="msg-in flex items-center gap-1.5 px-5 py-0.5 text-[12px] text-fg-2"
                   >
                     <span className="flex gap-0.5">
                       <span className="typing-dot h-1 w-1 rounded-full bg-fg-2" />

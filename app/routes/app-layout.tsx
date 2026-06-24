@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { Link, Outlet, useNavigate, useOutletContext } from "react-router";
 import { ConnectionToast } from "../components/ConnectionBanner";
 import { Lightbox } from "../components/Lightbox";
+import { QuickSwitcher } from "../components/QuickSwitcher";
+import { ShortcutsModal } from "../components/ShortcutsModal";
 import { Sidebar } from "../components/Sidebar";
 import { Toast, ToastStack } from "../components/Toast";
 import { useT } from "../lib/i18n";
@@ -45,6 +47,37 @@ export default function AppLayout() {
       typeof window !== "undefined" &&
       localStorage.getItem(NOTIF_DISMISS_KEY) === "1",
   );
+  // 전역 키보드 단축키: Ctrl/Cmd+K (방 빠른 전환), ? 또는 Ctrl+/ (단축키 안내)
+  const [switcherOpen, setSwitcherOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const target = e.target as HTMLElement | null;
+      const inEditable =
+        target?.tagName === "INPUT" ||
+        target?.tagName === "TEXTAREA" ||
+        target?.isContentEditable;
+      // Cmd/Ctrl+K — 입력 중이어도 열림
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setSwitcherOpen(true);
+        return;
+      }
+      // Ctrl+/ — 단축키 안내
+      if ((e.metaKey || e.ctrlKey) && e.key === "/") {
+        e.preventDefault();
+        setShortcutsOpen(true);
+        return;
+      }
+      // ? — 입력 중이 아닐 때만
+      if (e.key === "?" && !inEditable) {
+        e.preventDefault();
+        setShortcutsOpen(true);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   useEffect(() => {
     const promise = getReadyClient();
@@ -142,6 +175,12 @@ export default function AppLayout() {
           />
         )}
       </ToastStack>
+      {switcherOpen && (
+        <QuickSwitcher client={client} onClose={() => setSwitcherOpen(false)} />
+      )}
+      {shortcutsOpen && (
+        <ShortcutsModal onClose={() => setShortcutsOpen(false)} />
+      )}
     </div>
   );
 }

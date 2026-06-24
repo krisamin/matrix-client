@@ -431,6 +431,18 @@ export const ko = {
   "login.terms.accept": "동의하고 계속하기",
   "thread.loadMore": "이전 스레드 더 보기",
   "thread.loading": "불러오는 중…",
+  "switcher.placeholder": "방 검색",
+  "switcher.noResults": "결과 없음",
+  "switcher.hint.navigate": "이동",
+  "switcher.hint.open": "열기",
+  "shortcuts.title": "키보드 단축키",
+  "shortcuts.switch": "방 빠른 전환",
+  "shortcuts.search": "방 안 검색",
+  "shortcuts.close": "닫기/취소",
+  "shortcuts.send": "메시지 전송",
+  "shortcuts.newline": "줄바꿈",
+  "shortcuts.reply": "답장 (호버 시)",
+  "shortcuts.help": "이 도움말",
 } as const;
 
 export type DictKey = keyof typeof ko;
