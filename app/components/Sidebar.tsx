@@ -743,9 +743,18 @@ export function Sidebar({ client }: { client: MatrixClient }) {
           </>
         )}
         {rooms.length === 0 && invites.length === 0 && (
-          <p className="px-3 py-6 text-center text-[12px] text-fg-3">
-            {t("sidebar.empty")}
-          </p>
+          <div className="flex flex-col items-center gap-2 px-4 py-8 text-center">
+            <MessageSquareText
+              className="h-6 w-6 text-fg-3"
+              strokeWidth={1.25}
+            />
+            <p className="text-[13px] font-medium text-fg-1">
+              {t("sidebar.empty.title")}
+            </p>
+            <p className="text-[11px] leading-relaxed text-fg-3">
+              {t("sidebar.empty.hint")}
+            </p>
+          </div>
         )}
       </nav>
 
