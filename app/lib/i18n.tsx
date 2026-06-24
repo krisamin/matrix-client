@@ -7,8 +7,6 @@ import {
   useMemo,
   useState,
 } from "react";
-import { en } from "../i18n/en";
-import { ja } from "../i18n/ja";
 import { type DictKey, ko } from "../i18n/ko";
 import {
   type Locale,
@@ -18,7 +16,25 @@ import {
   saveLocalePref,
 } from "./locale";
 
-const DICTS: Record<Locale, Record<DictKey, string>> = { ko, en, ja };
+// ko는 fallback master라 정적 번들 — 항상 즉시 사용 가능.
+// en/ja는 사용 시점에만 dynamic import → 초기 번들에서 분리.
+type Dict = Record<DictKey, string>;
+const DICT_CACHE: Partial<Record<Locale, Dict>> = { ko };
+
+async function loadDict(locale: Locale): Promise<Dict> {
+  if (DICT_CACHE[locale]) return DICT_CACHE[locale] as Dict;
+  if (locale === "en") {
+    const m = await import("../i18n/en");
+    DICT_CACHE.en = m.en;
+    return m.en;
+  }
+  if (locale === "ja") {
+    const m = await import("../i18n/ja");
+    DICT_CACHE.ja = m.ja;
+    return m.ja;
+  }
+  return ko;
+}
 
 interface I18nContextValue {
   /** 실제 적용된 언어 (auto 해석 후) — 사전 조회용 */
@@ -36,6 +52,9 @@ const I18nContext = createContext<I18nContextValue | null>(null);
 /** Provider — App 루트에 마운트. localStorage 변화도 듣는다(다른 탭 동기화). */
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [pref, setPrefState] = useState<LocalePref>(() => loadLocalePref());
+  // 현재 적용된 사전 — 처음엔 ko, locale 바뀌면 비동기로 갱신.
+  // 로드 전엔 ko fallback로 그려서 화면 깜빡임 0.
+  const [dict, setDict] = useState<Dict>(() => ko);
 
   useEffect(() => {
     function onStorage(e: StorageEvent) {
@@ -54,9 +73,19 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
   const locale = useMemo(() => resolveLocale(pref), [pref]);
 
+  // locale 변경 시 사전 dynamic load. 같은 locale 재진입은 cache hit으로 즉시.
+  useEffect(() => {
+    let cancelled = false;
+    loadDict(locale).then((d) => {
+      if (!cancelled) setDict(d);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [locale]);
+
   const t = useCallback(
     (key: DictKey, params?: Record<string, string | number>) => {
-      const dict = DICTS[locale];
       const raw = dict[key] ?? ko[key] ?? key;
       if (!params) return raw;
       // {{name}} 치환 — 간단한 mustache. 이스케이프는 안 함(텍스트 노드로 들어감).
@@ -64,7 +93,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
         String(params[k] ?? `{{${k}}}`),
       );
     },
-    [locale],
+    [dict],
   );
 
   const value = useMemo(
