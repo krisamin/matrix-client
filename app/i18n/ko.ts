@@ -429,6 +429,8 @@ export const ko = {
   "login.captcha.hint": "스팸 방지를 위해 아래 인증을 완료해 주세요.",
   "login.terms.hint": "이 서버를 사용하려면 다음 약관에 동의해야 합니다.",
   "login.terms.accept": "동의하고 계속하기",
+  "thread.loadMore": "이전 스레드 더 보기",
+  "thread.loading": "불러오는 중…",
 } as const;
 
 export type DictKey = keyof typeof ko;

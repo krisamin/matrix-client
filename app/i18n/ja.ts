@@ -421,4 +421,6 @@ export const ja: Record<keyof typeof ko, string> = {
   "login.terms.hint":
     "このサーバーを使用するには、以下のポリシーに同意する必要があります。",
   "login.terms.accept": "同意して続行",
+  "thread.loadMore": "古いスレッドを読み込む",
+  "thread.loading": "読み込み中…",
 };

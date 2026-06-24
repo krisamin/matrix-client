@@ -515,10 +515,21 @@ export async function setMyAvatar(
   return content_uri;
 }
 
-/** 모든 라우트에서 같은 옵션으로 startClient 하도록 통일 (threadSupport 포함) */
+/** 모든 라우트에서 같은 옵션으로 startClient 하도록 통일.
+ *  - threadSupport: thread relation 처리 (room.threadsTimelineSets 활성)
+ *  - lazyLoadMembers: 방 멤버 lazy-load — 큰 방에서 initial sync 빠름
+ *  - initialSyncLimit: 첫 sync에 가져올 메시지 수 (방마다)
+ *
+ *  useAuthorizationHeader는 createClient 옵션이라 따로 못 켜는데, SDK가
+ *  내부적으로 access_token을 Authorization 헤더로 보내는 경로를 이미 사용
+ *  중이라 별도 설정 불필요. */
 export function ensureStarted(client: MatrixClient): void {
   if (!client.clientRunning) {
-    client.startClient({ initialSyncLimit: 20, threadSupport: true });
+    client.startClient({
+      initialSyncLimit: 20,
+      threadSupport: true,
+      lazyLoadMembers: true,
+    });
   }
 }
 

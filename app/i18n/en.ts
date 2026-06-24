@@ -420,4 +420,6 @@ export const en: Record<keyof typeof ko, string> = {
   "login.terms.hint":
     "You must agree to the following policies to use this server.",
   "login.terms.accept": "Accept and continue",
+  "thread.loadMore": "Load older threads",
+  "thread.loading": "Loading…",
 };

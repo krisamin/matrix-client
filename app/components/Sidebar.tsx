@@ -14,7 +14,13 @@ import {
   X,
 } from "lucide-react";
 import type { MatrixClient, Room } from "matrix-js-sdk";
-import { NotificationCountType } from "matrix-js-sdk";
+import {
+  EventTimeline,
+  FeatureSupport,
+  NotificationCountType,
+  Thread,
+  ThreadEvent,
+} from "matrix-js-sdk";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { useRooms } from "../hooks/useRooms";
@@ -52,12 +58,97 @@ function RoomNode({
   showPresence?: boolean;
 }) {
   const t = useT();
-  const threads = room.getThreads();
+  const [, force] = useState(0);
+  // hasMoreThreads는 명시 state로 — fetchRoomThreads 완료 후, paginate 후
+  // 매 시점에 동기화. SDK timelineSet이 처음 빈 배열이라 token 추출이
+  // 첫 렌더 시 무조건 null인 문제도 회피.
+  const [hasMoreThreads, setHasMoreThreads] = useState(false);
+  const [loadingMoreThreads, setLoadingMoreThreads] = useState(false);
+
+  function syncHasMore() {
+    const tl = room.threadsTimelineSets[0]?.getLiveTimeline();
+    setHasMoreThreads(!!tl?.getPaginationToken(EventTimeline.BACKWARDS));
+  }
+
+  // 방 mount 시 1회 — threadsTimelineSets 초기화 + 서버 thread 목록 fetch.
+  // 1) createThreadsTimelineSets(): SDK가 자동 호출 안 함. threadSupport
+  //    옵션이 켜진 client에서 timelineSets[0/1] 빈 EventTimelineSet 생성.
+  // 2) fetchRoomThreads(): /v1/rooms/{roomId}/threads (MSC3856) 또는
+  //    /messages 필터로 thread root 목록 받아 timelineSet에 채움.
+  // 둘 다 끝나면 syncHasMore로 token 평가.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        await room.createThreadsTimelineSets();
+        await room.fetchRoomThreads();
+      } catch {
+        // 실패해도 timeline에 있는 thread는 그대로 보이니 무시
+      }
+      if (cancelled) return;
+      syncHasMore();
+      force((n) => n + 1);
+    })();
+    // 새 thread / 답글 / 삭제 시 리렌더 + hasMore 재평가
+    const bump = () => {
+      if (cancelled) return;
+      syncHasMore();
+      force((n) => n + 1);
+    };
+    room.on(ThreadEvent.New, bump);
+    room.on(ThreadEvent.Update, bump);
+    room.on(ThreadEvent.NewReply, bump);
+    room.on(ThreadEvent.Delete, bump);
+    return () => {
+      cancelled = true;
+      room.off(ThreadEvent.New, bump);
+      room.off(ThreadEvent.Update, bump);
+      room.off(ThreadEvent.NewReply, bump);
+      room.off(ThreadEvent.Delete, bump);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [room]);
+  // Thread 리스트 source 분기:
+  //  - 서버가 MSC3856 (/v1/rooms/{roomId}/threads) 지원 → threadsTimelineSets
+  //    [0]만 표시 (Element와 동일, 옛 메시지 스크롤로 thread가 임의 추가
+  //    되지 않음).
+  //  - 미지원 → fallback: room.getThreads() 그대로 (메인 timeline 발견 포함).
+  //    이 경로에선 옛 thread가 스크롤할 때마다 추가될 수 있지만 서버가
+  //    지원 안 하니 다른 방법 없음.
+  const useTimelineSet =
+    Thread.hasServerSideListSupport === FeatureSupport.Stable ||
+    Thread.hasServerSideListSupport === FeatureSupport.Experimental;
+  const threads = useTimelineSet
+    ? (room.threadsTimelineSets[0]
+        ?.getLiveTimeline()
+        .getEvents() ?? [])
+        .map((ev) => room.getThread(ev.getId() ?? ""))
+        .filter((th): th is NonNullable<typeof th> => !!th)
+    : room.getThreads();
   const hasThreads = threads.length > 0;
   // 활성 방은 기본 펼침
   const [expanded, setExpanded] = useState(active);
-  // 태그/푸시룰 변화 → 리렌더용 tick
-  const [, force] = useState(0);
+
+  async function loadMoreThreads() {
+    if (loadingMoreThreads) return;
+    setLoadingMoreThreads(true);
+    try {
+      // 두 timelineSet(All/My) 둘 다 한 페이지씩 — SDK 기본 limit=30씩 추가
+      await Promise.all(
+        room.threadsTimelineSets
+          .map((ts) => ts.getLiveTimeline())
+          .filter((tl): tl is NonNullable<typeof tl> => !!tl)
+          .filter((tl) => tl.getPaginationToken(EventTimeline.BACKWARDS))
+          .map((tl) => client.paginateEventTimeline(tl, { backwards: true })),
+      );
+      syncHasMore();
+      force((n) => n + 1);
+    } catch {
+      // 실패해도 기존 목록은 유지
+    } finally {
+      setLoadingMoreThreads(false);
+    }
+  }
   // 컨텍스트 메뉴 위치 (null=닫힘)
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
   const unread = room.getUnreadNotificationCount(NotificationCountType.Total);
@@ -196,6 +287,23 @@ function RoomNode({
               </Link>
             );
           })}
+          {hasMoreThreads && (
+            <button
+              type="button"
+              onClick={loadMoreThreads}
+              disabled={loadingMoreThreads}
+              className="tree-row text-fg-3 hover:text-fg-1 disabled:opacity-50"
+            >
+              <ChevronDown
+                className={`h-3.5 w-3.5 shrink-0 ${loadingMoreThreads ? "animate-pulse" : ""}`}
+              />
+              <span className="min-w-0 flex-1 truncate text-[12px]">
+                {loadingMoreThreads
+                  ? t("thread.loading")
+                  : t("thread.loadMore")}
+              </span>
+            </button>
+          )}
         </div>
       )}
     </div>
