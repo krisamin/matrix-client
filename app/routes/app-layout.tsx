@@ -3,6 +3,7 @@ import type { MatrixClient } from "matrix-js-sdk";
 import { useEffect, useState } from "react";
 import { Link, Outlet, useNavigate, useOutletContext } from "react-router";
 import { ConnectionToast } from "../components/ConnectionBanner";
+import { ErrorBoundary } from "../components/ErrorBoundary";
 import { Lightbox } from "../components/Lightbox";
 import { QuickSwitcher } from "../components/QuickSwitcher";
 import { ShortcutsModal } from "../components/ShortcutsModal";
@@ -130,9 +131,13 @@ export default function AppLayout() {
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <Sidebar client={client} />
+      <ErrorBoundary label="사이드바" size="pane">
+        <Sidebar client={client} />
+      </ErrorBoundary>
       <main className="flex min-w-0 flex-1 flex-col">
-        <Outlet context={{ client } satisfies AppContext} />
+        <ErrorBoundary label="메시지 영역" size="pane">
+          <Outlet context={{ client } satisfies AppContext} />
+        </ErrorBoundary>
       </main>
       <Lightbox />
       <ToastStack>
