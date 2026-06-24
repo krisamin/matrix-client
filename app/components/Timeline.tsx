@@ -213,10 +213,18 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
       if (!initialScheduledRef.current) {
         // 초기 진입: rAF로 미뤄 측정 완료 후 맨 아래로(측정 전 호출은 부정확).
         // done은 rAF 안에서 세팅 → 그 전 onScroll의 loadOlder 폭주를 막는다.
+        // ★ 두 번째 rAF에서 한 번 더 — 첫 rAF 시점에 이미지/링크프리뷰가
+        //   아직 안 마운트돼 측정이 흔들려 "중간"에 멈춰있던 증상 fix.
+        //   단발이라 누적 freeze 위험 없음 (initialScheduledRef로 한 번만).
         initialScheduledRef.current = true;
         requestAnimationFrame(() => {
           vRef.current?.scrollToIndex(lastIdx, { align: "end" });
-          initialDoneRef.current = true;
+          requestAnimationFrame(() => {
+            vRef.current?.scrollToIndex(displayRows.length - 1, {
+              align: "end",
+            });
+            initialDoneRef.current = true;
+          });
         });
       } else if (
         !isPrepend &&
