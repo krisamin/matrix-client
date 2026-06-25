@@ -193,7 +193,7 @@ export const RoomNode = memo(function RoomNodeInner({
   return (
     <div>
       <div
-        className={`tree-row ${active && !activeThreadId ? "active" : ""}`}
+        className={`tree-row group/row ${active && !activeThreadId ? "active" : ""}`}
         onContextMenu={(e) => {
           e.preventDefault();
           setMenu({ x: e.clientX, y: e.clientY });
@@ -202,7 +202,11 @@ export const RoomNode = memo(function RoomNodeInner({
         {hasThreads ? (
           <button
             type="button"
-            className="shrink-0 text-fg-3 hover:text-fg-1"
+            className={`shrink-0 text-fg-3 hover:text-fg-1 ${
+              showChildren
+                ? "opacity-100"
+                : "opacity-0 group-hover/row:opacity-100"
+            }`}
             onClick={() => setExpanded((v) => !v)}
             title={t(showChildren ? "common.collapse" : "common.expand")}
           >

@@ -33,10 +33,14 @@ export function SpaceTreeNode({
 
   return (
     <div>
-      <div className={`tree-row ${active ? "active" : ""}`}>
+      <div className={`tree-row group/row ${active ? "active" : ""}`}>
         <button
           type="button"
-          className="shrink-0 text-fg-3 hover:text-fg-1"
+          className={`shrink-0 text-fg-3 hover:text-fg-1 ${
+            expanded
+              ? "opacity-100"
+              : "opacity-0 group-hover/row:opacity-100"
+          }`}
           onClick={() => setCollapsed((v) => !v)}
           title={t(expanded ? "sidebar.collapse" : "sidebar.expand")}
         >
