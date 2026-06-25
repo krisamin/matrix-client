@@ -560,17 +560,8 @@ export function Sidebar({ client }: { client: MatrixClient }) {
   return (
     <aside className="flex w-64 shrink-0 flex-col border-r border-line bg-bg-1">
       {/* 헤더: 48px (PWA WCO 시 창 드래그 + 신호등 버튼 회피).
-          PaneHeader와 동일 톤 — 좌측 콘텐츠는 페인 좌측 padding 안에서 위아래 꽉,
-          우측 버튼들은 정사각(aspect-square h-full)으로 헤더 우측 끝에 밀착. */}
-      <div className="app-titlebar app-titlebar-lead flex h-12 shrink-0 items-center border-b border-line">
-        <button
-          type="button"
-          className="flex min-w-0 flex-1 items-center gap-2 self-stretch px-4 text-left hover:bg-bg-2"
-          onClick={() => setProfileOpen(true)}
-          title={t("sidebar.action.profile")}
-        >
-          <span className="truncate font-medium text-fg-0">{localpart}</span>
-        </button>
+          액션 버튼만 — 사용자명/설정은 푸터로 분리해 truncate 여유 확보. */}
+      <div className="app-titlebar app-titlebar-lead flex h-12 shrink-0 items-center justify-end border-b border-line">
         <div className="relative flex h-full">
           <button
             type="button"
@@ -765,7 +756,8 @@ export function Sidebar({ client }: { client: MatrixClient }) {
 
       {/* 푸터: 32px sync row + 36px 액션 row.
           위: 좌측 sync 점·라벨, 우측 E2EE 배지
-          아래: 설정 버튼 (전역 액션은 푸터로 분리해 헤더 폭 확보) */}
+          아래: [사용자 이름 ──── 설정 정사각형] — 헤더에서 옮겨와 truncate
+                 여유 확보 + 메인 액션 강조. */}
       <div className="flex flex-col border-t border-line">
         <div className="flex h-8 shrink-0 items-center gap-2 px-5 text-[12px] text-fg-3">
           <span
@@ -786,12 +778,19 @@ export function Sidebar({ client }: { client: MatrixClient }) {
         <div className="flex h-9 shrink-0 items-stretch border-t border-line">
           <button
             type="button"
-            className="flex flex-1 items-center justify-center gap-1.5 text-[12px] text-fg-2 hover:bg-bg-2 hover:text-fg-0"
+            className="flex min-w-0 flex-1 items-center gap-2 px-4 text-left text-[13px] hover:bg-bg-2"
+            onClick={() => setProfileOpen(true)}
+            title={t("sidebar.action.profile")}
+          >
+            <span className="truncate font-medium text-fg-0">{localpart}</span>
+          </button>
+          <button
+            type="button"
+            className="flex aspect-square h-full shrink-0 items-center justify-center text-fg-2 hover:bg-bg-2 hover:text-fg-0"
             onClick={() => setAppSettingsOpen(true)}
             title={t("sidebar.action.settings")}
           >
-            <Settings className="h-[13px] w-[13px]" />
-            {t("sidebar.action.settings")}
+            <Settings className="h-[15px] w-[15px]" />
           </button>
         </div>
       </div>
