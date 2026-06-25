@@ -67,6 +67,11 @@ function RoomNode({
   const [hasMoreThreads, setHasMoreThreads] = useState(false);
   const [loadingMoreThreads, setLoadingMoreThreads] = useState(false);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: syncHasMore는
+  //   매 렌더 새 inline 함수 — deps에 넣으면 effect가 매 렌더마다 재발화돼
+  //   ThreadEvent listener 무한 재등록 + fetchRoomThreads 폭주 → freeze 유발.
+  //   syncHasMore는 클로저로 captured되어 최신 room.threadsTimelineSets만
+  //   읽으므로 deps 누락해도 동작 정합 OK.
   function syncHasMore() {
     const tl = room.threadsTimelineSets[0]?.getLiveTimeline();
     setHasMoreThreads(!!tl?.getPaginationToken(EventTimeline.BACKWARDS));
@@ -115,7 +120,7 @@ function RoomNode({
       room.off(ThreadEvent.Delete, bump);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [room, active, syncHasMore]);
+  }, [room, active]);
   // Thread 리스트 source 분기:
   //  - 서버가 MSC3856 (/v1/rooms/{roomId}/threads) 지원 → threadsTimelineSets
   //    [0]만 표시 (Element와 동일, 옛 메시지 스크롤로 thread가 임의 추가
