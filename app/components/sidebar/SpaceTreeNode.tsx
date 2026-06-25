@@ -34,12 +34,14 @@ export function SpaceTreeNode({
   return (
     <div>
       <div className={`tree-row group/row ${active ? "active" : ""}`}>
-        {/* Avatar 위에 chevron overlay — hover 시(또는 펼친 상태) 표시 */}
-        <div className="relative shrink-0">
-          <RoomAvatar client={client} room={node.space} size={16} />
+        {/* Avatar 자리 — hover 시 chevron으로 교체 (배경 없음). */}
+        <div className="relative flex shrink-0 items-center">
+          <span className="group-hover/row:invisible">
+            <RoomAvatar client={client} room={node.space} size={16} />
+          </span>
           <button
             type="button"
-            className="absolute inset-0 flex items-center justify-center bg-bg-2 text-fg-1 opacity-0 group-hover/row:opacity-100"
+            className="absolute inset-0 hidden items-center justify-center text-fg-1 group-hover/row:flex"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -48,9 +50,9 @@ export function SpaceTreeNode({
             title={t(expanded ? "sidebar.collapse" : "sidebar.expand")}
           >
             {expanded ? (
-              <ChevronDown className="h-3 w-3" />
+              <ChevronDown className="h-3.5 w-3.5" />
             ) : (
-              <ChevronRight className="h-3 w-3" />
+              <ChevronRight className="h-3.5 w-3.5" />
             )}
           </button>
         </div>

@@ -199,19 +199,25 @@ export const RoomNode = memo(function RoomNodeInner({
           setMenu({ x: e.clientX, y: e.clientY });
         }}
       >
-        {/* Avatar 자리 — hasThreads면 hover 시 chevron overlay (Avatar 위에),
-            클릭은 toggle. 평소엔 Avatar만 보임. */}
+        {/* Avatar 자리 — hasThreads면 row hover/펼침 시 chevron으로 교체.
+            overlay 대신 conditional render → 배경 hover 색 충돌 없음. */}
         <div className="relative flex shrink-0 items-center">
-          <RoomAvatar
-            client={client}
-            room={room}
-            size={16}
-            showPresence={showPresence}
-          />
+          <span
+            className={
+              hasThreads ? "group-hover/row:invisible" : ""
+            }
+          >
+            <RoomAvatar
+              client={client}
+              room={room}
+              size={16}
+              showPresence={showPresence}
+            />
+          </span>
           {hasThreads && (
             <button
               type="button"
-              className="absolute inset-0 flex items-center justify-center bg-bg-2 text-fg-1 opacity-0 group-hover/row:opacity-100"
+              className="absolute inset-0 hidden items-center justify-center text-fg-1 group-hover/row:flex"
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -220,9 +226,9 @@ export const RoomNode = memo(function RoomNodeInner({
               title={t(showChildren ? "common.collapse" : "common.expand")}
             >
               {showChildren ? (
-                <ChevronDown className="h-3 w-3" />
+                <ChevronDown className="h-3.5 w-3.5" />
               ) : (
-                <ChevronRight className="h-3 w-3" />
+                <ChevronRight className="h-3.5 w-3.5" />
               )}
             </button>
           )}
