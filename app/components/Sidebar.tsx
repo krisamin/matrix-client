@@ -793,7 +793,7 @@ export function Sidebar({ client }: { client: MatrixClient }) {
         <div className="flex h-12 shrink-0 items-stretch border-t border-line">
           <button
             type="button"
-            className="flex min-w-0 flex-1 items-center gap-2.5 px-3 text-left hover:bg-bg-2"
+            className="flex min-w-0 flex-1 items-center gap-2.5 px-5 text-left hover:bg-bg-2"
             onClick={() => setProfileOpen(true)}
             title={t("sidebar.action.profile")}
           >
