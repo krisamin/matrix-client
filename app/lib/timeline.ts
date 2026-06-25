@@ -20,7 +20,7 @@ export const MEDIA_MSGTYPES = [
  *  합쳐지므로 별도 렌더하면 중복 표시됨 (Element도 렌더에서 숨김).
  *  서버 필터(not_rel_types)는 페이지네이션에만 적용되고 sync 라이브
  *  이벤트는 클라 필터를 통과하므로 여기서 걸러야 함. */
-export function isDisplayableMessage(ev: MatrixEvent): boolean {
+function isDisplayableMessage(ev: MatrixEvent): boolean {
   return (
     (ev.getType() === EventType.RoomMessage ||
       ev.getType() === EventType.RoomMessageEncrypted ||

@@ -5,7 +5,7 @@ import { useT } from "../lib/i18n";
 import { Toast } from "./Toast";
 
 /** sync 상태 추적 훅 — 오프라인/재연결 토스트용. */
-export function useSyncState(client: MatrixClient | null): SyncState | null {
+function useSyncState(client: MatrixClient | null): SyncState | null {
   const [state, setState] = useState<SyncState | null>(null);
 
   useEffect(() => {

@@ -191,10 +191,7 @@ function getDirectMap(client: MatrixClient): Record<string, string[]> {
 
 /** 상대 userId와의 기존 (참여중) DM 방을 찾는다. 없으면 null.
  *  m.direct에 박제된 roomId 중 실제로 join 상태인 방만 유효 취급. */
-export function findExistingDm(
-  client: MatrixClient,
-  userId: string,
-): Room | null {
+function findExistingDm(client: MatrixClient, userId: string): Room | null {
   const map = getDirectMap(client);
   const roomIds = map[userId];
   if (!Array.isArray(roomIds)) return null;
@@ -357,7 +354,7 @@ function viaServers(client: MatrixClient, roomId: string): string[] {
  * (자식 방의 parent 쓰기 권한이 없으면 child만 성공해도 트리 표시는 됨 —
  *  buildRoomTree가 child만 신뢰하므로)
  */
-export async function addRoomToSpace(
+async function addRoomToSpace(
   client: MatrixClient,
   spaceId: string,
   roomId: string,
@@ -478,7 +475,7 @@ export async function searchUserDirectory(
 }
 
 /** 내 프로필 정보 (표시이름 + 아바타 mxc). 실패 시 부분/빈 값. */
-export interface MyProfile {
+interface MyProfile {
   displayName: string;
   avatarUrl?: string;
 }
@@ -824,15 +821,6 @@ export async function setUserPowerLevel(
   level: number,
 ): Promise<void> {
   await client.setPowerLevel(roomId, userId, level);
-}
-
-/** 권한 컨텐츠 전체를 다시 쓴다 (기본 PL/이벤트별 PL 일괄 편집용). */
-export async function setRoomPowerLevelsContent(
-  client: MatrixClient,
-  roomId: string,
-  content: Record<string, unknown>,
-): Promise<void> {
-  await client.sendStateEvent(roomId, EventType.RoomPowerLevels, content, "");
 }
 
 /** 방 아바타 변경 (mxc URL). 빈 문자열이면 제거. */

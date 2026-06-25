@@ -5,7 +5,7 @@ import emojiData from "unicode-emoji-json/data-by-group.json";
 import { useT } from "../lib/i18n";
 
 /** 리액션/입력에서 공용으로 쓰는 빠른 후보 — 최근 사용 기록이 없을 때 폴백 */
-export const QUICK_REACTIONS = ["👍", "❤️", "😂", "🎉", "😮", "👀"];
+const QUICK_REACTIONS = ["👍", "❤️", "😂", "🎉", "😮", "👀"];
 
 interface EmojiEntry {
   emoji: string;

@@ -3,7 +3,7 @@ import type { MatrixEvent } from "matrix-js-sdk";
 /** 같은 그룹(같은 발신자, 5분 이내 연속)이면 헤더 생략 */
 const GROUP_WINDOW_MS = 5 * 60 * 1000;
 
-export interface TimelineItem {
+interface TimelineItem {
   ev: MatrixEvent;
   /** 그룹 첫 메시지 — 발신자/시각 헤더 표시 */
   showHeader: boolean;

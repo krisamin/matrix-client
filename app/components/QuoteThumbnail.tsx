@@ -38,8 +38,8 @@ export function QuoteThumbnail({
   if (!blobUrl) return null;
   return (
     <img
-            loading="lazy"
-            decoding="async"
+      loading="lazy"
+      decoding="async"
       src={blobUrl}
       alt=""
       width={size}

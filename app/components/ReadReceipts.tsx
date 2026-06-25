@@ -6,7 +6,7 @@ const MAX_AVATARS = 5;
 
 /** 이 이벤트를 "여기까지 읽음"으로 가리키는 다른 유저들의 receipt.
  *  (receipt는 유저당 1개 — 항상 그 유저가 읽은 최신 이벤트에만 붙음) */
-export function readersOfEvent(
+function readersOfEvent(
   room: Room,
   ev: MatrixEvent,
   myUserId: string,

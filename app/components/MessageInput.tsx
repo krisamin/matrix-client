@@ -1,14 +1,12 @@
 import { Paperclip, SendHorizontal, SmilePlus, X } from "lucide-react";
 import type { MatrixClient, MatrixEvent, Room } from "matrix-js-sdk";
-import { Suspense, lazy, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useT } from "../lib/i18n";
 import { uploadAndSendFile } from "../lib/media";
 import { type Mention, searchMembers } from "../lib/mention";
 import { quotePreview } from "../lib/reply";
 import { useSendTyping } from "../lib/typing";
 import { Avatar } from "./Avatar";
-
-
 
 const EmojiPicker = lazy(() =>
   import("./EmojiPicker").then((m) => ({ default: m.EmojiPicker })),

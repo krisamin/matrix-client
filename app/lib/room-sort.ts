@@ -34,10 +34,8 @@ export function sortRooms(
     if (fa !== fb) return fb - fa;
     if (sort === "alpha") return (a.name ?? "").localeCompare(b.name ?? "");
     if (sort === "unread") {
-      const ua =
-        a.getUnreadNotificationCount(NotificationCountType.Total) ?? 0;
-      const ub =
-        b.getUnreadNotificationCount(NotificationCountType.Total) ?? 0;
+      const ua = a.getUnreadNotificationCount(NotificationCountType.Total) ?? 0;
+      const ub = b.getUnreadNotificationCount(NotificationCountType.Total) ?? 0;
       if (ua !== ub) return ub - ua;
       return b.getLastActiveTimestamp() - a.getLastActiveTimestamp();
     }

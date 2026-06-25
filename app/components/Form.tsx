@@ -145,32 +145,6 @@ export function Select({
   );
 }
 
-/** Field 내부 multiline textarea. */
-export function TextArea({
-  value,
-  onChange,
-  placeholder,
-  disabled,
-  rows = 3,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  disabled?: boolean;
-  rows?: number;
-}) {
-  return (
-    <textarea
-      value={value}
-      disabled={disabled}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      rows={rows}
-      className="flex-1 resize-none bg-transparent py-2.5 pl-3 pr-5 text-[13px] text-fg-0 outline-none placeholder:text-fg-3 disabled:opacity-50"
-    />
-  );
-}
-
 /** 섹션 헤더 (Form 안에서 그룹 구분).
  *  위/아래 모두 border를 가져서 SectionHeader 자체가 그룹 사이 경계 책임.
  *  → 호출부에서 SectionHeader가 연속으로 나오거나 FieldGroup 사이에 끼어도

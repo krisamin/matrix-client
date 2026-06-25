@@ -10,7 +10,7 @@ export interface SpaceNode {
 }
 
 /** 사이드바 트리 전체 */
-export interface RoomTree {
+interface RoomTree {
   /** DM 방 (m.direct) — Space에 속해 있어도 Direct 섹션 우선 */
   dms: Room[];
   /** 최상위 Space들 (다른 Space의 자식이 아닌 것) */

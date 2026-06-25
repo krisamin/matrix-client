@@ -10,7 +10,7 @@ import {
 } from "matrix-js-sdk";
 import { KnownMembership } from "matrix-js-sdk/lib/types";
 import { useEffect, useRef, useState } from "react";
-import { loadRoomSort, sortRooms, type RoomSort } from "../lib/room-sort";
+import { loadRoomSort, type RoomSort, sortRooms } from "../lib/room-sort";
 
 /** 사이드바용 방 목록 훅 — 참여중 방(최근 활동순) + 초대 + sync 상태.
  *  타임라인/읽음/복호화/멤버십/스레드 변화에 실시간 갱신 */

@@ -33,21 +33,3 @@ marked.setOptions({
 export function markdownToMatrixHtml(text: string): string {
   return marked.parse(text) as string;
 }
-
-/** 평문 + 마크다운이 포함된 메시지 컨텐츠 빌드. 의미 있는 마크다운이 없으면
- *  formatted_body를 붙이지 않아 메시지 사이즈와 처리 비용 절약. */
-export function buildMessageContent(
-  text: string,
-  extras?: Record<string, unknown>,
-): Record<string, unknown> {
-  const content: Record<string, unknown> = {
-    msgtype: "m.text",
-    body: text,
-    ...extras,
-  };
-  if (hasMarkdown(text)) {
-    content.format = "org.matrix.custom.html";
-    content.formatted_body = markdownToMatrixHtml(text);
-  }
-  return content;
-}

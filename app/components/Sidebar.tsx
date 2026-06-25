@@ -1,9 +1,9 @@
 import {
+  ArrowUpDown,
   BellOff,
   Check,
   ChevronDown,
   ChevronRight,
-  ArrowUpDown,
   FolderPlus,
   Hash,
   MessageSquareText,
@@ -25,7 +25,6 @@ import {
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { useRooms } from "../hooks/useRooms";
-import { saveRoomSort } from "../lib/room-sort";
 import { useI18n, useT } from "../lib/i18n";
 import {
   isFavourite,
@@ -35,6 +34,7 @@ import {
   toggleMute,
 } from "../lib/matrix";
 import { quotePreview } from "../lib/reply";
+import { saveRoomSort } from "../lib/room-sort";
 import { clearSession } from "../lib/session";
 import { buildRoomTree, type SpaceNode } from "../lib/spaces";
 import { AppSettingsModal } from "./AppSettingsModal";
@@ -115,7 +115,7 @@ function RoomNode({
       room.off(ThreadEvent.Delete, bump);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [room, active]);
+  }, [room, active, syncHasMore]);
   // Thread 리스트 source 분기:
   //  - 서버가 MSC3856 (/v1/rooms/{roomId}/threads) 지원 → threadsTimelineSets
   //    [0]만 표시 (Element와 동일, 옛 메시지 스크롤로 thread가 임의 추가
@@ -127,9 +127,7 @@ function RoomNode({
     Thread.hasServerSideListSupport === FeatureSupport.Stable ||
     Thread.hasServerSideListSupport === FeatureSupport.Experimental;
   const threads = useTimelineSet
-    ? (room.threadsTimelineSets[0]
-        ?.getLiveTimeline()
-        .getEvents() ?? [])
+    ? (room.threadsTimelineSets[0]?.getLiveTimeline().getEvents() ?? [])
         .map((ev) => room.getThread(ev.getId() ?? ""))
         .filter((th): th is NonNullable<typeof th> => !!th)
     : room.getThreads();

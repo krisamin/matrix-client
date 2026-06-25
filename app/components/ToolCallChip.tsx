@@ -85,7 +85,7 @@ function matchToolHeader(line: string, nextLine?: string): string | null {
 }
 
 /** 도구 진행 섹션 — 헤더 줄 + 그 도구의 본문 영역(다음 헤더 직전까지). */
-export interface ToolSection {
+interface ToolSection {
   /** 도구 이름 (KNOWN_TOOL_NAMES 중 하나) */
   tool: string;
   /** 헤더 줄 원본 (이모지 + 도구이름 + 마커 등) */
@@ -96,7 +96,7 @@ export interface ToolSection {
 
 /** 본문을 도구 진행 섹션 목록으로 분할.
  *  도구 헤더가 하나도 없으면 빈 배열 → 호출부에서 일반 메시지로 처리. */
-export function splitToolSections(rawBody: string): ToolSection[] {
+function splitToolSections(rawBody: string): ToolSection[] {
   const lines = rawBody.split("\n");
   const sections: { tool: string; header: string; bodyLines: string[] }[] = [];
   let current: (typeof sections)[number] | null = null;

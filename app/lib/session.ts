@@ -1,6 +1,6 @@
 import type { IdTokenClaims } from "oidc-client-ts";
 
-export interface MatrixSession {
+interface MatrixSession {
   homeserverUrl: string;
   accessToken: string;
   refreshToken?: string;

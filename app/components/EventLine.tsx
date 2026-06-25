@@ -20,7 +20,7 @@ import {
   RelationType,
   type Room,
 } from "matrix-js-sdk";
-import { Suspense, lazy, memo, useState } from "react";
+import { lazy, memo, Suspense, useState } from "react";
 import { useT } from "../lib/i18n";
 import { isPinned, togglePin } from "../lib/matrix";
 import { buildMentionContent, mentionsUser } from "../lib/mention";
@@ -38,7 +38,6 @@ import { getReplyToId, ReplyQuote } from "./ReplyQuote";
 import { isToolProgressEvent, ToolCallChip } from "./ToolCallChip";
 import { UrlPreviews } from "./UrlPreview";
 import { UserProfileCard } from "./UserProfileCard";
-
 
 const EmojiPicker = lazy(() =>
   import("./EmojiPicker").then((m) => ({ default: m.EmojiPicker })),
