@@ -8,6 +8,8 @@ import {
   Pin,
   PinOff,
   Reply,
+  ShieldAlert,
+  ShieldQuestion,
   SmilePlus,
   Trash2,
 } from "lucide-react";
@@ -20,7 +22,12 @@ import {
   RelationType,
   type Room,
 } from "matrix-js-sdk";
+import {
+  EventShieldColour,
+  EventShieldReason,
+} from "matrix-js-sdk/lib/crypto-api";
 import { lazy, memo, Suspense, useState } from "react";
+import { useShield } from "../hooks/useShield";
 import { useT } from "../lib/i18n";
 import { isPinned, togglePin } from "../lib/matrix";
 import { buildMentionContent, mentionsUser } from "../lib/mention";
@@ -341,6 +348,7 @@ const EventLineInner = function EventLine({
           >
             {formatTime(ev.getTs())}
           </span>
+          <ShieldIcon client={client} ev={ev} />
           {ev.replacingEvent() && (
             <span className="text-[11px] text-fg-3" title={t("msg.edited")}>
               수정됨
@@ -626,3 +634,40 @@ const EventLineInner = function EventLine({
  *  ev는 SDK가 같은 MatrixEvent 인스턴스를 재사용하므로 참조 비교가 유효하다.
  *  (내용 변화는 Decrypted/Replaced 리스너가 별도 refresh로 처리) */
 export const EventLine = memo(EventLineInner);
+
+/** E2EE 메시지 shield 아이콘. NONE이면 표시 안 함. */
+function ShieldIcon({ client, ev }: { client: MatrixClient; ev: MatrixEvent }) {
+  const t = useT();
+  const info = useShield(client, ev);
+  if (!info || info.colour === EventShieldColour.NONE) return null;
+  const reasonKey = (() => {
+    switch (info.reason) {
+      case EventShieldReason.UNVERIFIED_IDENTITY:
+        return "shield.unverifiedIdentity";
+      case EventShieldReason.UNSIGNED_DEVICE:
+        return "shield.unsignedDevice";
+      case EventShieldReason.UNKNOWN_DEVICE:
+        return "shield.unknownDevice";
+      case EventShieldReason.AUTHENTICITY_NOT_GUARANTEED:
+        return "shield.authenticityNotGuaranteed";
+      case EventShieldReason.MISMATCHED_SENDER_KEY:
+        return "shield.mismatchedSender";
+      case EventShieldReason.SENT_IN_CLEAR:
+        return "shield.unsafeSource";
+      default:
+        return null;
+    }
+  })();
+  const isRed = info.colour === EventShieldColour.RED;
+  const titleBase = isRed ? t("shield.red.title") : t("shield.grey.title");
+  const title = reasonKey ? `${titleBase} — ${t(reasonKey)}` : titleBase;
+  const Icon = isRed ? ShieldAlert : ShieldQuestion;
+  return (
+    <span
+      title={title}
+      className={`shrink-0 ${isRed ? "text-red-400" : "text-fg-3"}`}
+    >
+      <Icon className="h-3 w-3" />
+    </span>
+  );
+}
