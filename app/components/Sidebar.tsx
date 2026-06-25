@@ -587,7 +587,7 @@ export function Sidebar({ client }: { client: MatrixClient }) {
                 onClick={() => setSortMenuOpen(false)}
                 role="presentation"
               />
-              <div className="absolute right-0 top-full z-30 mt-1 flex w-[140px] flex-col overflow-hidden rounded-md border border-line bg-bg-1 shadow-2xl">
+              <div className="absolute right-0 top-full z-30 mt-1 flex w-44 flex-col overflow-hidden rounded-md border border-line bg-bg-1 shadow-2xl">
                 {(
                   [
                     ["activity", t("sort.activity")],
@@ -630,10 +630,10 @@ export function Sidebar({ client }: { client: MatrixClient }) {
               <button
                 type="button"
                 aria-label="메뉴 닫기"
-                className="fixed inset-0 z-10 cursor-default"
+                className="fixed inset-0 z-20 cursor-default"
                 onClick={() => setCreateMenuOpen(false)}
               />
-              <div className="absolute right-0 top-full z-20 mt-1 flex w-44 flex-col divide-y divide-line overflow-hidden rounded-md border border-line bg-bg-1 shadow-2xl">
+              <div className="absolute right-0 top-full z-30 mt-1 flex w-44 flex-col divide-y divide-line overflow-hidden rounded-md border border-line bg-bg-1 shadow-2xl">
                 <button
                   type="button"
                   className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] text-fg-1 hover:bg-bg-2 hover:text-fg-0"
