@@ -1,5 +1,6 @@
 import { useT } from "../lib/i18n";
 import { Modal, ModalHeader } from "./Modal";
+import { Kbd } from "./Kbd";
 
 /** 키보드 단축키 안내 모달 — `?` 또는 `Ctrl+/`로 열림. */
 export function ShortcutsModal({ onClose }: { onClose: () => void }) {
@@ -26,12 +27,7 @@ export function ShortcutsModal({ onClose }: { onClose: () => void }) {
             <span className="flex-1 text-fg-1">{label}</span>
             <span className="flex shrink-0 items-center gap-1">
               {keys.split(" ").map((k) => (
-                <kbd
-                  key={k}
-                  className="rounded border border-line bg-bg-2 px-1.5 py-0.5 font-mono text-[11px] text-fg-2"
-                >
-                  {k}
-                </kbd>
+                <Kbd key={k}>{k}</Kbd>
               ))}
             </span>
           </div>

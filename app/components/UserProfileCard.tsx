@@ -6,7 +6,7 @@ import { usePresence } from "../hooks/usePresence";
 import { useT } from "../lib/i18n";
 import { Avatar, PresenceDot } from "./Avatar";
 import { CardHeader } from "./CardHeader";
-import { ModalRow } from "./ModalRow";
+import { InfoRow } from "./InfoRow";
 
 /** 파워레벨 → 역할 라벨 (Element 관례: 100 관리자 / 50 중재자) */
 export function roleLabel(power: number): string | null {
@@ -112,58 +112,43 @@ export function UserProfileCard({
           </button>
         </CardHeader>
 
-        {/* 이 방에서의 상태 — divide-y 그리드 (모달 row 패턴과 동일) */}
+        {/* 이 방에서의 상태 — divide-y 그리드 */}
         <div className="flex flex-col divide-y divide-line">
-          <ModalRow>
-            <span className="w-16 shrink-0 text-[12px] text-fg-3">
-              {t("userCard.field.role")}
+          <InfoRow label={t("userCard.field.role")} labelWidth="w-16">
+            {role && <ShieldCheck className="h-3 w-3" />}
+            {t(
+              role === "admin"
+                ? "userCard.role.admin"
+                : role === "mod"
+                  ? "userCard.role.mod"
+                  : "userCard.member",
+            )}
+            <span className="ml-auto font-mono text-[11px] text-fg-3">
+              PL{member?.powerLevel ?? 0}
             </span>
-            <span className="flex flex-1 items-center gap-1 text-[13px] text-fg-1">
-              {role && <ShieldCheck className="h-3 w-3" />}
-              {t(
-                role === "admin"
-                  ? "userCard.role.admin"
-                  : role === "mod"
-                    ? "userCard.role.mod"
-                    : "userCard.member",
-              )}
-              <span className="ml-auto font-mono text-[11px] text-fg-3">
-                PL{member?.powerLevel ?? 0}
-              </span>
-            </span>
-          </ModalRow>
-          <ModalRow>
-            <span className="w-16 shrink-0 text-[12px] text-fg-3">
-              {t("userCard.field.status")}
-            </span>
-            <span className="flex-1 text-[13px] text-fg-1">
-              {member?.membership === "join"
-                ? t("userCard.membership.join")
-                : member?.membership === "invite"
-                  ? t("userCard.membership.invite")
-                  : member?.membership === "leave"
-                    ? t("userCard.membership.leave")
-                    : member?.membership === "ban"
-                      ? t("userCard.membership.ban")
-                      : t("userCard.membership.unknown")}
-            </span>
-          </ModalRow>
+          </InfoRow>
+          <InfoRow label={t("userCard.field.status")} labelWidth="w-16">
+            {member?.membership === "join"
+              ? t("userCard.membership.join")
+              : member?.membership === "invite"
+                ? t("userCard.membership.invite")
+                : member?.membership === "leave"
+                  ? t("userCard.membership.leave")
+                  : member?.membership === "ban"
+                    ? t("userCard.membership.ban")
+                    : t("userCard.membership.unknown")}
+          </InfoRow>
           {presence && (
-            <ModalRow>
-              <span className="w-16 shrink-0 text-[12px] text-fg-3">
-                {t("userCard.field.presence")}
-              </span>
-              <span className="flex flex-1 items-center gap-1.5 text-[13px] text-fg-1">
-                <PresenceDot presence={presence} size={8} />
-                {t(
-                  presence === "online"
-                    ? "presence.online"
-                    : presence === "unavailable"
-                      ? "presence.away"
-                      : "presence.offline",
-                )}
-              </span>
-            </ModalRow>
+            <InfoRow label={t("userCard.field.presence")} labelWidth="w-16">
+              <PresenceDot presence={presence} size={8} />
+              {t(
+                presence === "online"
+                  ? "presence.online"
+                  : presence === "unavailable"
+                    ? "presence.away"
+                    : "presence.offline",
+              )}
+            </InfoRow>
           )}
         </div>
       </div>
