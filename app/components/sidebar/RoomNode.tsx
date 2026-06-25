@@ -280,7 +280,9 @@ export const RoomNode = memo(function RoomNodeInner({
                 to={threadPath(room.roomId, thread.id, true)}
                 className={`tree-row ${activeThreadId === thread.id ? "active" : ""}`}
               >
-                <MessageSquareText className="h-3.5 w-3.5 shrink-0 text-fg-3" />
+                <span className="flex h-4 w-4 shrink-0 items-center justify-center">
+                  <MessageSquareText className="h-3.5 w-3.5 text-fg-3" />
+                </span>
                 <span
                   className={`min-w-0 flex-1 truncate ${tUnread > 0 && !muted ? "font-semibold text-fg-0" : ""}`}
                 >
@@ -303,9 +305,11 @@ export const RoomNode = memo(function RoomNodeInner({
               disabled={loadingMoreThreads}
               className="tree-row text-fg-3 hover:text-fg-1 disabled:opacity-50"
             >
-              <ChevronDown
-                className={`h-3.5 w-3.5 shrink-0 ${loadingMoreThreads ? "animate-pulse" : ""}`}
-              />
+              <span className="flex h-4 w-4 shrink-0 items-center justify-center">
+                <ChevronDown
+                  className={`h-3.5 w-3.5 ${loadingMoreThreads ? "animate-pulse" : ""}`}
+                />
+              </span>
               <span className="min-w-0 flex-1 truncate text-[12px]">
                 {loadingMoreThreads
                   ? t("thread.loading")
