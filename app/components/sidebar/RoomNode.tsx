@@ -199,36 +199,42 @@ export const RoomNode = memo(function RoomNodeInner({
           setMenu({ x: e.clientX, y: e.clientY });
         }}
       >
-        {hasThreads ? (
-          <button
-            type="button"
-            className={`shrink-0 text-fg-3 hover:text-fg-1 ${
-              showChildren
-                ? "opacity-100"
-                : "opacity-0 group-hover/row:opacity-100"
-            }`}
-            onClick={() => setExpanded((v) => !v)}
-            title={t(showChildren ? "common.collapse" : "common.expand")}
-          >
-            {showChildren ? (
-              <ChevronDown className="h-3.5 w-3.5" />
-            ) : (
-              <ChevronRight className="h-3.5 w-3.5" />
-            )}
-          </button>
-        ) : (
-          <span className="w-[14px] shrink-0" />
-        )}
-        <Link
-          to={roomPath(room.roomId)}
-          className="flex min-w-0 flex-1 items-center gap-1.5"
-        >
+        {/* Avatar 자리 — hasThreads면 hover 시 chevron overlay (Avatar 위에),
+            클릭은 toggle. 평소엔 Avatar만 보임. */}
+        <div className="relative shrink-0">
           <RoomAvatar
             client={client}
             room={room}
             size={16}
             showPresence={showPresence}
           />
+          {hasThreads && (
+            <button
+              type="button"
+              className={`absolute inset-0 flex items-center justify-center bg-bg-2 text-fg-1 ${
+                showChildren
+                  ? "opacity-100"
+                  : "opacity-0 group-hover/row:opacity-100"
+              }`}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setExpanded((v) => !v);
+              }}
+              title={t(showChildren ? "common.collapse" : "common.expand")}
+            >
+              {showChildren ? (
+                <ChevronDown className="h-3 w-3" />
+              ) : (
+                <ChevronRight className="h-3 w-3" />
+              )}
+            </button>
+          )}
+        </div>
+        <Link
+          to={roomPath(room.roomId)}
+          className="flex min-w-0 flex-1 items-center gap-1.5"
+        >
           <span
             className={`min-w-0 flex-1 truncate ${unread > 0 && !muted ? "font-semibold text-fg-0" : ""}`}
           >

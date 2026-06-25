@@ -34,28 +34,35 @@ export function SpaceTreeNode({
   return (
     <div>
       <div className={`tree-row group/row ${active ? "active" : ""}`}>
-        <button
-          type="button"
-          className={`shrink-0 text-fg-3 hover:text-fg-1 ${
-            expanded
-              ? "opacity-100"
-              : "opacity-0 group-hover/row:opacity-100"
-          }`}
-          onClick={() => setCollapsed((v) => !v)}
-          title={t(expanded ? "sidebar.collapse" : "sidebar.expand")}
-        >
-          {expanded ? (
-            <ChevronDown className="h-3.5 w-3.5" />
-          ) : (
-            <ChevronRight className="h-3.5 w-3.5" />
-          )}
-        </button>
+        {/* Avatar 위에 chevron overlay — hover 시(또는 펼친 상태) 표시 */}
+        <div className="relative shrink-0">
+          <RoomAvatar client={client} room={node.space} size={16} />
+          <button
+            type="button"
+            className={`absolute inset-0 flex items-center justify-center bg-bg-2 text-fg-1 ${
+              expanded
+                ? "opacity-100"
+                : "opacity-0 group-hover/row:opacity-100"
+            }`}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setCollapsed((v) => !v);
+            }}
+            title={t(expanded ? "sidebar.collapse" : "sidebar.expand")}
+          >
+            {expanded ? (
+              <ChevronDown className="h-3 w-3" />
+            ) : (
+              <ChevronRight className="h-3 w-3" />
+            )}
+          </button>
+        </div>
         <button
           type="button"
           className="flex min-w-0 flex-1 items-center gap-1.5"
           onClick={() => navigate(roomPath(node.space.roomId))}
         >
-          <RoomAvatar client={client} room={node.space} size={16} />
           <span className="min-w-0 flex-1 truncate text-left font-medium text-fg-0">
             {node.space.name}
           </span>
