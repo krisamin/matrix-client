@@ -19,7 +19,10 @@
     "rules": {
       "recommended": true,
       "correctness": {
-        "useExhaustiveDependencies": "warn",
+        "useExhaustiveDependencies": {
+          "level": "warn",
+          "fix": "none"
+        },
         "noUnusedImports": "error",
         "noUnusedVariables": "error"
       },
