@@ -8,6 +8,7 @@ import { childRoomIds } from "../lib/spaces";
 import { Avatar, RoomAvatar } from "./Avatar";
 import { EmptyState } from "./EmptyState";
 import { IconButton } from "./IconButton";
+import { InfoRow } from "./InfoRow";
 import { NewRoomModal } from "./NewRoomModal";
 import { NewSpaceModal } from "./NewSpaceModal";
 import { PaneHeader, PaneHeaderButton } from "./PaneHeader";
@@ -173,21 +174,23 @@ export function SpaceView({
 
             <Section title={t("spaceView.info")}>
               <div className="flex flex-col divide-y divide-line">
-                <InfoLine
+                <InfoRow
                   icon={Eye}
                   label={t("spaceView.stat.visibility")}
-                  value={
-                    isPublic
-                      ? t("spaceView.visibility.public")
-                      : t("spaceView.visibility.private")
-                  }
-                />
+                  inset="pane"
+                >
+                  {isPublic
+                    ? t("spaceView.visibility.public")
+                    : t("spaceView.visibility.private")}
+                </InfoRow>
                 {createdAt && (
-                  <InfoLine
+                  <InfoRow
                     icon={Calendar}
                     label={t("spaceView.field.created")}
-                    value={new Date(createdAt).toLocaleDateString()}
-                  />
+                    inset="pane"
+                  >
+                    {new Date(createdAt).toLocaleDateString()}
+                  </InfoRow>
                 )}
               </div>
             </Section>
@@ -248,25 +251,6 @@ function Section({
       </header>
       {children}
     </section>
-  );
-}
-
-/** 정보 카드 한 줄 — 아이콘 + 라벨 + 값 */
-function InfoLine({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  value: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-center gap-2.5 px-5 py-2 text-[12px]">
-      <Icon className="h-3 w-3 shrink-0 text-fg-3" />
-      <span className="w-20 shrink-0 text-fg-3">{label}</span>
-      <span className="flex-1 text-fg-1">{value}</span>
-    </div>
   );
 }
 
