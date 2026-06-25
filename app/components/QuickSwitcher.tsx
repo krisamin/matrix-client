@@ -6,6 +6,7 @@ import { roomPath } from "../lib/format";
 import { useT } from "../lib/i18n";
 import { getDmUserId } from "../lib/matrix";
 import { Avatar } from "./Avatar";
+import { EmptyState } from "./EmptyState";
 
 /** Quick switcher — Cmd/Ctrl+K로 열리는 전역 방 검색.
  *  방 이름/DM 상대/space 통합. 화살표로 탐색, Enter로 이동.
@@ -118,9 +119,7 @@ export function QuickSwitcher({
           className="flex max-h-[50vh] flex-col overflow-y-auto"
         >
           {items.length === 0 && (
-            <p className="px-5 py-6 text-center text-[12px] text-fg-3">
-              {t("switcher.noResults")}
-            </p>
+            <EmptyState size="sm" body={t("switcher.noResults")} />
           )}
           {items.map((r, idx) => {
             const dmId = getDmUserId(client, r);

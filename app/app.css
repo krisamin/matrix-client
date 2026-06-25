@@ -120,6 +120,18 @@ body {
   }
 }
 
+/* 키보드 사용자 접근성 — Tab으로 focus 잡힌 요소에만 visible ring */
+*:focus-visible {
+  outline: 2px solid var(--color-fg-2);
+  outline-offset: 1px;
+  border-radius: 4px;
+}
+/* 텍스트 input은 outline 대신 border 색 변경 (자체 처리되는 곳 위주) */
+input:focus-visible,
+textarea:focus-visible {
+  outline: none;
+}
+
 /* ── 스크롤바 ── */
 ::-webkit-scrollbar {
   width: 10px;

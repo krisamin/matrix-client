@@ -1,7 +1,6 @@
 import {
   Check,
   Copy,
-  Loader2,
   Lock,
   LockOpen,
   LogOut,
@@ -11,18 +10,22 @@ import {
 } from "lucide-react";
 import type { MatrixClient, Room, RoomMember } from "matrix-js-sdk";
 import { RoomMemberEvent, RoomStateEvent } from "matrix-js-sdk";
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { looksLikeUserId, useUserSearch } from "../hooks/useUserSearch";
 import { useT } from "../lib/i18n";
 import { getDmUserId } from "../lib/matrix";
 import { Avatar, RoomAvatar } from "./Avatar";
+import { EmptyState } from "./EmptyState";
+import { InlineSpinner } from "./InlineSpinner";
 import { SectionHeader } from "./Form";
 import { PaneHeader, PaneHeaderButton } from "./PaneHeader";
 import { RoomSettingsModal } from "./RoomSettingsModal";
 import { roleLabel, UserProfileCard } from "./UserProfileCard";
 import { UserResultRow } from "./UserResultRow";
 
-function MemberRow({
+const KOREAN_COLLATOR = new Intl.Collator("ko");
+
+const MemberRow = memo(function MemberRowInner({
   client,
   member,
   isMe,
@@ -66,7 +69,7 @@ function MemberRow({
       </button>
     </li>
   );
-}
+});
 
 /** 방 정보 패널 (우측 분할) — 아바타/이름/토픽, roomId 복사,
  *  E2EE 상태, 멤버 목록 (파워레벨순 정렬 + 역할 배지, 멤버십 변화 실시간 반영) */
@@ -125,7 +128,8 @@ export function RoomInfoPane({
   // useMemo 안 씀 — 멤버 변화 리스너가 tick으로 리렌더를 트리거하는 구조라
   // 렌더마다 재계산이 곧 의도. (멤버 수백 명 수준에선 비용 무시 가능)
   const members = [...room.getJoinedMembers()].sort(
-    (a, b) => b.powerLevel - a.powerLevel || a.name.localeCompare(b.name, "ko"),
+    (a, b) =>
+      b.powerLevel - a.powerLevel || KOREAN_COLLATOR.compare(a.name, b.name),
   );
 
   // 초대 검색: 이미 방에 있거나(join) 초대 대기중(invite)인 사람은 후보에서 제외
@@ -328,17 +332,19 @@ export function RoomInfoPane({
                     />
                   ))}
                   {inviteSearching && (
-                    <p className="px-5 py-3 text-center text-[12px] text-fg-3">
-                      {t("roomInfo.search.searching")}
-                    </p>
+                    <EmptyState
+                      size="sm"
+                      body={t("roomInfo.search.searching")}
+                    />
                   )}
                   {!inviteSearching &&
                     !directEntry &&
                     inviteResults.length === 0 &&
                     trimmed.length > 0 && (
-                      <p className="px-5 py-3 text-center text-[12px] text-fg-3">
-                        {t("roomInfo.search.notFound")}
-                      </p>
+                      <EmptyState
+                        size="sm"
+                        body={t("roomInfo.search.notFound")}
+                      />
                     )}
                 </div>
               );
@@ -387,7 +393,7 @@ export function RoomInfoPane({
                 onClick={leave}
               >
                 {leaveBusy ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
+                  <InlineSpinner size="xs" />
                 ) : (
                   <LogOut className="h-3 w-3" />
                 )}

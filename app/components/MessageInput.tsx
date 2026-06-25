@@ -8,6 +8,7 @@ import { type Mention, searchMembers } from "../lib/mention";
 import { quotePreview } from "../lib/reply";
 import { useSendTyping } from "../lib/typing";
 import { Avatar } from "./Avatar";
+import { IconButton } from "./IconButton";
 
 const EmojiPicker = lazy(() =>
   import("./EmojiPicker").then((m) => ({ default: m.EmojiPicker })),
@@ -330,39 +331,29 @@ export function MessageInput({
           }}
           placeholder={placeholder}
         />
-        <button
-          type="button"
-          className="flex h-12 w-12 shrink-0 items-center justify-center text-fg-2 hover:bg-bg-2 hover:text-fg-0 disabled:opacity-50"
+        <IconButton
+          icon={Paperclip}
           disabled={!!uploading}
           onClick={() => fileInputRef.current?.click()}
           title={t("input.attach")}
-        >
-          <Paperclip className="h-[15px] w-[15px]" />
-        </button>
-        <button
-          type="button"
-          className="flex h-12 w-12 shrink-0 items-center justify-center text-fg-2 hover:bg-bg-2 hover:text-fg-0"
+        />
+        <IconButton
+          icon={SmilePlus}
           title={t("input.emoji")}
           onClick={(e) => {
-            // rect는 핸들러 안에서 즉시 읽기 — setState 콜백 시점엔 currentTarget이 null
             const rect = e.currentTarget.getBoundingClientRect();
             setEmojiAnchor((v) => (v ? null : rect));
           }}
-        >
-          <SmilePlus className="h-[15px] w-[15px]" />
-        </button>
-        <button
-          type="button"
+        />
+        <IconButton
+          icon={Clock}
           onClick={(e) => {
             const rect = e.currentTarget.getBoundingClientRect();
             setScheduleAnchor((v) => (v ? null : rect));
           }}
-          className="flex h-12 w-12 shrink-0 items-center justify-center text-fg-2 hover:bg-bg-2 hover:text-fg-0 disabled:opacity-50"
           disabled={sending || !draft.trim()}
           title={t("input.schedule")}
-        >
-          <Clock className="h-[15px] w-[15px]" />
-        </button>
+        />
         <button
           type="submit"
           className="flex h-12 w-12 shrink-0 items-center justify-center text-fg-2 hover:bg-bg-2 hover:text-fg-0 disabled:opacity-50"
@@ -416,7 +407,6 @@ function SchedulePopover({
   onClose: () => void;
 }) {
   const t = useT();
-  // biome-ignore lint/correctness/useExhaustiveDependencies: onClose 외 의존 X
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();

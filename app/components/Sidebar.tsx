@@ -23,7 +23,7 @@ import {
   Thread,
   ThreadEvent,
 } from "matrix-js-sdk";
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { useRooms } from "../hooks/useRooms";
 import { roomPath, threadPath } from "../lib/format";
@@ -44,6 +44,8 @@ import { buildRoomTree, type SpaceNode } from "../lib/spaces";
 import { AppSettingsModal } from "./AppSettingsModal";
 import { Avatar, RoomAvatar } from "./Avatar";
 import { DelayedMessagesModal } from "./DelayedMessagesModal";
+import { EmptyState } from "./EmptyState";
+import { IconButton } from "./IconButton";
 import { NewDmModal } from "./NewDmModal";
 import { NewRoomModal } from "./NewRoomModal";
 import { NewSpaceModal } from "./NewSpaceModal";
@@ -51,7 +53,7 @@ import { ProfileEditModal } from "./ProfileEditModal";
 
 /** 방 하나의 트리 노드 — 클릭 시 이동, 스레드 자식 노드 펼침.
  *  우클릭 시 컨텍스트 메뉴(즐겨찾기/음소거 토글). */
-function RoomNode({
+const RoomNode = memo(function RoomNodeInner({
   client,
   room,
   active,
@@ -333,7 +335,7 @@ function RoomNode({
       )}
     </div>
   );
-}
+});
 
 /** 방 우클릭 컨텍스트 메뉴 — 커서 위치에 고정, 바깥 클릭/Esc로 닫힘 */
 function RoomContextMenu({
@@ -513,7 +515,6 @@ export function Sidebar({ client }: { client: MatrixClient }) {
   const localpart = userId.replace(/^@/, "").split(":")[0];
   // 내 프로필 (avatar + displayName) — mount 시 1회 fetch. 부정확해도 fallback OK.
   const [profile, setProfile] = useState<MyProfile>({ displayName: "" });
-  // biome-ignore lint/correctness/useExhaustiveDependencies: 첫 mount + client 변화 시
   useEffect(() => {
     let cancelled = false;
     getMyProfile(client).then((p) => {
@@ -578,14 +579,12 @@ export function Sidebar({ client }: { client: MatrixClient }) {
           액션 버튼만 — 사용자명/설정은 푸터로 분리해 truncate 여유 확보. */}
       <div className="app-titlebar app-titlebar-lead flex h-12 shrink-0 items-center justify-end border-b border-line">
         <div className="relative flex h-full">
-          <button
-            type="button"
-            className="flex aspect-square h-full shrink-0 items-center justify-center text-fg-2 hover:bg-bg-2 hover:text-fg-0"
+          <IconButton
+            icon={ArrowUpDown}
             onClick={() => setSortMenuOpen((v) => !v)}
             title={t("sort.title")}
-          >
-            <ArrowUpDown className="h-[14px] w-[14px]" />
-          </button>
+            iconSize={14}
+          />
           {sortMenuOpen && (
             <>
               <div
@@ -622,14 +621,11 @@ export function Sidebar({ client }: { client: MatrixClient }) {
           )}
         </div>
         <div className="relative flex h-full">
-          <button
-            type="button"
-            className="flex aspect-square h-full shrink-0 items-center justify-center text-fg-2 hover:bg-bg-2 hover:text-fg-0"
+          <IconButton
+            icon={Plus}
             onClick={() => setCreateMenuOpen((v) => !v)}
             title={t("sidebar.action.new")}
-          >
-            <Plus className="h-[15px] w-[15px]" />
-          </button>
+          />
           {createMenuOpen && (
             <>
               {/* 바깥 클릭 닫기 */}
@@ -677,14 +673,11 @@ export function Sidebar({ client }: { client: MatrixClient }) {
             </>
           )}
         </div>
-        <button
-          type="button"
-          className="flex aspect-square h-full shrink-0 items-center justify-center text-fg-2 hover:bg-bg-2 hover:text-fg-0"
+        <IconButton
+          icon={CalendarClock}
           onClick={() => setDelayedOpen(true)}
           title={t("sidebar.scheduled")}
-        >
-          <CalendarClock className="h-[15px] w-[15px]" />
-        </button>
+        />
       </div>
 
       {/* 트리 */}
@@ -754,18 +747,12 @@ export function Sidebar({ client }: { client: MatrixClient }) {
           </>
         )}
         {rooms.length === 0 && invites.length === 0 && (
-          <div className="flex flex-col items-center gap-2 px-4 py-8 text-center">
-            <MessageSquareText
-              className="h-6 w-6 text-fg-3"
-              strokeWidth={1.25}
-            />
-            <p className="text-[13px] font-medium text-fg-1">
-              {t("sidebar.empty.title")}
-            </p>
-            <p className="text-[11px] leading-relaxed text-fg-3">
-              {t("sidebar.empty.hint")}
-            </p>
-          </div>
+          <EmptyState
+            size="md"
+            icon={MessageSquareText}
+            title={t("sidebar.empty.title")}
+            body={t("sidebar.empty.hint")}
+          />
         )}
       </nav>
 
@@ -814,14 +801,11 @@ export function Sidebar({ client }: { client: MatrixClient }) {
               <span className="truncate text-[11px] text-fg-3">{userId}</span>
             </span>
           </button>
-          <button
-            type="button"
-            className="flex aspect-square h-full shrink-0 items-center justify-center text-fg-2 hover:bg-bg-2 hover:text-fg-0"
+          <IconButton
+            icon={Settings}
             onClick={() => setAppSettingsOpen(true)}
             title={t("sidebar.action.settings")}
-          >
-            <Settings className="h-[15px] w-[15px]" />
-          </button>
+          />
         </div>
       </div>
 

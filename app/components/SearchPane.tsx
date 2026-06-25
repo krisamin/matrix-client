@@ -1,10 +1,12 @@
-import { ChevronDown, History, Loader2, SearchX, X } from "lucide-react";
+import { ChevronDown, History, X } from "lucide-react";
 import type { MatrixClient, MatrixEvent, Room } from "matrix-js-sdk";
 import type { ISearchResults } from "matrix-js-sdk/lib/@types/search";
 import { useMemo, useRef, useState } from "react";
 import { formatDateTime } from "../lib/format";
 import { useT } from "../lib/i18n";
 import { SectionHeader } from "./Form";
+import { EmptyState } from "./EmptyState";
+import { InlineSpinner } from "./InlineSpinner";
 import { PaneHeader, PaneHeaderButton } from "./PaneHeader";
 
 /** 매치 주변만 잘라서 하이라이트된 스니펫 렌더 */
@@ -240,15 +242,12 @@ export function SearchPane({
         )}
 
         {showEmpty && (
-          <div className="flex flex-col items-center gap-2 py-10 text-fg-3">
-            <SearchX className="h-6 w-6" />
-            <p className="text-[12px]">{t("search.empty2")}</p>
-          </div>
+          <EmptyState size="sm" body={t("search.empty2")} />
         )}
 
         {busy && (
           <div className="flex justify-center py-4">
-            <Loader2 className="h-4 w-4 animate-spin text-fg-2" />
+            <InlineSpinner size="md" className="text-fg-2" />
           </div>
         )}
 

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Link, Outlet, useNavigate, useOutletContext } from "react-router";
 import { ConnectionToast } from "../components/ConnectionBanner";
 import { ErrorBoundary } from "../components/ErrorBoundary";
+import { InlineSpinner } from "../components/InlineSpinner";
 import { Lightbox } from "../components/Lightbox";
 import { QuickSwitcher } from "../components/QuickSwitcher";
 import { ShortcutsModal } from "../components/ShortcutsModal";
@@ -122,8 +123,9 @@ export default function AppLayout() {
   if (!client) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <span className="animate-pulse font-mono text-[12px] text-fg-3">
-          loading…
+        <span className="flex items-center gap-1.5 font-mono text-[12px] text-fg-3">
+          <InlineSpinner size="sm" />
+          {t("common.loading")}
         </span>
       </div>
     );

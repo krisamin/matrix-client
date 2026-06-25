@@ -5,6 +5,7 @@ import { useT } from "../lib/i18n";
 import { forwardEvent } from "../lib/matrix";
 import { quotePreview } from "../lib/reply";
 import { RoomAvatar } from "./Avatar";
+import { EmptyState } from "./EmptyState";
 import { Field, FieldGroup, TextInput } from "./Form";
 import { Modal, ModalHeader } from "./Modal";
 
@@ -100,9 +101,7 @@ export function ForwardModal({
           </button>
         ))}
         {rooms.length === 0 && (
-          <p className="px-5 py-6 text-center text-[13px] text-fg-3">
-            {t("forward.empty")}
-          </p>
+          <EmptyState size="sm" body={t("forward.empty")} />
         )}
       </div>
     </Modal>,

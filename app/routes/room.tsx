@@ -15,6 +15,7 @@ import {
 } from "react-router";
 import { RoomAvatar } from "../components/Avatar";
 import { DropZone } from "../components/DropZone";
+import { InlineSpinner } from "../components/InlineSpinner";
 import { MessageInput } from "../components/MessageInput";
 import { PaneHeader, PaneHeaderButton } from "../components/PaneHeader";
 import { PinnedBanner } from "../components/PinnedBanner";
@@ -109,8 +110,9 @@ export default function RoomView() {
   if (!room) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <span className="animate-pulse font-mono text-[12px] text-fg-3">
-          loading…
+        <span className="flex items-center gap-1.5 font-mono text-[12px] text-fg-3">
+          <InlineSpinner size="sm" />
+          {t("common.loading")}
         </span>
       </div>
     );

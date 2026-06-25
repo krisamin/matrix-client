@@ -1,7 +1,8 @@
-import { Loader2, RefreshCw, WifiOff } from "lucide-react";
+import { RefreshCw, WifiOff } from "lucide-react";
 import { ClientEvent, type MatrixClient, SyncState } from "matrix-js-sdk";
 import { useEffect, useState } from "react";
 import { useT } from "../lib/i18n";
+import { InlineSpinner } from "./InlineSpinner";
 import { Toast } from "./Toast";
 
 /** sync 상태 추적 훅 — 오프라인/재연결 토스트용. */
@@ -44,7 +45,7 @@ export function ConnectionToast({ client }: { client: MatrixClient | null }) {
   const icon = isError ? (
     <WifiOff className="h-3.5 w-3.5" />
   ) : (
-    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+    <InlineSpinner size="sm" />
   );
 
   return (

@@ -17,13 +17,11 @@ import { useEffect, useRef } from "react";
 export function useUnreadBadge(client: MatrixClient): void {
   const baseTitleRef = useRef<string>("");
   // 첫 마운트에 원래 title 캡처
-  // biome-ignore lint/correctness/useExhaustiveDependencies: 빈 deps 의도 (mount 1회)
   useEffect(() => {
     if (!baseTitleRef.current) {
       baseTitleRef.current = document.title.replace(/^\(\d+\)\s*/, "");
     }
   }, []);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: client만 deps. recompute/schedule는 effect 내부 클로저.
   useEffect(() => {
     let scheduled = false;
     let lastRun = 0;

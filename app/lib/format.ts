@@ -3,7 +3,7 @@
 
 /** HH:MM 24시간제. 메시지 행 시각 표시. */
 export function formatTime(ts: number): string {
-  return new Date(ts).toLocaleTimeString("ko-KR", {
+  return new Date(ts).toLocaleTimeString(undefined, {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
@@ -13,7 +13,7 @@ export function formatTime(ts: number): string {
 /** 메시지 hover 툴팁용 정확 시각 — 한국어 long format.
  *  예: "2026년 6월 18일 (목) 오후 2:35:07" */
 export function formatFullTime(ts: number): string {
-  return new Date(ts).toLocaleString("ko-KR", {
+  return new Date(ts).toLocaleString(undefined, {
     year: "numeric",
     month: "long",
     day: "numeric",
@@ -28,7 +28,7 @@ export function formatFullTime(ts: number): string {
 /** 검색 결과 행 컴팩트 표시 — 연도 생략, 분까지.
  *  예: "6. 18. 14:35" */
 export function formatDateTime(ts: number): string {
-  return new Date(ts).toLocaleString("ko-KR", {
+  return new Date(ts).toLocaleString(undefined, {
     month: "numeric",
     day: "numeric",
     hour: "2-digit",

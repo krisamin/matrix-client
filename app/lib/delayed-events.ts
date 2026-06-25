@@ -112,7 +112,7 @@ export async function listDelayed(
 }
 
 /** POST /delayed_events/{id}?action=cancel|send|restart */
-export async function actDelayed(
+async function actDelayed(
   client: MatrixClient,
   id: string,
   action: "cancel" | "send" | "restart",
@@ -147,27 +147,4 @@ export function sendDelayedNow(
   id: string,
 ): Promise<void> {
   return actDelayed(client, id, "send");
-}
-
-/** 서버 capability 확인 — versions endpoint에서 안 노출되면 false, 단 try-then-decide 권장. */
-export async function isDelayedEventsSupported(
-  client: MatrixClient,
-): Promise<boolean> {
-  try {
-    const versions = (await (
-      client as unknown as {
-        http: {
-          authedRequest: (
-            method: string,
-            path: string,
-          ) => Promise<{ unstable_features?: Record<string, boolean> }>;
-        };
-      }
-    ).http.authedRequest("GET", "/versions")) as {
-      unstable_features?: Record<string, boolean>;
-    };
-    return versions.unstable_features?.["org.matrix.msc4140"] === true;
-  } catch {
-    return false;
-  }
 }

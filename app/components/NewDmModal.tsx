@@ -1,8 +1,9 @@
 import type { MatrixClient } from "matrix-js-sdk";
 import { useEffect, useRef, useState } from "react";
-import { looksLikeUserId, useUserSearch } from "../hooks/useUserSearch";
+import { useUserSearch, looksLikeUserId } from "../hooks/useUserSearch";
 import { useT } from "../lib/i18n";
 import { startDirectMessage } from "../lib/matrix";
+import { EmptyState } from "./EmptyState";
 import { Field, FieldGroup, TextInput } from "./Form";
 import { Modal, ModalHeader } from "./Modal";
 import { UserResultRow } from "./UserResultRow";
@@ -91,14 +92,10 @@ export function NewDmModal({
           !directEntry &&
           results.length === 0 &&
           trimmed.length > 0 && (
-            <p className="px-5 py-6 text-center text-[13px] text-fg-3">
-              {t("newDm.empty")}
-            </p>
+            <EmptyState size="sm" body={t("newDm.empty")} />
           )}
         {searching && (
-          <p className="px-5 py-6 text-center text-[13px] text-fg-3">
-            {t("newDm.searching")}
-          </p>
+          <EmptyState size="sm" body={t("newDm.searching")} />
         )}
       </div>
     </Modal>

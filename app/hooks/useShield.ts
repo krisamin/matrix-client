@@ -5,7 +5,7 @@ import type {
 } from "matrix-js-sdk/lib/crypto-api";
 import { useEffect, useState } from "react";
 
-export interface ShieldInfo {
+interface ShieldInfo {
   colour: EventShieldColour;
   reason: EventShieldReason | null;
 }

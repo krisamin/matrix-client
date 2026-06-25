@@ -1,4 +1,4 @@
-import { Ban, Loader2, ShieldOff, Upload, UserMinus } from "lucide-react";
+import { Ban, ShieldOff, Upload, UserMinus } from "lucide-react";
 import type {
   GuestAccess,
   HistoryVisibility,
@@ -26,6 +26,7 @@ import {
   unbanMember,
 } from "../lib/matrix";
 import { RoomAvatar } from "./Avatar";
+import { InlineSpinner } from "./InlineSpinner";
 import { SectionHeader, TextInput } from "./Form";
 
 type Tab = "general" | "access" | "permissions" | "danger";
@@ -1015,7 +1016,7 @@ function DangerTab({
                 </button>
                 {busy === m.userId && (
                   <span className="flex items-center pr-3">
-                    <Loader2 className="h-3 w-3 animate-spin text-fg-3" />
+                    <InlineSpinner size="xs" className="text-fg-3" />
                   </span>
                 )}
               </div>

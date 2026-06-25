@@ -9,6 +9,7 @@ import { EventType } from "matrix-js-sdk";
 import { useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { DropZone } from "../components/DropZone";
+import { InlineSpinner } from "../components/InlineSpinner";
 import { MessageInput } from "../components/MessageInput";
 import { PaneHeader, PaneHeaderButton } from "../components/PaneHeader";
 import { SearchPane } from "../components/SearchPane";
@@ -127,8 +128,9 @@ export default function ThreadView() {
 
         {initialising ? (
           <div className="flex flex-1 items-center justify-center">
-            <span className="animate-pulse font-mono text-[12px] text-fg-3">
-              스레드 불러오는 중…
+            <span className="flex items-center gap-1.5 font-mono text-[12px] text-fg-3">
+              <InlineSpinner size="sm" />
+              {t("common.loading")}
             </span>
           </div>
         ) : (
