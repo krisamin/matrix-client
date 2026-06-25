@@ -10,26 +10,30 @@ export function formatTime(ts: number): string {
   });
 }
 
-/** YYYY-MM-DD HH:MM:SS — 호버 툴팁 등 정확 시각 */
+/** 메시지 hover 툴팁용 정확 시각 — 한국어 long format.
+ *  예: "2026년 6월 18일 (목) 오후 2:35:07" */
 export function formatFullTime(ts: number): string {
   return new Date(ts).toLocaleString("ko-KR", {
     year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
+    month: "long",
+    day: "numeric",
+    weekday: "short",
+    hour: "numeric",
     minute: "2-digit",
     second: "2-digit",
+    hour12: true,
   });
 }
 
-/** YYYY-MM-DD HH:MM — 검색 결과 행 등 컴팩트 표시 */
+/** 검색 결과 행 컴팩트 표시 — 연도 생략, 분까지.
+ *  예: "6. 18. 14:35" */
 export function formatDateTime(ts: number): string {
   return new Date(ts).toLocaleString("ko-KR", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
+    month: "numeric",
+    day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    hour12: false,
   });
 }
 
