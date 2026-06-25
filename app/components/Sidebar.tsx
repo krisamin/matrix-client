@@ -790,10 +790,10 @@ export function Sidebar({ client }: { client: MatrixClient }) {
             E2EE
           </span>
         </div>
-        {/* 프로필 row — 인풋(min-h-12 + border-t = 49px), 헤더(h-12 + border-b = 49px)와
-            동일 시각 높이를 맞추기 위해 min-h-12 사용 (h-12는 box-border라 border가
-            안으로 흡수돼 콘텐츠 47px이 됨). */}
-        <div className="flex min-h-12 shrink-0 items-stretch border-t border-line">
+        {/* 프로필 row — 인풋(textarea가 48px 콘텐츠 강제 → 49px total)와 시각
+            높이를 맞춰야 함. min-h-12(48px) + border-box는 border 흡수해 48px total.
+            인풋이 49이니 명시적 min-h-[49px]. */}
+        <div className="flex min-h-[49px] shrink-0 items-stretch border-t border-line">
           <button
             type="button"
             className="flex min-w-0 flex-1 items-center gap-2.5 px-5 text-left hover:bg-bg-2"
