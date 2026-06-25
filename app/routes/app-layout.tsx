@@ -135,12 +135,12 @@ export default function AppLayout() {
     <div className="flex h-screen overflow-hidden">
       <UnreadBadgeBinder client={client} />
       <div className="flex w-64 shrink-0 flex-col border-r border-line bg-bg-1">
-        <ErrorBoundary label="사이드바" size="pane">
+        <ErrorBoundary label={t("sidebar.label")} size="pane">
           <Sidebar client={client} />
         </ErrorBoundary>
       </div>
       <main className="flex min-w-0 flex-1 flex-col">
-        <ErrorBoundary label="메시지 영역" size="pane">
+        <ErrorBoundary label={t("main.label")} size="pane">
           <Outlet context={{ client } satisfies AppContext} />
         </ErrorBoundary>
       </main>

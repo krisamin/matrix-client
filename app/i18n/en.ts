@@ -461,4 +461,10 @@ export const en: Record<keyof typeof ko, string> = {
   "schedule.empty": "No scheduled messages",
   "schedule.in": "in {{time}}",
   "sidebar.scheduled": "Scheduled",
+  "error.boundary.in": "Error in {{label}}",
+  "error.boundary.plain": "An error occurred",
+  "error.boundary.retry": "Retry",
+  "error.boundary.short": "Error",
+  "sidebar.label": "Sidebar",
+  "main.label": "Message area",
 };

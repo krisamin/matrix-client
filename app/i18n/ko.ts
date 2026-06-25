@@ -470,6 +470,12 @@ export const ko = {
   "schedule.empty": "예약된 메시지가 없어요",
   "schedule.in": "{{time}} 후",
   "sidebar.scheduled": "예약된 메시지",
+  "error.boundary.in": "{{label}}에서 오류가 발생했어요",
+  "error.boundary.plain": "오류가 발생했어요",
+  "error.boundary.retry": "다시 시도",
+  "error.boundary.short": "오류",
+  "sidebar.label": "사이드바",
+  "main.label": "메시지 영역",
 } as const;
 
 export type DictKey = keyof typeof ko;

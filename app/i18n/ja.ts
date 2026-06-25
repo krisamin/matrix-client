@@ -462,4 +462,10 @@ export const ja: Record<keyof typeof ko, string> = {
   "schedule.empty": "予約メッセージがありません",
   "schedule.in": "{{time}} 後",
   "sidebar.scheduled": "予約済み",
+  "error.boundary.in": "{{label}}でエラーが発生しました",
+  "error.boundary.plain": "エラーが発生しました",
+  "error.boundary.retry": "再試行",
+  "error.boundary.short": "エラー",
+  "sidebar.label": "サイドバー",
+  "main.label": "メッセージ領域",
 };
