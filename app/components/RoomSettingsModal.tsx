@@ -1,32 +1,26 @@
 import { Ban, ShieldOff, UserMinus } from "lucide-react";
-import type {
-  GuestAccess,
-  HistoryVisibility,
-  JoinRule,
-  MatrixClient,
-  Room,
-  Visibility,
-} from "matrix-js-sdk";
+import type { MatrixClient, Room } from "matrix-js-sdk";
 import { useEffect, useMemo, useState } from "react";
 import { useT } from "../lib/i18n";
 import {
   banMember,
   canSendStateEvent,
-  getRoomDirectoryVisibility,
   getRoomPowerLevels,
   kickMember,
-  setRoomCanonicalAlias,
-  setRoomDirectoryVisibility,
-  setRoomGuestAccess,
-  setRoomHistoryVisibility,
-  setRoomJoinRule,
   setUserPowerLevel,
   unbanMember,
 } from "../lib/matrix";
 import { SectionHeader, TextInput } from "./Form";
 import { InlineSpinner } from "./InlineSpinner";
+import { AccessTab } from "./room-settings/AccessTab";
 import { GeneralTab } from "./room-settings/GeneralTab";
-import { type Tab, Footer, Row, ROLE_LEVELS, levelToRole } from "./room-settings/_shared";
+import {
+  Footer,
+  ROLE_LEVELS,
+  Row,
+  type Tab,
+  levelToRole,
+} from "./room-settings/_shared";
 
 /** 방 설정 모달 — 일반/접근/권한/위험 탭 (B-final 톤). */
 export function RoomSettingsModal({
