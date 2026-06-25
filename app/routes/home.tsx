@@ -1,7 +1,7 @@
 import { MessageSquareDashed } from "lucide-react";
 import { EmptyState } from "../components/EmptyState";
-import { useT } from "../lib/i18n";
 import { Kbd } from "../components/Kbd";
+import { useT } from "../lib/i18n";
 
 export function meta() {
   return [{ title: "matrix-client" }];

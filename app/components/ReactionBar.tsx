@@ -9,6 +9,7 @@ import {
 } from "matrix-js-sdk";
 import { RelationsEvent } from "matrix-js-sdk/lib/models/relations";
 import { memo, useEffect, useRef, useState } from "react";
+import { useT } from "../lib/i18n";
 
 /** 리액션 칩 + 추가 버튼. 메인/스레드 공용 (relations 컨테이너는 room 단위 공유) */
 function ReactionBarInner({
@@ -22,6 +23,7 @@ function ReactionBarInner({
   ev: MatrixEvent;
   myUserId: string;
 }) {
+  const t = useT();
   const [, force] = useState(0);
   // 낙관적 취소: redact 직후 SDK aggregation 갱신을 기다리지 않고 즉시 칩에서 제외
   // (SDK Relations의 redaction 반영은 local echo 인스턴스 불일치로 누락될 수 있음)
@@ -161,7 +163,7 @@ function ReactionBarInner({
               ? "border-line-strong bg-bg-3 text-fg-0"
               : "border-line text-fg-2 hover:bg-bg-2"
           }`}
-          title={a.mine ? "리액션 취소" : "리액션"}
+          title={a.mine ? t("reaction.remove") : t("reaction.add")}
         >
           {a.key} {a.count}
         </button>

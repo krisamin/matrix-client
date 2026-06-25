@@ -473,4 +473,11 @@ export const en: Record<keyof typeof ko, string> = {
   "media.openLarge": "View larger",
   "media.downloadFile": "Download file",
   "roomSettings.newAvatarPreview": "New avatar preview",
+  "reaction.remove": "Remove reaction",
+  "reaction.add": "React",
+  "toolcall.collapse": "Collapse",
+  "toolcall.expand": "Expand",
+  "msg.code.copy": "Copy",
+  "msg.code.copied": "Copied",
+  "readReceipts.title": "Read by {{names}}",
 };

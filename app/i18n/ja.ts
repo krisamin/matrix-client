@@ -472,6 +472,13 @@ export const ja: Record<keyof typeof ko, string> = {
   "media.openLarge": "大きく見る",
   "msg.sending": "送信中",
   "roomSettings.newAvatarPreview": "新しいアバタープレビュー",
+  "reaction.remove": "リアクションを取り消す",
+  "reaction.add": "リアクション",
+  "toolcall.collapse": "折りたたむ",
+  "toolcall.expand": "展開",
+  "msg.code.copy": "コピー",
+  "msg.code.copied": "コピーしました",
+  "readReceipts.title": "{{names}} が既読",
   "sidebar.menu.close": "メニューを閉じる",
   "tool.run": "実行",
 };

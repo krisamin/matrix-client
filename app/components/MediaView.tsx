@@ -63,14 +63,16 @@ export function MediaView({
         <button
           type="button"
           className="block cursor-zoom-in"
-          onClick={() => openLightbox(blobUrl, content.body ?? "이미지")}
+          onClick={() =>
+            openLightbox(blobUrl, content.body ?? t("media.imageAlt"))
+          }
           title={t("media.openLarge")}
         >
           <img
             loading="lazy"
             decoding="async"
             src={blobUrl}
-            alt={content.body ?? "이미지"}
+            alt={content.body ?? t("media.imageAlt")}
             className="max-h-80 max-w-full rounded-lg border border-line object-contain"
           />
         </button>
@@ -92,7 +94,7 @@ export function MediaView({
           download={content.body ?? "file"}
           className="text-fg-0 underline underline-offset-2"
         >
-          📎 {content.body ?? "파일 다운로드"}
+          📎 {content.body ?? t("media.downloadFile")}
         </a>
       );
   }

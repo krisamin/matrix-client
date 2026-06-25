@@ -359,11 +359,11 @@ function MessageBodyInner({
         btn.textContent = "Copied!";
         btn.classList.add("copied");
         window.setTimeout(() => {
-          btn.textContent = "복사";
+          btn.textContent = "Copy";
           btn.classList.remove("copied");
         }, 1400);
       })
-      .catch((err) => console.warn("코드 복사 실패:", err));
+      .catch((err) => console.warn("code copy failed:", err));
   }
 
   return (

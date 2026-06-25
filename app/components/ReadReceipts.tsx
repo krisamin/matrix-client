@@ -1,5 +1,6 @@
 import type { MatrixClient, MatrixEvent, Room } from "matrix-js-sdk";
 import { ReceiptType } from "matrix-js-sdk/lib/@types/read_receipts";
+import { useT } from "../lib/i18n";
 import { Avatar } from "./Avatar";
 
 const MAX_AVATARS = 5;
@@ -35,6 +36,7 @@ export function ReadReceipts({
   ev: MatrixEvent;
   myUserId: string;
 }) {
+  const t = useT();
   const readers = readersOfEvent(room, ev, myUserId);
   if (readers.length === 0) return null;
 
@@ -45,7 +47,7 @@ export function ReadReceipts({
   return (
     <span
       className="absolute bottom-0.5 right-2 flex items-center"
-      title={`${names} 읽음`}
+      title={t("readReceipts.title", { names })}
     >
       {shown.map((userId) => {
         const member = room.getMember(userId);

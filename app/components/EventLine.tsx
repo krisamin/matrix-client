@@ -239,7 +239,7 @@ const EventLineInner = function EventLine({
           <ShieldIcon client={client} ev={ev} />
           {ev.replacingEvent() && (
             <span className="text-[11px] text-fg-3" title={t("msg.edited")}>
-              수정됨
+              {t("msg.edited")}
             </span>
           )}
         </div>

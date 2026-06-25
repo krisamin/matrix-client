@@ -2,13 +2,13 @@ import { Upload } from "lucide-react";
 import type { MatrixClient, Room } from "matrix-js-sdk";
 import { useEffect, useRef, useState } from "react";
 import { useT } from "../../lib/i18n";
-import { CardHeader } from "../CardHeader";
 import {
   canSendStateEvent,
   setRoomAvatar,
   setRoomNameAndTopic,
 } from "../../lib/matrix";
 import { RoomAvatar } from "../Avatar";
+import { CardHeader } from "../CardHeader";
 import { FormError } from "../FormError";
 import { Footer, Row } from "./_shared";
 

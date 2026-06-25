@@ -6,7 +6,5 @@ import type { ReactNode } from "react";
  *  같이 끼우는 경우가 있어 그쪽은 기존 분기를 유지. */
 export function FormError({ children }: { children: ReactNode }) {
   if (!children) return null;
-  return (
-    <p className="px-4 py-2.5 text-[12px] text-red-400">{children}</p>
-  );
+  return <p className="px-4 py-2.5 text-[12px] text-red-400">{children}</p>;
 }

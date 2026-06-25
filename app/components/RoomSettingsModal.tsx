@@ -1,11 +1,11 @@
 import type { MatrixClient, Room } from "matrix-js-sdk";
 import { useEffect, useState } from "react";
 import { useT } from "../lib/i18n";
+import type { Tab } from "./room-settings/_shared";
 import { AccessTab } from "./room-settings/AccessTab";
 import { DangerTab } from "./room-settings/DangerTab";
 import { GeneralTab } from "./room-settings/GeneralTab";
 import { PermissionsTab } from "./room-settings/PermissionsTab";
-import { type Tab } from "./room-settings/_shared";
 
 /** 방 설정 모달 — 일반/접근/권한/위험 탭 (B-final 톤). */
 export function RoomSettingsModal({

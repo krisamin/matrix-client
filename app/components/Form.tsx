@@ -220,7 +220,8 @@ export function MenuItem({
     variant === "danger"
       ? "hover:bg-bg-2 hover:text-red-300"
       : "hover:bg-bg-2 hover:text-fg-0";
-  const sizeCls = density === "compact" ? "gap-2 px-3 py-2" : "gap-2.5 px-4 py-2.5";
+  const sizeCls =
+    density === "compact" ? "gap-2 px-3 py-2" : "gap-2.5 px-4 py-2.5";
   return (
     <button
       type="button"

@@ -12,9 +12,7 @@ export function ModalRow({
   className?: string;
 }) {
   return (
-    <div
-      className={`flex items-center gap-3 px-4 py-2.5 ${className}`.trim()}
-    >
+    <div className={`flex items-center gap-3 px-4 py-2.5 ${className}`.trim()}>
       {children}
     </div>
   );

@@ -44,6 +44,6 @@ export function buildIdentifier(
   return { type: "m.id.user", user: user ?? "" };
 }
 
+export type { MatrixClient, MatrixError };
 // Re-export for callers that need to make their own client
 export { createClient };
-export type { MatrixClient, MatrixError };

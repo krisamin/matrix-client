@@ -154,6 +154,7 @@ function previewFromHeader(header: string, tool: string): string {
 
 /** 단일 도구 호출 칩 — 헤더만 보여주고 클릭 시 그 도구의 본문(코드/결과) 펼침. */
 function ToolSectionRow({ section }: { section: ToolSection }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const preview = previewFromHeader(section.header, section.tool);
   return (
@@ -162,7 +163,7 @@ function ToolSectionRow({ section }: { section: ToolSection }) {
         type="button"
         onClick={() => setOpen((v) => !v)}
         className="group/chip flex max-w-full items-center gap-1.5 rounded-md border border-line bg-bg-2/50 px-2 py-1 text-[12px] text-fg-2 transition-colors hover:border-line-strong hover:bg-bg-2 hover:text-fg-1"
-        title={open ? "접기" : "펼치기"}
+        title={open ? t("toolcall.collapse") : t("toolcall.expand")}
       >
         <Wrench className="h-3 w-3 shrink-0 text-fg-3" />
         <ChevronRight

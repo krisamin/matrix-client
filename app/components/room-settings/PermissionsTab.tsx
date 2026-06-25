@@ -9,7 +9,7 @@ import {
 import { SectionHeader, TextInput } from "../Form";
 import { FormError } from "../FormError";
 import { SectionBanner } from "../SectionBanner";
-import { ROLE_LEVELS, levelToRole } from "./_shared";
+import { levelToRole, ROLE_LEVELS } from "./_shared";
 
 /* ──────────── 권한 탭: 역할 + 기본 액션 PL + 이벤트별 PL (고급) ──────────── */
 
@@ -85,9 +85,7 @@ export function PermissionsTab({
   return (
     <>
       <div className="min-h-0 flex-1 overflow-y-auto">
-        {!canEditPL && (
-          <SectionBanner>{t("perm.viewOnly")}</SectionBanner>
-        )}
+        {!canEditPL && <SectionBanner>{t("perm.viewOnly")}</SectionBanner>}
         {/* divide-y 제거 — SectionHeader가 자체 border-y로 row 사이 경계 책임.
             divide-y와 SectionHeader.border-y가 겹쳐 이중 border 발생함. */}
         <div className="flex flex-col">
@@ -128,11 +126,9 @@ export function PermissionsTab({
                     }
                     className="bg-transparent py-2.5 pl-3 pr-4 text-[12px] text-fg-0 outline-none disabled:opacity-50"
                   >
-                    <option value="멤버">{t("perm.role.member")} (0)</option>
-                    <option value="모더레이터">
-                      {t("perm.role.moderator")} (50)
-                    </option>
-                    <option value="관리자">{t("perm.role.admin")} (100)</option>
+                    <option value="member">{t("perm.role.member")} (0)</option>
+                    <option value="mod">{t("perm.role.moderator")} (50)</option>
+                    <option value="admin">{t("perm.role.admin")} (100)</option>
                   </select>
                 ) : (
                   <span className="flex items-center py-2.5 pr-4 text-[12px] text-fg-2">

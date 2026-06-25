@@ -1,6 +1,6 @@
 import { useT } from "../lib/i18n";
-import { Modal, ModalHeader } from "./Modal";
 import { Kbd } from "./Kbd";
+import { Modal, ModalHeader } from "./Modal";
 
 /** 키보드 단축키 안내 모달 — `?` 또는 `Ctrl+/`로 열림. */
 export function ShortcutsModal({ onClose }: { onClose: () => void }) {

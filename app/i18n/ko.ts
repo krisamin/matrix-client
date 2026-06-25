@@ -482,6 +482,13 @@ export const ko = {
   "media.openLarge": "크게 보기",
   "media.downloadFile": "파일 다운로드",
   "roomSettings.newAvatarPreview": "새 아바타 미리보기",
+  "reaction.remove": "리액션 취소",
+  "reaction.add": "리액션",
+  "toolcall.collapse": "접기",
+  "toolcall.expand": "펼치기",
+  "msg.code.copy": "복사",
+  "msg.code.copied": "복사됨",
+  "readReceipts.title": "{{names}} 읽음",
 } as const;
 
 export type DictKey = keyof typeof ko;

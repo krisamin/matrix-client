@@ -3,7 +3,7 @@ import { useT } from "../../lib/i18n";
 export type Tab = "general" | "access" | "permissions" | "danger";
 
 // 역할 ↔ PL 매핑 (Element 관례)
-export const ROLE_LEVELS = { 멤버: 0, 모더레이터: 50, 관리자: 100 } as const;
+export const ROLE_LEVELS = { member: 0, mod: 50, admin: 100 } as const;
 export function levelToRole(lvl: number): string {
   if (lvl >= 100) return "admin";
   if (lvl >= 50) return "mod";
