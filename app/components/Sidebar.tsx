@@ -114,7 +114,7 @@ export function Sidebar({ client }: { client: MatrixClient }) {
     ));
 
   return (
-    <aside className="flex w-64 shrink-0 flex-col border-r border-line bg-bg-1">
+    <aside className="flex h-full flex-col">
       {/* 헤더: 48px (PWA WCO 시 창 드래그 + 신호등 버튼 회피).
           액션 버튼만 — 사용자명/설정은 푸터로 분리해 truncate 여유 확보. */}
       <div className="app-titlebar app-titlebar-lead flex h-12 shrink-0 items-center justify-end border-b border-line">
