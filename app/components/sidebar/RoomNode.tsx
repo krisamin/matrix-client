@@ -264,7 +264,9 @@ export const RoomNode = memo(function RoomNodeInner({
         <div className="tree-children">
           {sortedThreads.map((thread) => {
             const root = thread.rootEvent;
-            const title = root ? quotePreview(root) : thread.id;
+            const preview = root ? quotePreview(root) : "";
+            // 빈 미리보기(미디어/encrypted/공백 등) fallback — 'Thread' 라벨
+            const title = preview.trim() || t("thread.untitled");
             // 스레드별 안 읽음 카운트 (SDK 공식 API).
             const tUnread = room.getThreadUnreadNotificationCount(
               thread.id,

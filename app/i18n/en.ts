@@ -492,4 +492,5 @@ export const en: Record<keyof typeof ko, string> = {
   "spaceView.visibility.private": "Private",
   "spaceView.info": "Info",
   "spaceView.field.created": "Created",
+  "thread.untitled": "Thread",
 };

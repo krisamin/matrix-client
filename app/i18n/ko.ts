@@ -501,6 +501,7 @@ export const ko = {
   "spaceView.visibility.private": "비공개",
   "spaceView.info": "정보",
   "spaceView.field.created": "생성일",
+  "thread.untitled": "스레드",
 } as const;
 
 export type DictKey = keyof typeof ko;

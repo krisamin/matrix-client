@@ -493,4 +493,5 @@ export const ja: Record<keyof typeof ko, string> = {
   "spaceView.visibility.private": "非公開",
   "spaceView.info": "情報",
   "spaceView.field.created": "作成日",
+  "thread.untitled": "スレッド",
 };
