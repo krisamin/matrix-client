@@ -146,7 +146,7 @@ export function AccessTab({
             />
           </Row>
           {aliasInvalid && (
-            <p className="px-5 py-1.5 text-[11px] text-red-400">
+            <p className="px-4 py-1.5 text-[11px] text-red-400">
               {t("alias.invalidChars")}
             </p>
           )}
@@ -157,7 +157,7 @@ export function AccessTab({
               onChange={(e) =>
                 setDirectory(e.target.value as "public" | "private")
               }
-              className="flex-1 bg-transparent py-2.5 pl-3 pr-5 text-[13px] text-fg-0 outline-none disabled:opacity-50"
+              className="flex-1 bg-transparent py-2.5 pl-3 pr-4 text-[13px] text-fg-0 outline-none disabled:opacity-50"
             >
               <option value="private">{t("vis.private")}</option>
               <option value="public">{t("vis.public")}</option>
@@ -168,7 +168,7 @@ export function AccessTab({
               value={joinRule}
               disabled={!canJoin}
               onChange={(e) => setJoinRule(e.target.value as JoinRule)}
-              className="flex-1 bg-transparent py-2.5 pl-3 pr-5 text-[13px] text-fg-0 outline-none disabled:opacity-50"
+              className="flex-1 bg-transparent py-2.5 pl-3 pr-4 text-[13px] text-fg-0 outline-none disabled:opacity-50"
             >
               <option value="invite">{t("join.invite")}</option>
               <option value="public">{t("join.public")}</option>
@@ -181,7 +181,7 @@ export function AccessTab({
               value={guestAccess}
               disabled={!canGuest}
               onChange={(e) => setGuestAccess(e.target.value as GuestAccess)}
-              className="flex-1 bg-transparent py-2.5 pl-3 pr-5 text-[13px] text-fg-0 outline-none disabled:opacity-50"
+              className="flex-1 bg-transparent py-2.5 pl-3 pr-4 text-[13px] text-fg-0 outline-none disabled:opacity-50"
             >
               <option value="forbidden">{t("guest.forbidden")}</option>
               <option value="can_join">{t("guest.canJoin")}</option>
@@ -194,7 +194,7 @@ export function AccessTab({
               onChange={(e) =>
                 setHistoryVis(e.target.value as HistoryVisibility)
               }
-              className="flex-1 bg-transparent py-2.5 pl-3 pr-5 text-[13px] text-fg-0 outline-none disabled:opacity-50"
+              className="flex-1 bg-transparent py-2.5 pl-3 pr-4 text-[13px] text-fg-0 outline-none disabled:opacity-50"
             >
               <option value="invited">{t("hist.invited")}</option>
               <option value="joined">{t("hist.joined")}</option>
@@ -203,7 +203,7 @@ export function AccessTab({
             </select>
           </Row>
           {error && (
-            <p className="px-5 py-2.5 text-[12px] text-red-400">{error}</p>
+            <p className="px-4 py-2.5 text-[12px] text-red-400">{error}</p>
           )}
         </div>
       </div>

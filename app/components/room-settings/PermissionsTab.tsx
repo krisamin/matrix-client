@@ -84,7 +84,7 @@ export function PermissionsTab({
     <>
       <div className="min-h-0 flex-1 overflow-y-auto">
         {!canEditPL && (
-          <p className="border-b border-line bg-bg-2/40 px-5 py-2 text-[12px] text-fg-3">
+          <p className="border-b border-line bg-bg-2/40 px-4 py-2 text-[12px] text-fg-3">
             {t("perm.viewOnly")}
           </p>
         )}
@@ -105,7 +105,7 @@ export function PermissionsTab({
                 key={m.userId}
                 className="flex items-stretch border-b border-line last:border-b-0"
               >
-                <span className="flex min-w-0 flex-1 items-center gap-1.5 truncate py-2.5 pl-5 text-[13px] text-fg-1">
+                <span className="flex min-w-0 flex-1 items-center gap-1.5 truncate py-2.5 pl-4 text-[13px] text-fg-1">
                   <span className="truncate">{m.name}</span>
                   {isMe && (
                     <span className="ml-1.5 text-[11px] text-fg-3">
@@ -126,7 +126,7 @@ export function PermissionsTab({
                         ROLE_LEVELS[e.target.value as keyof typeof ROLE_LEVELS],
                       )
                     }
-                    className="bg-transparent py-2.5 pl-3 pr-5 text-[12px] text-fg-0 outline-none disabled:opacity-50"
+                    className="bg-transparent py-2.5 pl-3 pr-4 text-[12px] text-fg-0 outline-none disabled:opacity-50"
                   >
                     <option value="멤버">{t("perm.role.member")} (0)</option>
                     <option value="모더레이터">
@@ -135,7 +135,7 @@ export function PermissionsTab({
                     <option value="관리자">{t("perm.role.admin")} (100)</option>
                   </select>
                 ) : (
-                  <span className="flex items-center py-2.5 pr-5 text-[12px] text-fg-2">
+                  <span className="flex items-center py-2.5 pr-4 text-[12px] text-fg-2">
                     {role}
                   </span>
                 )}
@@ -154,7 +154,7 @@ export function PermissionsTab({
           />
         </div>
         {error && (
-          <p className="border-t border-line px-5 py-2.5 text-[12px] text-red-400">
+          <p className="border-t border-line px-4 py-2.5 text-[12px] text-red-400">
             {error}
           </p>
         )}
@@ -165,7 +165,7 @@ export function PermissionsTab({
       {canEditPL && defaultsState && (
         <>
           {defaultsState.error && (
-            <p className="shrink-0 border-t border-line px-5 py-2 text-[12px] text-red-400">
+            <p className="shrink-0 border-t border-line px-4 py-2 text-[12px] text-red-400">
               {defaultsState.error}
             </p>
           )}
@@ -199,12 +199,12 @@ export function PermissionsTab({
             onClick={(e) => e.stopPropagation()}
             role="presentation"
           >
-            <header className="flex h-12 items-center border-b border-line pl-5">
+            <header className="flex h-12 items-center border-b border-line pl-4">
               <h3 className="font-semibold text-fg-0">
                 {t("perm.demoteSelf.title")}
               </h3>
             </header>
-            <p className="px-5 py-4 text-[13px] text-fg-2">
+            <p className="px-4 py-4 text-[13px] text-fg-2">
               {t("perm.demoteSelf.body")}
             </p>
             <div className="flex border-t border-line">
@@ -347,7 +347,7 @@ function DefaultPLEditor({
           key={r.label}
           className="flex items-stretch border-b border-line last:border-b-0"
         >
-          <span className="flex w-28 shrink-0 items-center pl-5 text-[12px] text-fg-2">
+          <span className="flex w-28 shrink-0 items-center pl-4 text-[12px] text-fg-2">
             {r.label}
           </span>
           <TextInput

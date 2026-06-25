@@ -61,7 +61,7 @@ export function ForwardModal({
     <Modal onClose={onClose} size="md">
       <ModalHeader title={t("modal.forward.title")} />
       {preview && (
-        <p className="shrink-0 truncate border-b border-line bg-bg-2/40 px-5 py-2 text-[12px] text-fg-3">
+        <p className="shrink-0 truncate border-b border-line bg-bg-2/40 px-4 py-2 text-[12px] text-fg-3">
           {preview}
         </p>
       )}
@@ -76,7 +76,7 @@ export function ForwardModal({
         </Field>
       </FieldGroup>
       {error && (
-        <p className="shrink-0 border-b border-line px-5 py-2 text-[12px] text-red-400">
+        <p className="shrink-0 border-b border-line px-4 py-2 text-[12px] text-red-400">
           {error}
         </p>
       )}
@@ -87,7 +87,7 @@ export function ForwardModal({
             type="button"
             disabled={busy !== null}
             onClick={() => forward(r.roomId)}
-            className="flex w-full items-center gap-2.5 border-b border-line px-5 py-2 text-left last:border-b-0 hover:bg-bg-2 disabled:opacity-50"
+            className="flex w-full items-center gap-2.5 border-b border-line px-4 py-2 text-left last:border-b-0 hover:bg-bg-2 disabled:opacity-50"
           >
             <RoomAvatar client={client} room={r} size={28} />
             <span className="min-w-0 flex-1 truncate text-[13px] text-fg-0">

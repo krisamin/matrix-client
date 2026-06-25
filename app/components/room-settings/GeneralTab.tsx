@@ -96,7 +96,7 @@ export function GeneralTab({
         {/* 아바타 영역 — ProfileEditModal과 동일한 헤더 띠 톤.
          *  현재 방 아바타가 즉시 보이고 (RoomAvatar는 mxc 자동 해석),
          *  클릭/호버 Upload 오버레이로 이미지 변경. 새 파일 고르면 로컬 미리보기. */}
-        <div className="flex flex-col items-center gap-2 border-b border-line bg-bg-2/30 px-5 py-5">
+        <div className="flex flex-col items-center gap-2 border-b border-line bg-bg-2/30 px-4 py-5">
           <button
             type="button"
             className="group relative rounded-md disabled:cursor-not-allowed"
@@ -141,7 +141,7 @@ export function GeneralTab({
               value={name}
               disabled={!canName}
               onChange={(e) => setName(e.target.value)}
-              className="flex-1 bg-transparent py-2.5 pl-3 pr-5 text-[13px] text-fg-0 outline-none placeholder:text-fg-3 disabled:opacity-50"
+              className="flex-1 bg-transparent py-2.5 pl-3 pr-4 text-[13px] text-fg-0 outline-none placeholder:text-fg-3 disabled:opacity-50"
             />
           </Row>
           <Row label={t("roomSettings.field.topic")}>
@@ -151,11 +151,11 @@ export function GeneralTab({
               disabled={!canTopic}
               onChange={(e) => setTopic(e.target.value)}
               placeholder={t("roomSettings.topic.placeholder")}
-              className="flex-1 bg-transparent py-2.5 pl-3 pr-5 text-[13px] text-fg-0 outline-none placeholder:text-fg-3 disabled:opacity-50"
+              className="flex-1 bg-transparent py-2.5 pl-3 pr-4 text-[13px] text-fg-0 outline-none placeholder:text-fg-3 disabled:opacity-50"
             />
           </Row>
           {error && (
-            <p className="px-5 py-2.5 text-[12px] text-red-400">{error}</p>
+            <p className="px-4 py-2.5 text-[12px] text-red-400">{error}</p>
           )}
         </div>
       </div>

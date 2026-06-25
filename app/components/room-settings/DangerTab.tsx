@@ -88,7 +88,7 @@ export function DangerTab({
               key={m.userId}
               className="flex items-stretch border-b border-line last:border-b-0"
             >
-              <span className="flex min-w-0 flex-1 items-center truncate py-2.5 pl-5 text-[13px] text-fg-1">
+              <span className="flex min-w-0 flex-1 items-center truncate py-2.5 pl-4 text-[13px] text-fg-1">
                 <span className="truncate">{m.name}</span>
               </span>
               <div className="flex shrink-0 items-stretch">
@@ -131,10 +131,10 @@ export function DangerTab({
                   key={m.userId}
                   className="flex items-stretch border-b border-line last:border-b-0"
                 >
-                  <span className="flex min-w-0 flex-1 items-center truncate py-2.5 pl-5 text-[13px] text-fg-2">
+                  <span className="flex min-w-0 flex-1 items-center truncate py-2.5 pl-4 text-[13px] text-fg-2">
                     <span className="truncate">{m.name}</span>
                   </span>
-                  <div className="flex shrink-0 items-center gap-2 py-2 pr-5">
+                  <div className="flex shrink-0 items-center gap-2 py-2 pr-4">
                     <button
                       type="button"
                       onClick={() => doUnban(m.userId)}
@@ -151,7 +151,7 @@ export function DangerTab({
           )}
         </div>
         {error && (
-          <p className="border-t border-line px-5 py-2.5 text-[12px] text-red-400">
+          <p className="border-t border-line px-4 py-2.5 text-[12px] text-red-400">
             {error}
           </p>
         )}

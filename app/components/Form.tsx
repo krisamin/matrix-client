@@ -45,7 +45,7 @@ export function Field({
 
 /** Field 내부 텍스트 인풋. prefix/suffix slot으로 # 같은 인라인 데코 가능.
  *
- *  Field row 패딩(py-2.5 pl-3 pr-5)은 *컨테이너*가 가지고 input 자체는
+ *  Field row 패딩(py-2.5 pl-3 pr-4)은 *컨테이너*가 가지고 input 자체는
  *  unstyled — prefix/suffix와 input이 같은 inset 안에서 자연스럽게 흐름.
  *
  *  예: <TextInput prefix="#" suffix=":server.com" ... /> */
@@ -83,7 +83,7 @@ export function TextInput({
   // disabled일 때 컨테이너에도 opacity 적용 — prefix/suffix까지 흐려지도록
   const disabledCls = disabled ? "opacity-50" : "";
   // input padding: prefix/suffix와 붙은 쪽은 좁게(pl-1.5/pr-1.5), 없는 쪽은
-  // 일반 인셋(pl-3/pr-5). 결과: input 자체가 row의 인풋 영역을 꽉 채워
+  // 일반 인셋(pl-3/pr-4). 결과: input 자체가 row의 인풋 영역을 꽉 채워
   // input box 어디 클릭해도 포커스 (마로 요청 — 클릭영역이 input 자체).
   const inputPadX = `${prefix !== undefined ? "pl-1.5" : "pl-3"} ${suffix !== undefined ? "pr-1.5" : "pr-4"}`;
   const inputAlign = align === "right" ? "text-right font-mono" : "";
@@ -138,7 +138,7 @@ export function Select({
       >
         {children}
       </select>
-      <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-5 text-fg-3">
+      <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4 text-fg-3">
         <ChevronDown className="h-3.5 w-3.5" />
       </span>
     </span>

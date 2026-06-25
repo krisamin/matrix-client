@@ -62,10 +62,10 @@ export function DelayedMessagesModal({
       <ModalHeader title={t("sidebar.scheduled")} />
       <div className="flex flex-col">
         {items === null && (
-          <p className="px-5 py-4 text-[12px] text-fg-3">{t("login.busy")}</p>
+          <p className="px-4 py-4 text-[12px] text-fg-3">{t("login.busy")}</p>
         )}
         {items?.length === 0 && (
-          <p className="px-5 py-6 text-center text-[13px] text-fg-3">
+          <p className="px-4 py-6 text-center text-[13px] text-fg-3">
             {t("schedule.empty")}
           </p>
         )}
@@ -78,7 +78,7 @@ export function DelayedMessagesModal({
               key={it.delay_id}
               className="flex items-stretch border-b border-line last:border-b-0"
             >
-              <div className="flex min-w-0 flex-1 flex-col gap-0.5 px-5 py-2.5">
+              <div className="flex min-w-0 flex-1 flex-col gap-0.5 px-4 py-2.5">
                 <span className="flex items-center gap-1.5 text-[11px] text-fg-3">
                   <CalendarClock className="h-3 w-3" />
                   {room?.name ?? it.room_id}

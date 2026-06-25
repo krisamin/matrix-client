@@ -98,7 +98,7 @@ export function ProfileEditModal({
       ) : (
         <>
           {/* 아바타 영역 */}
-          <div className="flex shrink-0 flex-col items-center gap-2 border-b border-line bg-bg-2/30 px-5 py-5">
+          <div className="flex shrink-0 flex-col items-center gap-2 border-b border-line bg-bg-2/30 px-4 py-5">
             <button
               type="button"
               className="group relative rounded-full"
@@ -143,7 +143,7 @@ export function ProfileEditModal({
               />
             </Field>
             {error && (
-              <p className="px-5 py-2.5 text-[12px] text-red-400">{error}</p>
+              <p className="px-4 py-2.5 text-[12px] text-red-400">{error}</p>
             )}
           </FieldGroup>
 

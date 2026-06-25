@@ -42,7 +42,7 @@ const MemberRow = memo(function MemberRowInner({
     <li>
       <button
         type="button"
-        className="flex w-full items-center gap-2.5 px-5 py-2 text-left hover:bg-bg-2"
+        className="flex w-full items-center gap-2.5 px-4 py-2 text-left hover:bg-bg-2"
         title={member.userId}
         onClick={(e) => onClick(e.currentTarget.getBoundingClientRect())}
       >
@@ -216,7 +216,7 @@ export function RoomInfoPane({
 
       <div className="min-h-0 flex-1 overflow-y-auto bg-bg-1">
         {/* 방 프로필 — 헤더 띠 톤 (border-b는 다음 SectionHeader가 책임) */}
-        <div className="flex flex-col items-center gap-2.5 bg-bg-2/30 px-5 py-6">
+        <div className="flex flex-col items-center gap-2.5 bg-bg-2/30 px-4 py-6">
           <RoomAvatar client={client} room={room} size={56} />
           <p className="max-w-full truncate text-[15px] font-semibold text-fg-0">
             {room.name}
@@ -285,7 +285,7 @@ export function RoomInfoPane({
             제거 — 자식 label/p가 각자 border-b로 처리. */}
         {inviteOpen && (
           <div className="flex flex-col bg-bg-2/20">
-            <label className="flex items-center gap-2 border-b border-line px-5 py-2">
+            <label className="flex items-center gap-2 border-b border-line px-4 py-2">
               <span className="shrink-0 text-[11px] text-fg-3">
                 {t("roomInfo.search.label")}
               </span>
@@ -298,7 +298,7 @@ export function RoomInfoPane({
               />
             </label>
             {inviteMsg && (
-              <p className="border-b border-line px-5 py-1.5 text-[11px] text-fg-2">
+              <p className="border-b border-line px-4 py-1.5 text-[11px] text-fg-2">
                 {inviteMsg}
               </p>
             )}
@@ -373,7 +373,7 @@ export function RoomInfoPane({
         <SectionHeader>{t("roomInfo.section.danger")}</SectionHeader>
         {leaveArmed ? (
           <>
-            <p className="border-b border-line px-5 py-3 text-[12px] text-fg-2">
+            <p className="border-b border-line px-4 py-3 text-[12px] text-fg-2">
               {t("roomInfo.leave.confirm")}
               {encrypted && t("roomInfo.leave.warn")}
             </p>

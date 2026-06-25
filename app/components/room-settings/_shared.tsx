@@ -23,17 +23,17 @@ export function Row({
 }) {
   // 라벨/입력이 자체 padding으로 row를 꽉 채우는 패턴 (B-final).
   // children에 들어가는 input/select는 Form.tsx의 TextInput/Select처럼
-  // 자체 'py-2.5 pl-3 pr-5'를 가져야 함.
+  // 자체 'py-2.5 pl-3 pr-4'를 가져야 함.
   return (
     <label className="flex flex-col">
       <div className="flex items-stretch">
-        <span className="flex w-24 shrink-0 items-center pl-5 text-[12px] text-fg-3">
+        <span className="flex w-24 shrink-0 items-center pl-4 text-[12px] text-fg-3">
           {label}
         </span>
         <div className="flex flex-1 items-stretch">{children}</div>
       </div>
       {description && (
-        <span className="px-5 pb-2 pl-[6.75rem] text-[11px] text-fg-3">
+        <span className="px-4 pb-2 pl-[6.5rem] text-[11px] text-fg-3">
           {description}
         </span>
       )}

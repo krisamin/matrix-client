@@ -79,7 +79,7 @@ export function UserProfileCard({
         }}
       >
         {/* 상단: 아바타 + 이름 (모달 헤더 톤과 같은 살짝 어두운 띠) */}
-        <div className="flex flex-col items-center gap-2 border-b border-line bg-bg-2/30 px-5 py-5">
+        <div className="flex flex-col items-center gap-2 border-b border-line bg-bg-2/30 px-4 py-5">
           <Avatar
             client={client}
             mxcUrl={member?.getMxcAvatarUrl()}
@@ -112,7 +112,7 @@ export function UserProfileCard({
 
         {/* 이 방에서의 상태 — divide-y 그리드 (모달 row 패턴과 동일) */}
         <div className="flex flex-col divide-y divide-line">
-          <div className="flex items-center gap-3 px-5 py-2.5">
+          <div className="flex items-center gap-3 px-4 py-2.5">
             <span className="w-16 shrink-0 text-[12px] text-fg-3">
               {t("userCard.field.role")}
             </span>
@@ -130,7 +130,7 @@ export function UserProfileCard({
               </span>
             </span>
           </div>
-          <div className="flex items-center gap-3 px-5 py-2.5">
+          <div className="flex items-center gap-3 px-4 py-2.5">
             <span className="w-16 shrink-0 text-[12px] text-fg-3">
               {t("userCard.field.status")}
             </span>
@@ -147,7 +147,7 @@ export function UserProfileCard({
             </span>
           </div>
           {presence && (
-            <div className="flex items-center gap-3 px-5 py-2.5">
+            <div className="flex items-center gap-3 px-4 py-2.5">
               <span className="w-16 shrink-0 text-[12px] text-fg-3">
                 {t("userCard.field.presence")}
               </span>

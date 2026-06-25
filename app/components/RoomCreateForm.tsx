@@ -180,10 +180,10 @@ export function RoomCreateForm({
           )}
           {isRoom && (
             <label className="flex cursor-pointer items-stretch">
-              <span className="flex w-24 shrink-0 items-center pl-5 text-[12px] text-fg-3">
+              <span className="flex w-24 shrink-0 items-center pl-4 text-[12px] text-fg-3">
                 {t("field.encryption")}
               </span>
-              <span className="flex flex-1 items-center gap-2 py-2.5 pl-3 pr-5">
+              <span className="flex flex-1 items-center gap-2 py-2.5 pl-3 pr-4">
                 <input
                   type="checkbox"
                   checked={encrypted}
@@ -199,7 +199,7 @@ export function RoomCreateForm({
         <SectionHeader
           onClick={() => setAdvancedOpen((v) => !v)}
           actions={
-            <span className="flex items-center pr-5 text-fg-3">
+            <span className="flex items-center pr-4 text-fg-3">
               {advancedOpen ? (
                 <ChevronDown className="h-3.5 w-3.5" />
               ) : (
@@ -277,7 +277,7 @@ export function RoomCreateForm({
         )}
 
         {error && (
-          <p className="px-5 py-2.5 text-[12px] text-red-400">{error}</p>
+          <p className="px-4 py-2.5 text-[12px] text-red-400">{error}</p>
         )}
       </div>
 
