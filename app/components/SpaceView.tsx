@@ -7,7 +7,6 @@ import { useT } from "../lib/i18n";
 import { childRoomIds } from "../lib/spaces";
 import { Avatar, RoomAvatar } from "./Avatar";
 import { EmptyState } from "./EmptyState";
-import { FieldGroup, SectionHeader } from "./Form";
 import { IconButton } from "./IconButton";
 import { NewRoomModal } from "./NewRoomModal";
 import { NewSpaceModal } from "./NewSpaceModal";
@@ -15,8 +14,8 @@ import { PaneHeader, PaneHeaderButton } from "./PaneHeader";
 import { RoomSettingsModal } from "./RoomSettingsModal";
 
 /** Space 홈 — 메시지 타임라인 대신 보여주는 화면.
- *  상단: Avatar + 이름 + topic + 메타 stats.
- *  본문: 2-column (좌: Subspaces/Rooms, 우: 멤버 + Space 정보) */
+ *  카드 wrap 없는 flat grid 레이아웃 — divide-y로 섹션 구분만,
+ *  메인 콘텐츠와 같은 패딩 시스템(px-5). */
 export function SpaceView({
   client,
   space,
@@ -45,11 +44,9 @@ export function SpaceView({
     .getJoinedMembers()
     .sort((a, b) => (a.name ?? "").localeCompare(b.name ?? ""));
 
-  // Space 생성일 — m.room.create state event 의 origin_server_ts
   const createEv = space.currentState.getStateEvents("m.room.create", "");
   const createdAt = createEv?.getTs();
 
-  // join rule (공개/비공개)
   const joinRule =
     (space.currentState
       .getStateEvents("m.room.join_rules", "")
@@ -76,186 +73,156 @@ export function SpaceView({
       </PaneHeader>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-5xl px-6 py-6">
-          {/* 헤더 — Avatar + 이름/topic + stats 행 */}
-          <header className="mb-6 overflow-hidden rounded-md border border-line bg-bg-1">
-            <div className="flex items-start gap-4 px-5 py-5">
-              <RoomAvatar client={client} room={space} size={64} />
-              <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                <h2 className="truncate text-[18px] font-semibold text-fg-0">
-                  {space.name}
-                </h2>
-                {topic ? (
-                  <p className="whitespace-pre-wrap text-[13px] text-fg-2">
-                    {topic}
-                  </p>
-                ) : (
-                  <p className="text-[12px] text-fg-3 italic">
-                    {t("spaceView.noTopic")}
-                  </p>
-                )}
-              </div>
-            </div>
-            {/* Stats 행 — divide-x로 컬럼 구분, 정보 밀도 ↑ */}
-            <div className="flex border-t border-line bg-bg-2/30 text-[12px] text-fg-2 divide-x divide-line">
-              <Stat
-                label={t("spaceView.stat.members")}
-                value={members.length}
-              />
-              <Stat label={t("spaceView.stat.rooms")} value={childRooms.length} />
-              <Stat
-                label={t("spaceView.stat.subspaces")}
-                value={childSpaces.length}
-              />
-              <Stat
-                label={t("spaceView.stat.visibility")}
-                value={
-                  isPublic
-                    ? t("spaceView.visibility.public")
-                    : t("spaceView.visibility.private")
-                }
-                mono={false}
-              />
-            </div>
-          </header>
+        {/* Banner — 카드 wrap 없이 px-5로 메인 영역과 같은 인셋 */}
+        <div className="flex items-start gap-3 border-b border-line px-5 py-4">
+          <RoomAvatar client={client} room={space} size={48} />
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            <h2 className="truncate text-[16px] font-semibold text-fg-0">
+              {space.name}
+            </h2>
+            {topic ? (
+              <p className="whitespace-pre-wrap text-[12px] text-fg-2">
+                {topic}
+              </p>
+            ) : (
+              <p className="text-[12px] text-fg-3 italic">
+                {t("spaceView.noTopic")}
+              </p>
+            )}
+          </div>
+        </div>
 
-          {/* 2-column 본문 */}
-          <div className="grid gap-4 md:grid-cols-[1fr_300px]">
-            {/* 좌측: Subspaces + Rooms */}
-            <div className="flex flex-col gap-4">
-              <Card>
-                <SectionHeader
-                  actions={
-                    <IconButton
-                      icon={Plus}
-                      fillParent
-                      iconSize={14}
-                      onClick={() => setNewSpaceOpen(true)}
-                      title={t("spaceView.addSubspace")}
+        {/* Stats — banner 바로 아래 compact 행 */}
+        <div className="flex border-b border-line divide-x divide-line">
+          <Stat
+            label={t("spaceView.stat.members")}
+            value={members.length}
+          />
+          <Stat label={t("spaceView.stat.rooms")} value={childRooms.length} />
+          <Stat
+            label={t("spaceView.stat.subspaces")}
+            value={childSpaces.length}
+          />
+          <Stat
+            label={t("spaceView.stat.visibility")}
+            value={
+              isPublic
+                ? t("spaceView.visibility.public")
+                : t("spaceView.visibility.private")
+            }
+            mono={false}
+          />
+        </div>
+
+        {/* 2-column grid — divide-x로 세로 분할, 카드 없이 flat */}
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_280px] md:divide-x md:divide-line">
+          {/* 좌측: Subspaces + Rooms */}
+          <div className="flex flex-col divide-y divide-line">
+            <Section
+              title={t("spaceView.subspaces")}
+              count={childSpaces.length}
+              action={
+                <IconButton
+                  icon={Plus}
+                  fillParent
+                  iconSize={14}
+                  onClick={() => setNewSpaceOpen(true)}
+                  title={t("spaceView.addSubspace")}
+                />
+              }
+            >
+              {childSpaces.length === 0 ? (
+                <EmptyState size="sm" title={t("spaceView.empty.subspaces")} />
+              ) : (
+                <div className="flex flex-col divide-y divide-line">
+                  {childSpaces.map((r) => (
+                    <RoomLikeItem
+                      key={r.roomId}
+                      client={client}
+                      room={r}
+                      kind="space"
+                      onClick={() => navigate(roomPath(r.roomId))}
                     />
-                  }
-                >
-                  {t("spaceView.subspaces")}
-                  {childSpaces.length > 0 && (
-                    <span className="ml-1.5 font-mono text-[11px] text-fg-3">
-                      {childSpaces.length}
-                    </span>
-                  )}
-                </SectionHeader>
-                {childSpaces.length === 0 ? (
-                  <EmptyState
-                    size="sm"
-                    title={t("spaceView.empty.subspaces")}
-                  />
-                ) : (
-                  <FieldGroup>
-                    {childSpaces.map((r) => (
-                      <RoomLikeItem
-                        key={r.roomId}
-                        client={client}
-                        room={r}
-                        kind="space"
-                        onClick={() => navigate(roomPath(r.roomId))}
-                      />
-                    ))}
-                  </FieldGroup>
-                )}
-              </Card>
+                  ))}
+                </div>
+              )}
+            </Section>
 
-              <Card>
-                <SectionHeader
-                  actions={
-                    <IconButton
-                      icon={Plus}
-                      fillParent
-                      iconSize={14}
-                      onClick={() => setNewRoomOpen(true)}
-                      title={t("spaceView.addRoom")}
+            <Section
+              title={t("spaceView.rooms")}
+              count={childRooms.length}
+              action={
+                <IconButton
+                  icon={Plus}
+                  fillParent
+                  iconSize={14}
+                  onClick={() => setNewRoomOpen(true)}
+                  title={t("spaceView.addRoom")}
+                />
+              }
+            >
+              {childRooms.length === 0 ? (
+                <EmptyState size="sm" title={t("spaceView.empty.rooms")} />
+              ) : (
+                <div className="flex flex-col divide-y divide-line">
+                  {childRooms.map((r) => (
+                    <RoomLikeItem
+                      key={r.roomId}
+                      client={client}
+                      room={r}
+                      kind="room"
+                      onClick={() => navigate(roomPath(r.roomId))}
                     />
-                  }
-                >
-                  {t("spaceView.rooms")}
-                  {childRooms.length > 0 && (
-                    <span className="ml-1.5 font-mono text-[11px] text-fg-3">
-                      {childRooms.length}
-                    </span>
-                  )}
-                </SectionHeader>
-                {childRooms.length === 0 ? (
-                  <EmptyState size="sm" title={t("spaceView.empty.rooms")} />
-                ) : (
-                  <FieldGroup>
-                    {childRooms.map((r) => (
-                      <RoomLikeItem
-                        key={r.roomId}
+                  ))}
+                </div>
+              )}
+            </Section>
+          </div>
+
+          {/* 우측: 멤버 + 정보 */}
+          <div className="flex flex-col divide-y divide-line">
+            <Section
+              title={t("spaceView.members")}
+              count={members.length}
+            >
+              {members.length === 0 ? (
+                <EmptyState size="sm" title={t("spaceView.empty.members")} />
+              ) : (
+                <div className="flex flex-col divide-y divide-line">
+                  {members.map((m) => (
+                    <div
+                      key={m.userId}
+                      className="flex items-center gap-2.5 px-5 py-2 text-[13px]"
+                    >
+                      <Avatar
                         client={client}
-                        room={r}
-                        kind="room"
-                        onClick={() => navigate(roomPath(r.roomId))}
+                        mxcUrl={m.getMxcAvatarUrl()}
+                        name={m.name ?? m.userId}
+                        size={24}
+                        shape="round"
                       />
-                    ))}
-                  </FieldGroup>
-                )}
-              </Card>
-            </div>
-
-            {/* 우측: 멤버 + Space 정보 */}
-            <div className="flex flex-col gap-4">
-              <Card>
-                <SectionHeader>
-                  {t("spaceView.members")}
-                  {members.length > 0 && (
-                    <span className="ml-1.5 font-mono text-[11px] text-fg-3">
-                      {members.length}
-                    </span>
-                  )}
-                </SectionHeader>
-                {members.length === 0 ? (
-                  <EmptyState
-                    size="sm"
-                    title={t("spaceView.empty.members")}
-                  />
-                ) : (
-                  <FieldGroup>
-                    {members.map((m) => (
-                      <div
-                        key={m.userId}
-                        className="flex items-center gap-2.5 px-4 py-2 text-[13px]"
-                      >
-                        <Avatar
-                          client={client}
-                          mxcUrl={m.getMxcAvatarUrl()}
-                          name={m.name ?? m.userId}
-                          size={24}
-                          shape="round"
-                        />
-                        <span className="min-w-0 flex-1 truncate text-fg-1">
-                          {m.name ?? m.userId}
-                        </span>
-                      </div>
-                    ))}
-                  </FieldGroup>
-                )}
-              </Card>
-
-              {/* Space 정보 카드 — 생성일/ID 등 메타 */}
-              {createdAt && (
-                <Card>
-                  <SectionHeader>{t("spaceView.info")}</SectionHeader>
-                  <FieldGroup>
-                    <div className="flex items-center gap-2.5 px-4 py-2.5 text-[12px]">
-                      <Calendar className="h-3 w-3 shrink-0 text-fg-3" />
-                      <span className="w-16 shrink-0 text-fg-3">
-                        {t("spaceView.field.created")}
-                      </span>
-                      <span className="flex-1 text-fg-1">
-                        {new Date(createdAt).toLocaleDateString()}
+                      <span className="min-w-0 flex-1 truncate text-fg-1">
+                        {m.name ?? m.userId}
                       </span>
                     </div>
-                  </FieldGroup>
-                </Card>
+                  ))}
+                </div>
               )}
-            </div>
+            </Section>
+
+            {createdAt && (
+              <Section title={t("spaceView.info")}>
+                <div className="flex items-center gap-2.5 px-5 py-2 text-[12px]">
+                  <Calendar className="h-3 w-3 shrink-0 text-fg-3" />
+                  <span className="w-16 shrink-0 text-fg-3">
+                    {t("spaceView.field.created")}
+                  </span>
+                  <span className="flex-1 text-fg-1">
+                    {new Date(createdAt).toLocaleDateString()}
+                  </span>
+                </div>
+              </Section>
+            )}
           </div>
         </div>
       </div>
@@ -293,12 +260,31 @@ export function SpaceView({
   );
 }
 
-/** Space view 안 카드 컨테이너 — 모달 톤 통일. */
-function Card({ children }: { children: React.ReactNode }) {
+/** Section 헤더 + body 묶음 — 카드 wrap 없이 flat. */
+function Section({
+  title,
+  count,
+  action,
+  children,
+}: {
+  title: React.ReactNode;
+  count?: number;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="overflow-hidden rounded-md border border-line bg-bg-1">
+    <section className="flex flex-col">
+      <header className="flex h-9 items-center border-b border-line bg-bg-2/30">
+        <span className="flex-1 truncate pl-5 text-[11px] font-semibold uppercase tracking-wider text-fg-2">
+          {title}
+          {count !== undefined && count > 0 && (
+            <span className="ml-1.5 font-mono text-fg-3">{count}</span>
+          )}
+        </span>
+        {action}
+      </header>
       {children}
-    </div>
+    </section>
   );
 }
 
@@ -313,20 +299,20 @@ function Stat({
   mono?: boolean;
 }) {
   return (
-    <div className="flex flex-1 flex-col items-center gap-0.5 px-3 py-3">
+    <div className="flex flex-1 flex-col items-center gap-0.5 px-3 py-2.5">
       <span
-        className={`text-[15px] font-semibold text-fg-0 ${mono ? "font-mono" : ""}`}
+        className={`text-[14px] font-semibold text-fg-0 ${mono ? "font-mono" : ""}`}
       >
         {value}
       </span>
-      <span className="text-[11px] uppercase tracking-wider text-fg-3">
+      <span className="text-[10px] uppercase tracking-wider text-fg-3">
         {label}
       </span>
     </div>
   );
 }
 
-/** 방/Space 항목 — Avatar + (room이면 Hash) + 이름 + (E2EE면) Lock */
+/** 방/Space 항목 — Avatar + (room이면 Hash) + 이름 + (E2EE면) Lock + 메타 */
 function RoomLikeItem({
   client,
   room,
@@ -346,7 +332,7 @@ function RoomLikeItem({
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left hover:bg-bg-2"
+      className="flex w-full items-center gap-2.5 px-5 py-2 text-left hover:bg-bg-2"
     >
       <RoomAvatar client={client} room={room} size={28} />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
