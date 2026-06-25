@@ -89,6 +89,12 @@ export default defineConfig(({ command }) => ({
     host: "0.0.0.0",
     port: 5173,
     allowedHosts: ["dev-matrix-client.kirby.so"],
+    // dev가 build/ 폴더(production 빌드 결과물)를 watch하면 'pnpm run build' 후
+    // 빌드된 index.html 변경을 감지해 dev 페이지를 무한 reload함. drag-drop 같은
+    // 인터랙션 중에도 새로고침 유발 — ignore 명시.
+    watch: {
+      ignored: ["**/build/**", "**/dist/**"],
+    },
     hmr: {
       host: "dev-matrix-client.kirby.so",
       protocol: "wss",
