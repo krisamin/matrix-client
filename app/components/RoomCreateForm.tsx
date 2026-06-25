@@ -144,7 +144,9 @@ export function RoomCreateForm({
     <Modal onClose={onClose} size="md">
       <ModalHeader title={t(k.title)} />
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div
+        className={`min-h-0 flex-1 ${advancedOpen ? "overflow-y-auto" : "overflow-hidden"}`}
+      >
         <FieldGroup>
           <Field label={t(k.nameLabel)}>
             <TextInput
