@@ -62,7 +62,7 @@ export function NewDmModal({
         </Field>
       </FieldGroup>
       {error && (
-        <p className="shrink-0 border-b border-line px-5 py-2 text-[12px] text-red-400">
+        <p className="shrink-0 border-b border-line px-4 py-2 text-[12px] text-red-400">
           {error}
         </p>
       )}
