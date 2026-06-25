@@ -74,7 +74,7 @@ export function ModalHeader({
 }) {
   return (
     <header className="flex h-12 shrink-0 items-stretch border-b border-line">
-      <h2 className="flex flex-1 items-center pl-5 font-semibold text-fg-0">
+      <h2 className="flex flex-1 items-center pl-4 font-semibold text-fg-0">
         {title}
       </h2>
       {actions && <div className="flex items-stretch">{actions}</div>}

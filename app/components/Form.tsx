@@ -28,14 +28,14 @@ export function Field({
     <label className="flex flex-col">
       <div className="flex min-h-10 items-stretch">
         <span
-          className={`flex ${labelWidth} shrink-0 items-center pl-5 text-[12px] text-fg-3`}
+          className={`flex ${labelWidth} shrink-0 items-center pl-4 text-[12px] text-fg-3`}
         >
           {label}
         </span>
         <div className="flex flex-1 items-stretch">{children}</div>
       </div>
       {description && (
-        <span className="px-5 pb-2 pl-[6.75rem] text-[11px] text-fg-3">
+        <span className="pr-4 pb-2 pl-[6.5rem] text-[11px] text-fg-3">
           {description}
         </span>
       )}
@@ -85,7 +85,7 @@ export function TextInput({
   // input padding: prefix/suffix와 붙은 쪽은 좁게(pl-1.5/pr-1.5), 없는 쪽은
   // 일반 인셋(pl-3/pr-5). 결과: input 자체가 row의 인풋 영역을 꽉 채워
   // input box 어디 클릭해도 포커스 (마로 요청 — 클릭영역이 input 자체).
-  const inputPadX = `${prefix !== undefined ? "pl-1.5" : "pl-3"} ${suffix !== undefined ? "pr-1.5" : "pr-5"}`;
+  const inputPadX = `${prefix !== undefined ? "pl-1.5" : "pl-3"} ${suffix !== undefined ? "pr-1.5" : "pr-4"}`;
   const inputAlign = align === "right" ? "text-right font-mono" : "";
   return (
     <span className={`flex flex-1 items-stretch text-[13px] ${disabledCls}`}>
@@ -106,7 +106,7 @@ export function TextInput({
         className={`min-w-0 ${width ?? "flex-1"} bg-transparent py-2.5 ${inputPadX} ${inputAlign} text-fg-0 outline-none placeholder:text-fg-3`}
       />
       {suffix !== undefined && (
-        <span className="flex shrink-0 items-center truncate py-2.5 pr-5 text-[11px] text-fg-3">
+        <span className="flex shrink-0 items-center truncate py-2.5 pr-4 text-[11px] text-fg-3">
           {suffix}
         </span>
       )}
@@ -171,7 +171,7 @@ export function SectionHeader({
     "-mb-px flex h-9 w-full items-stretch border-y border-line bg-bg-2 text-[11px] font-semibold uppercase tracking-wider text-fg-1";
   const inner = (
     <>
-      <span className="flex flex-1 items-center pl-5">{children}</span>
+      <span className="flex flex-1 items-center pl-4">{children}</span>
       {actions && <div className="flex items-stretch">{actions}</div>}
     </>
   );
@@ -221,7 +221,7 @@ export function MenuItem({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`flex w-full items-center gap-2.5 px-5 py-2.5 text-left text-[13px] text-fg-1 disabled:opacity-50 ${hoverCls}`}
+      className={`flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-[13px] text-fg-1 disabled:opacity-50 ${hoverCls}`}
     >
       {icon && <span className="shrink-0 text-fg-3">{icon}</span>}
       <span className="flex-1 truncate">{label}</span>
