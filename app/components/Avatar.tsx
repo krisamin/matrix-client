@@ -66,15 +66,15 @@ function AvatarInner({
   const borderRadius = shape === "round" ? "9999px" : size >= 32 ? "8px" : "5px";
 
   if (!url) {
+    // 이니셜 fallback — 이미지와 정확히 같은 box(size×size). 배경/색만 다름.
     return (
       <span
         aria-hidden
-        className="flex shrink-0 select-none items-center justify-center bg-bg-3 font-semibold text-fg-1"
+        className="flex shrink-0 select-none items-center justify-center bg-fg-3 font-semibold text-bg-1"
         style={{
           width: size,
           height: size,
           borderRadius,
-          // 더 크게: 16px Avatar에서 11px(0.66) ≈ 가시성 확보.
           fontSize: Math.max(10, Math.round(size * 0.55)),
           lineHeight: 1,
         }}
