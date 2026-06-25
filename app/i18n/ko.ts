@@ -489,6 +489,9 @@ export const ko = {
   "msg.code.copy": "복사",
   "msg.code.copied": "복사됨",
   "readReceipts.title": "{{names}} 읽음",
+  "spaceView.members": "멤버",
+  "spaceView.empty.members": "멤버가 없어요",
+  "spaceView.meta": "멤버 {{members}} · 방 {{rooms}} · 하위 Space {{spaces}}",
 } as const;
 
 export type DictKey = keyof typeof ko;

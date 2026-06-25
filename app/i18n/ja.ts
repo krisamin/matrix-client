@@ -481,4 +481,7 @@ export const ja: Record<keyof typeof ko, string> = {
   "readReceipts.title": "{{names}} が既読",
   "sidebar.menu.close": "メニューを閉じる",
   "tool.run": "実行",
+  "spaceView.members": "メンバー",
+  "spaceView.empty.members": "メンバーがいません",
+  "spaceView.meta": "メンバー {{members}} · ルーム {{rooms}} · サブスペース {{spaces}}",
 };

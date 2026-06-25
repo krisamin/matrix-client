@@ -480,4 +480,7 @@ export const en: Record<keyof typeof ko, string> = {
   "msg.code.copy": "Copy",
   "msg.code.copied": "Copied",
   "readReceipts.title": "Read by {{names}}",
+  "spaceView.members": "Members",
+  "spaceView.empty.members": "No members",
+  "spaceView.meta": "{{members}} members · {{rooms}} rooms · {{spaces}} subspaces",
 };
