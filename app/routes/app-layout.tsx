@@ -9,6 +9,7 @@ import { QuickSwitcher } from "../components/QuickSwitcher";
 import { ShortcutsModal } from "../components/ShortcutsModal";
 import { Sidebar } from "../components/Sidebar";
 import { Toast, ToastStack } from "../components/Toast";
+import { useUnreadBadge } from "../hooks/useUnreadBadge";
 import { useT } from "../lib/i18n";
 import { ensureStarted, getReadyClient } from "../lib/matrix";
 import {
@@ -131,6 +132,7 @@ export default function AppLayout() {
 
   return (
     <div className="flex h-screen overflow-hidden">
+      <UnreadBadgeBinder client={client} />
       <ErrorBoundary label="사이드바" size="pane">
         <Sidebar client={client} />
       </ErrorBoundary>
@@ -188,4 +190,11 @@ export default function AppLayout() {
       )}
     </div>
   );
+}
+
+/** useUnreadBadge는 hook이라 client null 분기 시 hook 순서 깨짐 — client
+ *  ready 후에만 mount되는 별도 컴포넌트로 격리. 시각 출력 없음. */
+function UnreadBadgeBinder({ client }: { client: MatrixClient }) {
+  useUnreadBadge(client);
+  return null;
 }
