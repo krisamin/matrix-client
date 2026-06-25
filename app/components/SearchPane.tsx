@@ -2,19 +2,10 @@ import { ChevronDown, History, Loader2, SearchX, X } from "lucide-react";
 import type { MatrixClient, MatrixEvent, Room } from "matrix-js-sdk";
 import type { ISearchResults } from "matrix-js-sdk/lib/@types/search";
 import { useMemo, useRef, useState } from "react";
+import { formatDateTime } from "../lib/format";
 import { useT } from "../lib/i18n";
 import { SectionHeader } from "./Form";
 import { PaneHeader, PaneHeaderButton } from "./PaneHeader";
-
-function formatDateTime(ts: number): string {
-  return new Date(ts).toLocaleString("ko-KR", {
-    month: "numeric",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
-}
 
 /** 매치 주변만 잘라서 하이라이트된 스니펫 렌더 */
 function Snippet({ body, query }: { body: string; query: string }) {

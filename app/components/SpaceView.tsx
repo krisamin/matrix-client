@@ -2,6 +2,7 @@ import { Lock, Plus, Settings } from "lucide-react";
 import type { MatrixClient, Room } from "matrix-js-sdk";
 import { useState } from "react";
 import { useNavigate } from "react-router";
+import { roomPath } from "../lib/format";
 import { useT } from "../lib/i18n";
 import { childRoomIds } from "../lib/spaces";
 import { RoomAvatar } from "./Avatar";
@@ -94,9 +95,7 @@ export function SpaceView({
                   <li key={r.roomId}>
                     <button
                       type="button"
-                      onClick={() =>
-                        navigate(`/room/${encodeURIComponent(r.roomId)}`)
-                      }
+                      onClick={() => navigate(roomPath(r.roomId))}
                       className="flex w-full items-center gap-2.5 px-5 py-2 text-left hover:bg-bg-2"
                     >
                       <RoomAvatar client={client} room={r} size={24} />
@@ -140,9 +139,7 @@ export function SpaceView({
                   <li key={r.roomId}>
                     <button
                       type="button"
-                      onClick={() =>
-                        navigate(`/room/${encodeURIComponent(r.roomId)}`)
-                      }
+                      onClick={() => navigate(roomPath(r.roomId))}
                       className="flex w-full items-center gap-2.5 px-5 py-2 text-left hover:bg-bg-2"
                     >
                       <RoomAvatar client={client} room={r} size={24} />
@@ -170,7 +167,7 @@ export function SpaceView({
           onClose={() => setNewRoomOpen(false)}
           onCreated={(roomId) => {
             setNewRoomOpen(false);
-            navigate(`/room/${encodeURIComponent(roomId)}`);
+            navigate(roomPath(roomId));
           }}
         />
       )}
@@ -181,7 +178,7 @@ export function SpaceView({
           onClose={() => setNewSpaceOpen(false)}
           onCreated={(spaceId) => {
             setNewSpaceOpen(false);
-            navigate(`/room/${encodeURIComponent(spaceId)}`);
+            navigate(roomPath(spaceId));
           }}
         />
       )}

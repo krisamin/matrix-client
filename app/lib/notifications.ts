@@ -6,6 +6,7 @@ import {
   type Room,
   RoomEvent,
 } from "matrix-js-sdk";
+import { roomPath } from "./format";
 
 /** 데스크톱 알림: 탭이 백그라운드일 때 새 메시지를 Notification API로 표시.
  *  클릭하면 해당 방으로 이동. 권한은 명시적 요청 후에만 동작. */
@@ -62,7 +63,7 @@ function fireNotification(ev: MatrixEvent, room: Room) {
   });
   n.onclick = () => {
     window.focus();
-    window.location.href = `/room/${encodeURIComponent(room.roomId)}`;
+    window.location.href = roomPath(room.roomId);
     n.close();
   };
 }

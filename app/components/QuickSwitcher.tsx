@@ -2,6 +2,7 @@ import { Hash, MessageSquareText, Search } from "lucide-react";
 import { KnownMembership, type MatrixClient, type Room } from "matrix-js-sdk";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
+import { roomPath } from "../lib/format";
 import { useT } from "../lib/i18n";
 import { getDmUserId } from "../lib/matrix";
 import { Avatar } from "./Avatar";
@@ -62,7 +63,7 @@ export function QuickSwitcher({
   }, [selectedIdx]);
 
   function open(room: Room) {
-    navigate(`/room/${encodeURIComponent(room.roomId)}`);
+    navigate(roomPath(room.roomId));
     onClose();
   }
 

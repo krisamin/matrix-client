@@ -15,6 +15,7 @@ import { SearchPane } from "../components/SearchPane";
 import { Timeline, type TimelineHandle } from "../components/Timeline";
 import { useReadReceipt } from "../hooks/useRoomTimeline";
 import { useThreadTimeline } from "../hooks/useThreadTimeline";
+import { roomPath } from "../lib/format";
 import { useT } from "../lib/i18n";
 import { buildMentionContent, type Mention } from "../lib/mention";
 import { quotePreview } from "../lib/reply";
@@ -64,7 +65,7 @@ export default function ThreadView() {
   }
 
   function close() {
-    navigate(`/room/${encodeURIComponent(roomId!)}`);
+    navigate(roomPath(roomId!));
   }
 
   /** 검색 결과 클릭 → 해당 답글로 스크롤 + 잠깐 강조

@@ -27,6 +27,7 @@ import {
   useRoomTimeline,
   useUnreadMarker,
 } from "../hooks/useRoomTimeline";
+import { threadPath } from "../lib/format";
 import { useT } from "../lib/i18n";
 import { buildMentionContent, type Mention } from "../lib/mention";
 import { useAppContext } from "./app-layout";
@@ -100,9 +101,7 @@ export default function RoomView() {
 
   const openThread = useCallback(
     (rootId: string) => {
-      navigate(
-        `/room/${encodeURIComponent(roomId!)}/thread/${encodeURIComponent(rootId)}`,
-      );
+      navigate(threadPath(roomId!, rootId));
     },
     [navigate, roomId],
   );

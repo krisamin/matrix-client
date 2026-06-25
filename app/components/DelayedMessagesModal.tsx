@@ -6,6 +6,7 @@ import {
   listDelayed,
   sendDelayedNow,
 } from "../lib/delayed-events";
+import { formatRemaining } from "../lib/format";
 import { useT } from "../lib/i18n";
 import { Modal, ModalHeader } from "./Modal";
 
@@ -56,17 +57,6 @@ export function DelayedMessagesModal({
     }
   }
 
-  function fmtRemaining(ms: number): string {
-    if (ms <= 0) return t("schedule.in", { time: "0s" });
-    const m = Math.floor(ms / 60000);
-    const h = Math.floor(m / 60);
-    const d = Math.floor(h / 24);
-    if (d > 0) return t("schedule.in", { time: `${d}d` });
-    if (h > 0) return t("schedule.in", { time: `${h}h ${m % 60}m` });
-    if (m > 0) return t("schedule.in", { time: `${m}m` });
-    return t("schedule.in", { time: `${Math.ceil(ms / 1000)}s` });
-  }
-
   return (
     <Modal onClose={onClose} size="md">
       <ModalHeader title={t("sidebar.scheduled")} />
@@ -93,7 +83,9 @@ export function DelayedMessagesModal({
                   <CalendarClock className="h-3 w-3" />
                   {room?.name ?? it.room_id}
                   <span className="text-fg-3">·</span>
-                  <span>{fmtRemaining(it.delay)}</span>
+                  <span>
+                    {t("schedule.in", { time: formatRemaining(it.delay) })}
+                  </span>
                 </span>
                 <span className="truncate text-[13px] text-fg-1">{body}</span>
               </div>

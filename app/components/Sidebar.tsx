@@ -26,6 +26,7 @@ import {
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { useRooms } from "../hooks/useRooms";
+import { roomPath, threadPath } from "../lib/format";
 import { useI18n, useT } from "../lib/i18n";
 import {
   isFavourite,
@@ -39,8 +40,8 @@ import { saveRoomSort } from "../lib/room-sort";
 import { clearSession } from "../lib/session";
 import { buildRoomTree, type SpaceNode } from "../lib/spaces";
 import { AppSettingsModal } from "./AppSettingsModal";
-import { DelayedMessagesModal } from "./DelayedMessagesModal";
 import { RoomAvatar } from "./Avatar";
+import { DelayedMessagesModal } from "./DelayedMessagesModal";
 import { NewDmModal } from "./NewDmModal";
 import { NewRoomModal } from "./NewRoomModal";
 import { NewSpaceModal } from "./NewSpaceModal";
@@ -235,7 +236,7 @@ function RoomNode({
           <span className="w-[14px] shrink-0" />
         )}
         <Link
-          to={`/room/${encodeURIComponent(room.roomId)}`}
+          to={roomPath(room.roomId)}
           className="flex min-w-0 flex-1 items-center gap-1.5"
         >
           <RoomAvatar
@@ -290,7 +291,7 @@ function RoomNode({
             return (
               <Link
                 key={thread.id}
-                to={`/room/${encodeURIComponent(room.roomId)}/thread/${encodeURIComponent(thread.id)}?full=1`}
+                to={threadPath(room.roomId, thread.id, true)}
                 className={`tree-row ${activeThreadId === thread.id ? "active" : ""}`}
               >
                 <MessageSquareText className="h-3.5 w-3.5 shrink-0 text-fg-3" />
@@ -436,9 +437,7 @@ function SpaceTreeNode({
         <button
           type="button"
           className="flex min-w-0 flex-1 items-center gap-1.5"
-          onClick={() =>
-            navigate(`/room/${encodeURIComponent(node.space.roomId)}`)
-          }
+          onClick={() => navigate(roomPath(node.space.roomId))}
         >
           <RoomAvatar client={client} room={node.space} size={16} />
           <span className="min-w-0 flex-1 truncate text-left font-medium text-fg-0">
@@ -524,7 +523,7 @@ export function Sidebar({ client }: { client: MatrixClient }) {
     setInviteBusy(roomId);
     try {
       await client.joinRoom(roomId);
-      navigate(`/room/${encodeURIComponent(roomId)}`);
+      navigate(roomPath(roomId));
     } catch (e) {
       console.warn("초대 수락 실패:", e);
     } finally {
@@ -796,7 +795,7 @@ export function Sidebar({ client }: { client: MatrixClient }) {
           onClose={() => setNewDmOpen(false)}
           onStarted={(roomId) => {
             setNewDmOpen(false);
-            navigate(`/room/${encodeURIComponent(roomId)}`);
+            navigate(roomPath(roomId));
           }}
         />
       )}
@@ -806,7 +805,7 @@ export function Sidebar({ client }: { client: MatrixClient }) {
           onClose={() => setNewRoomOpen(false)}
           onCreated={(roomId) => {
             setNewRoomOpen(false);
-            navigate(`/room/${encodeURIComponent(roomId)}`);
+            navigate(roomPath(roomId));
           }}
         />
       )}
@@ -834,7 +833,10 @@ export function Sidebar({ client }: { client: MatrixClient }) {
         />
       )}
       {delayedOpen && (
-        <DelayedMessagesModal client={client} onClose={() => setDelayedOpen(false)} />
+        <DelayedMessagesModal
+          client={client}
+          onClose={() => setDelayedOpen(false)}
+        />
       )}
     </aside>
   );

@@ -1,8 +1,8 @@
-import {
-  EventShieldColour,
-  type EventShieldReason,
-} from "matrix-js-sdk/lib/crypto-api";
 import type { MatrixClient, MatrixEvent } from "matrix-js-sdk";
+import type {
+  EventShieldColour,
+  EventShieldReason,
+} from "matrix-js-sdk/lib/crypto-api";
 import { useEffect, useState } from "react";
 
 export interface ShieldInfo {

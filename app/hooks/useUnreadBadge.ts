@@ -33,8 +33,7 @@ export function useUnreadBadge(client: MatrixClient): void {
       let total = 0;
       let highlight = 0;
       for (const r of client.getRooms()) {
-        total +=
-          r.getUnreadNotificationCount(NotificationCountType.Total) ?? 0;
+        total += r.getUnreadNotificationCount(NotificationCountType.Total) ?? 0;
         highlight +=
           r.getUnreadNotificationCount(NotificationCountType.Highlight) ?? 0;
       }

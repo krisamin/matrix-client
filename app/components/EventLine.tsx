@@ -28,13 +28,13 @@ import {
 } from "matrix-js-sdk/lib/crypto-api";
 import { lazy, memo, Suspense, useState } from "react";
 import { useShield } from "../hooks/useShield";
+import { formatFullTime, formatTime } from "../lib/format";
 import { useT } from "../lib/i18n";
 import { isPinned, togglePin } from "../lib/matrix";
 import { buildMentionContent, mentionsUser } from "../lib/mention";
 import { quotePreview, thumbnailSource } from "../lib/reply";
 import { MEDIA_MSGTYPES } from "../lib/timeline";
 import { extractPreviewUrls } from "../lib/url-preview";
-
 import { ForwardModal } from "./ForwardModal";
 import { MediaView } from "./MediaView";
 import { MessageBody } from "./MessageBody";
@@ -49,26 +49,6 @@ import { UserProfileCard } from "./UserProfileCard";
 const EmojiPicker = lazy(() =>
   import("./EmojiPicker").then((m) => ({ default: m.EmojiPicker })),
 );
-function formatTime(ts: number): string {
-  return new Date(ts).toLocaleTimeString("ko-KR", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
-}
-
-/** 호버 툴팁용 전체 날짜·시간 (예: "2026년 6월 18일 (목) 오후 2:35:07") */
-function formatFullTime(ts: number): string {
-  return new Date(ts).toLocaleString("ko-KR", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    weekday: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
-}
 
 /** 등장 애니메이션을 이미 재생한 이벤트 id 집합 (모듈 레벨).
  *  가상 스크롤에서 행이 재마운트될 때마다 msg-in이 재생되면 메시지가
