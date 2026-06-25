@@ -1,6 +1,7 @@
 import { ChevronRight, Wrench } from "lucide-react";
 import type { MatrixClient, MatrixEvent } from "matrix-js-sdk";
 import { useState } from "react";
+import { useT } from "../lib/i18n";
 
 /** Hermes 게이트웨이가 보내는 도구 호출 진행 메시지를 본문 모양으로 식별/분할한다.
  *
@@ -197,6 +198,7 @@ export function ToolCallChip({
   client: MatrixClient;
   ev: MatrixEvent;
 }) {
+  const t = useT();
   const body = (ev.getContent().body as string) ?? "";
   const sections = splitToolSections(body);
   if (sections.length === 0) {
@@ -210,7 +212,7 @@ export function ToolCallChip({
           disabled
         >
           <Wrench className="h-3 w-3 shrink-0 text-fg-3" />
-          <span className="truncate font-mono">도구 실행</span>
+          <span className="truncate font-mono">{t("tool.run")}</span>
         </button>
       </div>
     );

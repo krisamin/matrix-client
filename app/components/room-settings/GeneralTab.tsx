@@ -111,7 +111,7 @@ export function GeneralTab({
             {previewUrl ? (
               <img
                 src={previewUrl}
-                alt="새 아바타 미리보기"
+                alt={t("roomSettings.newAvatarPreview")}
                 className="h-20 w-20 rounded-md object-cover"
               />
             ) : (

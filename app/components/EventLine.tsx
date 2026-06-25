@@ -560,7 +560,7 @@ const EventLineInner = function EventLine({
         </span>
       )}
       {isPending && (
-        <span className="font-mono text-[11px] text-fg-3">전송 중...</span>
+        <span className="font-mono text-[11px] text-fg-3">{t("msg.sending")}</span>
       )}
 
       {/* 리액션 칩 */}

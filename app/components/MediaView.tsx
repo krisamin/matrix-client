@@ -64,7 +64,7 @@ export function MediaView({
           type="button"
           className="block cursor-zoom-in"
           onClick={() => openLightbox(blobUrl, content.body ?? "이미지")}
-          title="크게 보기"
+          title={t("media.openLarge")}
         >
           <img
             loading="lazy"

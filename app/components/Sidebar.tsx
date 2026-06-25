@@ -173,7 +173,7 @@ export function Sidebar({ client }: { client: MatrixClient }) {
               {/* 바깥 클릭 닫기 */}
               <button
                 type="button"
-                aria-label="메뉴 닫기"
+                aria-label={t("sidebar.menu.close")}
                 className="fixed inset-0 z-20 cursor-default"
                 onClick={() => setCreateMenuOpen(false)}
               />
