@@ -679,14 +679,6 @@ export function Sidebar({ client }: { client: MatrixClient }) {
         >
           <CalendarClock className="h-[15px] w-[15px]" />
         </button>
-        <button
-          type="button"
-          className="flex aspect-square h-full shrink-0 items-center justify-center text-fg-2 hover:bg-bg-2 hover:text-fg-0"
-          onClick={() => setAppSettingsOpen(true)}
-          title={t("sidebar.action.settings")}
-        >
-          <Settings className="h-[15px] w-[15px]" />
-        </button>
       </div>
 
       {/* 트리 */}
@@ -771,22 +763,37 @@ export function Sidebar({ client }: { client: MatrixClient }) {
         )}
       </nav>
 
-      {/* 푸터: 36px — 좌측 sync 점·라벨, 우측 E2EE 배지 (헤더와 같은 px-5 인셋) */}
-      <div className="flex h-9 shrink-0 items-center gap-2 border-t border-line px-5 text-[12px] text-fg-3">
-        <span
-          className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-            syncState === "SYNCING" || syncState === "PREPARED"
-              ? "bg-emerald-600"
-              : "bg-amber-600"
-          }`}
-        />
-        <span className="font-mono">
-          {(syncState ?? "starting").toLowerCase()}
-        </span>
-        <span className="ml-auto flex items-center gap-1 font-mono">
-          <ShieldCheck className="h-3 w-3" />
-          E2EE
-        </span>
+      {/* 푸터: 32px sync row + 36px 액션 row.
+          위: 좌측 sync 점·라벨, 우측 E2EE 배지
+          아래: 설정 버튼 (전역 액션은 푸터로 분리해 헤더 폭 확보) */}
+      <div className="flex flex-col border-t border-line">
+        <div className="flex h-8 shrink-0 items-center gap-2 px-5 text-[12px] text-fg-3">
+          <span
+            className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+              syncState === "SYNCING" || syncState === "PREPARED"
+                ? "bg-emerald-600"
+                : "bg-amber-600"
+            }`}
+          />
+          <span className="font-mono">
+            {(syncState ?? "starting").toLowerCase()}
+          </span>
+          <span className="ml-auto flex items-center gap-1 font-mono">
+            <ShieldCheck className="h-3 w-3" />
+            E2EE
+          </span>
+        </div>
+        <div className="flex h-9 shrink-0 items-stretch border-t border-line">
+          <button
+            type="button"
+            className="flex flex-1 items-center justify-center gap-1.5 text-[12px] text-fg-2 hover:bg-bg-2 hover:text-fg-0"
+            onClick={() => setAppSettingsOpen(true)}
+            title={t("sidebar.action.settings")}
+          >
+            <Settings className="h-[13px] w-[13px]" />
+            {t("sidebar.action.settings")}
+          </button>
+        </div>
       </div>
 
       {newDmOpen && (

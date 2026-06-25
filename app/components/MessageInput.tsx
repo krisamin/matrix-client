@@ -357,11 +357,11 @@ export function MessageInput({
             const rect = e.currentTarget.getBoundingClientRect();
             setScheduleAnchor((v) => (v ? null : rect));
           }}
-          className="flex h-12 w-9 shrink-0 items-center justify-center text-fg-3 hover:bg-bg-2 hover:text-fg-0 disabled:opacity-50"
+          className="flex h-12 w-12 shrink-0 items-center justify-center text-fg-2 hover:bg-bg-2 hover:text-fg-0 disabled:opacity-50"
           disabled={sending || !draft.trim()}
           title={t("input.schedule")}
         >
-          <Clock className="h-[14px] w-[14px]" />
+          <Clock className="h-[15px] w-[15px]" />
         </button>
         <button
           type="submit"
