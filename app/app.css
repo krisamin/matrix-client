@@ -181,15 +181,16 @@ textarea:focus-visible {
   font-family: var(--font-mono);
   font-size: 11px;
   line-height: 17px;
-  padding: 0 6px;
+  padding: 0 4px;
   /* 완전 pill — 카운트 늘어나면 좌우만 자연스럽게 확장 */
   border-radius: 9999px;
   background: var(--color-bg-3);
   color: var(--color-fg-1);
   font-weight: 500;
-  /* 1자리 카운트도 원형으로 보이게 최소 가로 보장 */
+  /* 1자리 카운트는 원형(17x17), 2자리부터 가로 확장 */
   min-width: 17px;
   text-align: center;
+  box-sizing: border-box;
 }
 .badge-hl {
   background: #d4d4d8;
