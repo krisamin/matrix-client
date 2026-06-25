@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { usePresence } from "../hooks/usePresence";
 import { useT } from "../lib/i18n";
 import { Avatar, PresenceDot } from "./Avatar";
+import { ModalRow } from "./ModalRow";
 
 /** 파워레벨 → 역할 라벨 (Element 관례: 100 관리자 / 50 중재자) */
 export function roleLabel(power: number): string | null {
@@ -112,7 +113,7 @@ export function UserProfileCard({
 
         {/* 이 방에서의 상태 — divide-y 그리드 (모달 row 패턴과 동일) */}
         <div className="flex flex-col divide-y divide-line">
-          <div className="flex items-center gap-3 px-4 py-2.5">
+          <ModalRow>
             <span className="w-16 shrink-0 text-[12px] text-fg-3">
               {t("userCard.field.role")}
             </span>
@@ -129,8 +130,8 @@ export function UserProfileCard({
                 PL{member?.powerLevel ?? 0}
               </span>
             </span>
-          </div>
-          <div className="flex items-center gap-3 px-4 py-2.5">
+          </ModalRow>
+          <ModalRow>
             <span className="w-16 shrink-0 text-[12px] text-fg-3">
               {t("userCard.field.status")}
             </span>
@@ -138,16 +139,16 @@ export function UserProfileCard({
               {member?.membership === "join"
                 ? t("userCard.membership.join")
                 : member?.membership === "invite"
-                  ? "초대됨"
+                  ? t("userCard.membership.invite")
                   : member?.membership === "leave"
-                    ? "나감"
+                    ? t("userCard.membership.leave")
                     : member?.membership === "ban"
-                      ? "차단됨"
+                      ? t("userCard.membership.ban")
                       : t("userCard.membership.unknown")}
             </span>
-          </div>
+          </ModalRow>
           {presence && (
-            <div className="flex items-center gap-3 px-4 py-2.5">
+            <ModalRow>
               <span className="w-16 shrink-0 text-[12px] text-fg-3">
                 {t("userCard.field.presence")}
               </span>
@@ -161,7 +162,7 @@ export function UserProfileCard({
                       : "presence.offline",
                 )}
               </span>
-            </div>
+            </ModalRow>
           )}
         </div>
       </div>
