@@ -68,8 +68,8 @@ export class ErrorBoundary extends Component<Props, State> {
 
     return (
       <div
-        className={`flex ${
-          size === "full" ? "h-screen" : "min-h-[200px] flex-1"
+        className={`flex w-full ${
+          size === "full" ? "h-screen" : "h-full min-h-[200px]"
         } flex-col items-center justify-center gap-3 p-6 text-center`}
       >
         <AlertTriangle className="h-8 w-8 text-red-400" />

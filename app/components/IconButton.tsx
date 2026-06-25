@@ -11,6 +11,9 @@ export const IconButton = forwardRef<
     onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
     title?: string;
     size?: "sm" | "md";
+    /** true면 부모 높이에 맞춰 정사각형 — 헤더(h-12 border-b로 콘텐츠 47px)
+     *  안에서 h-12 고정이 1px 삐져나오는 문제 회피. */
+    fillParent?: boolean;
     disabled?: boolean;
     variant?: "default" | "danger";
     iconSize?: number;
@@ -23,6 +26,7 @@ export const IconButton = forwardRef<
     onClick,
     title,
     size = "md",
+    fillParent = false,
     disabled,
     variant = "default",
     iconSize,
@@ -31,7 +35,11 @@ export const IconButton = forwardRef<
   },
   ref,
 ) {
-  const box = size === "sm" ? "h-9 w-9" : "h-12 w-12";
+  const box = fillParent
+    ? "aspect-square h-full"
+    : size === "sm"
+      ? "h-9 w-9"
+      : "h-12 w-12";
   const tone =
     variant === "danger"
       ? "text-fg-2 hover:bg-red-950/40 hover:text-red-300"

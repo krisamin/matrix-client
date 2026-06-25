@@ -584,6 +584,7 @@ export function Sidebar({ client }: { client: MatrixClient }) {
             onClick={() => setSortMenuOpen((v) => !v)}
             title={t("sort.title")}
             iconSize={14}
+            fillParent
           />
           {sortMenuOpen && (
             <>
@@ -625,6 +626,7 @@ export function Sidebar({ client }: { client: MatrixClient }) {
             icon={Plus}
             onClick={() => setCreateMenuOpen((v) => !v)}
             title={t("sidebar.action.new")}
+            fillParent
           />
           {createMenuOpen && (
             <>
@@ -677,6 +679,7 @@ export function Sidebar({ client }: { client: MatrixClient }) {
           icon={CalendarClock}
           onClick={() => setDelayedOpen(true)}
           title={t("sidebar.scheduled")}
+          fillParent
         />
       </div>
 
