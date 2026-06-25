@@ -18,8 +18,6 @@ import {
   EventType,
   type MatrixClient,
   type MatrixEvent,
-  MsgType,
-  RelationType,
   type Room,
 } from "matrix-js-sdk";
 import {
@@ -27,11 +25,12 @@ import {
   EventShieldReason,
 } from "matrix-js-sdk/lib/crypto-api";
 import { lazy, memo, Suspense, useState } from "react";
+import { useEventActions } from "../hooks/useEventActions";
 import { useShield } from "../hooks/useShield";
 import { formatFullTime, formatTime } from "../lib/format";
 import { useT } from "../lib/i18n";
-import { isPinned, togglePin } from "../lib/matrix";
-import { buildMentionContent, mentionsUser } from "../lib/mention";
+import { isPinned } from "../lib/matrix";
+import { mentionsUser } from "../lib/mention";
 import { quotePreview, thumbnailSource } from "../lib/reply";
 import { MEDIA_MSGTYPES } from "../lib/timeline";
 import { extractPreviewUrls } from "../lib/url-preview";
@@ -173,84 +172,24 @@ const EventLineInner = function EventLine({
       : [];
 
   function startEdit() {
-    // 현재(수정 반영된) 본문에서 시작
     setEditDraft(ev.getContent().body ?? "");
     setEditing(true);
   }
 
-  async function submitEdit() {
-    const text = editDraft.trim();
-    if (!text || busy) return;
-    if (text === (ev.getContent().body ?? "")) {
-      setEditing(false);
-      return;
-    }
-    setBusy(true);
-    try {
-      // m.replace: fallback(*표시)용 본문 + m.new_content (Element과 동일 구조).
-      // buildMentionContent로 마크다운까지 처리한 new_content를 사용.
-      const newContent = buildMentionContent(text, []);
-      const newFormatted = newContent.formatted_body as string | undefined;
-      await client.sendEvent(room.roomId, EventType.RoomMessage, {
-        msgtype: MsgType.Text,
-        body: `* ${text}`,
-        ...(newFormatted
-          ? {
-              format: "org.matrix.custom.html",
-              formatted_body: `* ${newFormatted}`,
-            }
-          : {}),
-        "m.new_content": newContent,
-        "m.relates_to": {
-          rel_type: RelationType.Replace,
-          event_id: ev.getId()!,
-        },
-      } as never);
-      setEditing(false);
-    } catch (e) {
-      console.warn("수정 실패:", e);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function remove() {
-    if (busy || !window.confirm(t("msg.confirmDelete"))) return;
-    setBusy(true);
-    try {
-      await client.redactEvent(room.roomId, ev.getId()!);
-    } catch (e) {
-      console.warn("삭제 실패:", e);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function pin() {
-    if (busy) return;
-    setBusy(true);
-    try {
-      await togglePin(client, room, ev.getId()!);
-    } catch (e) {
-      console.warn("고정 토글 실패:", e);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function react(key: string) {
-    try {
-      await client.sendEvent(room.roomId, EventType.Reaction, {
-        "m.relates_to": {
-          rel_type: RelationType.Annotation,
-          event_id: ev.getId()!,
-          key,
-        },
-      });
-    } catch (e) {
-      console.warn("리액션 전송 실패:", e);
-    }
-  }
+  const actions = useEventActions({
+    client,
+    room,
+    ev,
+    busy,
+    editDraft,
+    setEditDraft,
+    setEditing,
+    setBusy,
+    setCopied,
+  });
+  const { submitEdit, remove, pin, react, resend, cancelFailed, copyMarkdown } =
+    actions;
+  // startEdit는 위에서 inline 정의 (setEditDraft + setEditing만 사용 — 단순)
 
   // 전송 상태 (local echo): null이면 서버 확정된 메시지
   const status = ev.status;
@@ -259,37 +198,6 @@ const EventLineInner = function EventLine({
     status === EventStatus.SENDING ||
     status === EventStatus.QUEUED ||
     status === EventStatus.ENCRYPTING;
-
-  async function resend() {
-    if (busy) return;
-    setBusy(true);
-    try {
-      await client.resendEvent(ev, room);
-    } catch (e) {
-      console.warn("재전송 실패:", e);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  function cancelFailed() {
-    try {
-      client.cancelPendingEvent(ev);
-    } catch (e) {
-      console.warn("전송 취소 실패:", e);
-    }
-  }
-
-  async function copyMarkdown() {
-    try {
-      const body = (ev.getContent().body as string) ?? "";
-      await navigator.clipboard.writeText(body);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1200);
-    } catch (e) {
-      console.warn("메시지 복사 실패:", e);
-    }
-  }
 
   const actionBtn =
     "p-2 text-fg-1 hover:bg-bg-2 hover:text-fg-0 transition-colors";
@@ -560,7 +468,9 @@ const EventLineInner = function EventLine({
         </span>
       )}
       {isPending && (
-        <span className="font-mono text-[11px] text-fg-3">{t("msg.sending")}</span>
+        <span className="font-mono text-[11px] text-fg-3">
+          {t("msg.sending")}
+        </span>
       )}
 
       {/* 리액션 칩 */}
