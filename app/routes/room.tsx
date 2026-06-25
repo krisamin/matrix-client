@@ -88,7 +88,7 @@ export default function RoomView() {
       for (let i = 0; i < 5; i++) {
         if (timelineRef.current?.scrollToEvent(eventId)) {
           setHighlightId(eventId);
-          setTimeout(() => setHighlightId(null), 1600);
+          setTimeout(() => setHighlightId(null), 2400);
           return;
         }
         if (!hasMore) break;

@@ -311,9 +311,13 @@ const EventLineInner = function EventLine({
   return (
     <div
       id={`ev-${ev.getId()}`}
-      className={`group relative px-5 transition-colors hover:bg-bg-2/60 ${
+      className={`group relative px-5 transition-colors duration-300 hover:bg-bg-2/60 ${
         showHeader ? "pt-3 pb-0.5" : "py-0.5"
-      } ${highlighted ? "!bg-bg-3" : ""} ${animateIn ? "msg-in" : ""} ${
+      } ${
+        highlighted
+          ? "!bg-amber-400/15 ring-1 ring-inset ring-amber-400/40"
+          : ""
+      } ${animateIn ? "msg-in" : ""} ${
         mentioned
           ? "border-l-2 border-amber-400/70 bg-amber-400/[0.06] pl-[18px]"
           : ""
