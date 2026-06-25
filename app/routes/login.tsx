@@ -10,6 +10,7 @@ import { useEffect, useRef, useState } from "react";
 import { useT } from "../lib/i18n";
 import { loadRecaptcha, renderRecaptcha } from "../lib/recaptcha";
 import { saveSession } from "../lib/session";
+import { ls } from "../lib/storage";
 
 export function meta() {
   return [{ title: "Login — matrix-client" }];
@@ -60,8 +61,7 @@ export default function Login() {
   const t = useT();
   const [homeserver, setHomeserver] = useState(
     typeof window !== "undefined"
-      ? (localStorage.getItem("matrix-client:last-homeserver") ??
-          "https://matrix.org")
+      ? (ls.get("last-homeserver") ?? "https://matrix.org")
       : "https://matrix.org",
   );
   const [mode, setMode] = useState<Mode>("signin");
@@ -203,7 +203,7 @@ export default function Login() {
         redirectUri,
         nonce: crypto.randomUUID(),
       });
-      localStorage.setItem("matrix-client:last-homeserver", flow.baseUrl);
+      ls.set("last-homeserver", flow.baseUrl);
       window.location.href = url;
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -297,7 +297,7 @@ export default function Login() {
       userId: result.user_id,
       deviceId: result.device_id,
     });
-    localStorage.setItem("matrix-client:last-homeserver", flow.baseUrl);
+    ls.set("last-homeserver", flow.baseUrl);
     window.location.href = "/";
   }
 
@@ -395,7 +395,7 @@ export default function Login() {
         userId: result.user_id,
         deviceId: result.device_id,
       });
-      localStorage.setItem("matrix-client:last-homeserver", flow.baseUrl);
+      ls.set("last-homeserver", flow.baseUrl);
       window.location.href = "/";
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));

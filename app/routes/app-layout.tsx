@@ -17,9 +17,10 @@ import {
   notificationPermission,
   requestNotificationPermission,
 } from "../lib/notifications";
+import { ls } from "../lib/storage";
 
-const VERIFY_DISMISS_KEY = "matrix-client:verify-toast-dismissed";
-const NOTIF_DISMISS_KEY = "matrix-client:notif-toast-dismissed";
+const _VERIFY_DISMISS_KEY = "matrix-client:verify-toast-dismissed";
+const _NOTIF_DISMISS_KEY = "matrix-client:notif-toast-dismissed";
 
 export interface AppContext {
   client: MatrixClient;
@@ -41,13 +42,11 @@ export default function AppLayout() {
   const [notifPerm, setNotifPerm] = useState(notificationPermission());
   const [verifyDismissed, setVerifyDismissed] = useState(
     () =>
-      typeof window !== "undefined" &&
-      localStorage.getItem(VERIFY_DISMISS_KEY) === "1",
+      typeof window !== "undefined" && ls.get("verify-toast-dismissed") === "1",
   );
   const [notifDismissed, setNotifDismissed] = useState(
     () =>
-      typeof window !== "undefined" &&
-      localStorage.getItem(NOTIF_DISMISS_KEY) === "1",
+      typeof window !== "undefined" && ls.get("notif-toast-dismissed") === "1",
   );
   // 전역 키보드 단축키: Ctrl/Cmd+K (방 빠른 전환), ? 또는 Ctrl+/ (단축키 안내)
   const [switcherOpen, setSwitcherOpen] = useState(false);
@@ -158,7 +157,7 @@ export default function AppLayout() {
               onClick: () => navigate("/verify"),
             }}
             onDismiss={() => {
-              localStorage.setItem(VERIFY_DISMISS_KEY, "1");
+              ls.set("verify-toast-dismissed", "1");
               setVerifyDismissed(true);
             }}
           />
@@ -176,7 +175,7 @@ export default function AppLayout() {
               },
             }}
             onDismiss={() => {
-              localStorage.setItem(NOTIF_DISMISS_KEY, "1");
+              ls.set("notif-toast-dismissed", "1");
               setNotifDismissed(true);
             }}
           />

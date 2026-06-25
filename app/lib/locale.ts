@@ -12,7 +12,9 @@ export const LOCALE_LABEL: Record<Locale, string> = {
   ja: "日本語",
 };
 
-const STORAGE_KEY = "matrix-client:locale";
+import { ls } from "./storage";
+
+const _STORAGE_KEY = "matrix-client:locale";
 
 /** 브라우저 navigator.language → 우리 지원 언어로 매핑.
  *  fallback: ko (마로 기본 사용 언어). */
@@ -35,7 +37,7 @@ export function detectBrowserLocale(): Locale {
 export function loadLocalePref(): LocalePref {
   if (typeof localStorage === "undefined") return "auto";
   try {
-    const saved = localStorage.getItem(STORAGE_KEY);
+    const saved = ls.get("locale");
     if (saved === "auto") return "auto";
     if (saved && SUPPORTED_LOCALES.includes(saved as Locale)) {
       return saved as Locale;
@@ -55,9 +57,9 @@ export function resolveLocale(pref: LocalePref): Locale {
 export function saveLocalePref(pref: LocalePref): void {
   try {
     if (pref === "auto") {
-      localStorage.removeItem(STORAGE_KEY);
+      ls.remove("locale");
     } else {
-      localStorage.setItem(STORAGE_KEY, pref);
+      ls.set("locale", pref);
     }
   } catch {
     // ignore

@@ -5,20 +5,21 @@
 import type { MatrixClient, Room } from "matrix-js-sdk";
 import { NotificationCountType } from "matrix-js-sdk";
 import { isFavourite } from "./matrix";
+import { ls } from "./storage";
 
 export type RoomSort = "activity" | "unread" | "alpha";
 
-const KEY = "matrix-client:room-sort";
+const _KEY = "matrix-client:room-sort";
 
 export function loadRoomSort(): RoomSort {
   if (typeof window === "undefined") return "activity";
-  const v = window.localStorage.getItem(KEY);
+  const v = ls.get("room-sort");
   return v === "unread" || v === "alpha" ? v : "activity";
 }
 
 export function saveRoomSort(s: RoomSort): void {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(KEY, s);
+  ls.set("room-sort", s);
 }
 
 /** 정렬. 즐겨찾기는 항상 위. */
