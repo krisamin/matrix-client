@@ -69,6 +69,7 @@ export default function Login() {
   const recaptchaRef = useRef<HTMLDivElement | null>(null);
 
   // CAPTCHA stage 진입 시 위젯 마운트
+  // biome-ignore lint/correctness/useExhaustiveDependencies: cleanup은 매번 새 closure
   useEffect(() => {
     if (uia.kind !== "captcha") return;
     let cleanup = () => {};
@@ -90,7 +91,6 @@ export default function Login() {
       }
     })();
     return () => cleanup();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [uia, completeCaptcha]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);

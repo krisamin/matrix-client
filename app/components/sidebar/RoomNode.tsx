@@ -50,11 +50,6 @@ export const RoomNode = memo(function RoomNodeInner({
   const [hasMoreThreads, setHasMoreThreads] = useState(false);
   const [loadingMoreThreads, setLoadingMoreThreads] = useState(false);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: syncHasMore는
-  //   매 렌더 새 inline 함수 — deps에 넣으면 effect가 매 렌더마다 재발화돼
-  //   ThreadEvent listener 무한 재등록 + fetchRoomThreads 폭주 → freeze 유발.
-  //   syncHasMore는 클로저로 captured되어 최신 room.threadsTimelineSets만
-  //   읽으므로 deps 누락해도 동작 정합 OK.
   function syncHasMore() {
     const tl = room.threadsTimelineSets[0]?.getLiveTimeline();
     setHasMoreThreads(!!tl?.getPaginationToken(EventTimeline.BACKWARDS));
@@ -70,6 +65,7 @@ export const RoomNode = memo(function RoomNodeInner({
   // mount되는데, 각각 fetch 발사하면 서버에 100 req + 메인 스레드 폭주
   // → 사이드바 클릭 시 "응답없음" 유발. active일 때만 하면 사용자가 보는
   // 방의 thread만 즉시 채워지고 나머지는 클릭 시점에 fetch.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: syncHasMore는 매 렌더 새 inline 함수 — deps 누락이 의도(ThreadEvent listener 무한 재등록 방지)
   useEffect(() => {
     if (!active) return;
     let cancelled = false;
@@ -102,7 +98,6 @@ export const RoomNode = memo(function RoomNodeInner({
       room.off(ThreadEvent.NewReply, bump);
       room.off(ThreadEvent.Delete, bump);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [room, active]);
   // Thread 리스트 source 분기:
   //  - 서버가 MSC3856 (/v1/rooms/{roomId}/threads) 지원 → threadsTimelineSets

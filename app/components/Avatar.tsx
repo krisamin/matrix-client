@@ -63,7 +63,8 @@ function AvatarInner({
     };
   }, [client, mxcUrl, size]);
 
-  const borderRadius = shape === "round" ? "9999px" : size >= 32 ? "8px" : "5px";
+  const borderRadius =
+    shape === "round" ? "9999px" : size >= 32 ? "8px" : "5px";
 
   if (!url) {
     // 이니셜 fallback — 이미지와 정확히 같은 box(size×size). 배경/색만 다름.

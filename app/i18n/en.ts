@@ -482,7 +482,8 @@ export const en: Record<keyof typeof ko, string> = {
   "readReceipts.title": "Read by {{names}}",
   "spaceView.members": "Members",
   "spaceView.empty.members": "No members",
-  "spaceView.meta": "{{members}} members · {{rooms}} rooms · {{spaces}} subspaces",
+  "spaceView.meta":
+    "{{members}} members · {{rooms}} rooms · {{spaces}} subspaces",
   "spaceView.noTopic": "No description",
   "spaceView.stat.members": "Members",
   "spaceView.stat.rooms": "Rooms",

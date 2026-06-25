@@ -20,11 +20,7 @@ export default defineConfig(({ command }) => ({
             manifest: false,
             workbox: {
               navigateFallback: "/index.html",
-              navigateFallbackDenylist: [
-                /^\/_/,
-                /^\/oidc/,
-                /^\/.well-known/,
-              ],
+              navigateFallbackDenylist: [/^\/_/, /^\/oidc/, /^\/.well-known/],
               globPatterns: ["**/*.{js,css,html,svg,png,ico}"],
               maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
               runtimeCaching: [

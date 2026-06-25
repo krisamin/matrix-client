@@ -49,9 +49,8 @@ export function SpaceView({
   const createdAt = createEv?.getTs();
 
   const joinRule =
-    (space.currentState
-      .getStateEvents("m.room.join_rules", "")
-      ?.getContent()?.join_rule as string) ?? "invite";
+    (space.currentState.getStateEvents("m.room.join_rules", "")?.getContent()
+      ?.join_rule as string) ?? "invite";
   const isPublic = joinRule === "public";
 
   return (
@@ -267,8 +266,8 @@ function RoomLikeItem({
   onClick: () => void;
 }) {
   const topic =
-    room.currentState.getStateEvents("m.room.topic", "")?.getContent()
-      ?.topic ?? "";
+    room.currentState.getStateEvents("m.room.topic", "")?.getContent()?.topic ??
+    "";
   const memberCount = room.getJoinedMemberCount();
   return (
     <button
@@ -279,9 +278,7 @@ function RoomLikeItem({
       <RoomAvatar client={client} room={room} size={28} />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="flex items-center gap-1.5">
-          {kind === "room" && (
-            <Hash className="h-3 w-3 shrink-0 text-fg-3" />
-          )}
+          {kind === "room" && <Hash className="h-3 w-3 shrink-0 text-fg-3" />}
           <span className="truncate text-[13px] font-medium text-fg-0">
             {room.name}
           </span>

@@ -270,11 +270,11 @@ function DefaultPLEditor({
     redact !== pls.redact;
 
   // 외부 푸터로 dirty/busy/error/save를 끌어올림
+  // save는 closure로 잡혀있어 매 렌더 새 ref — deps에 넣으면 무한루프
+  // biome-ignore lint/correctness/useExhaustiveDependencies: save 의도적 제외
   useEffect(() => {
     onStateChange?.({ dirty, busy, error, save });
-    // save는 closure로 잡혀있어 매 렌더 새 ref — deps에 넣으면 무한루프
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dirty, busy, error, onStateChange, save]);
+  }, [dirty, busy, error, onStateChange]);
 
   async function save() {
     if (busy || !dirty) return;

@@ -483,7 +483,8 @@ export const ja: Record<keyof typeof ko, string> = {
   "tool.run": "実行",
   "spaceView.members": "メンバー",
   "spaceView.empty.members": "メンバーがいません",
-  "spaceView.meta": "メンバー {{members}} · ルーム {{rooms}} · サブスペース {{spaces}}",
+  "spaceView.meta":
+    "メンバー {{members}} · ルーム {{rooms}} · サブスペース {{spaces}}",
   "spaceView.noTopic": "説明なし",
   "spaceView.stat.members": "メンバー",
   "spaceView.stat.rooms": "ルーム",
