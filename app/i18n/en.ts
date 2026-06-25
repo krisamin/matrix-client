@@ -467,4 +467,10 @@ export const en: Record<keyof typeof ko, string> = {
   "error.boundary.short": "Error",
   "sidebar.label": "Sidebar",
   "main.label": "Message area",
+  "sidebar.menu.close": "Close menu",
+  "msg.sending": "Sending…",
+  "tool.run": "Tool call",
+  "media.openLarge": "View larger",
+  "media.downloadFile": "Download file",
+  "roomSettings.newAvatarPreview": "New avatar preview",
 };

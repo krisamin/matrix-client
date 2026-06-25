@@ -468,4 +468,10 @@ export const ja: Record<keyof typeof ko, string> = {
   "error.boundary.short": "エラー",
   "sidebar.label": "サイドバー",
   "main.label": "メッセージ領域",
+  "media.downloadFile": "ファイルダウンロード",
+  "media.openLarge": "大きく見る",
+  "msg.sending": "送信中",
+  "roomSettings.newAvatarPreview": "新しいアバタープレビュー",
+  "sidebar.menu.close": "メニューを閉じる",
+  "tool.run": "実行",
 };

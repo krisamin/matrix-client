@@ -476,6 +476,12 @@ export const ko = {
   "error.boundary.short": "오류",
   "sidebar.label": "사이드바",
   "main.label": "메시지 영역",
+  "sidebar.menu.close": "메뉴 닫기",
+  "msg.sending": "전송 중...",
+  "tool.run": "도구 실행",
+  "media.openLarge": "크게 보기",
+  "media.downloadFile": "파일 다운로드",
+  "roomSettings.newAvatarPreview": "새 아바타 미리보기",
 } as const;
 
 export type DictKey = keyof typeof ko;
