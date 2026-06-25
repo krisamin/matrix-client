@@ -8,6 +8,7 @@ import { RoomAvatar } from "./Avatar";
 import { EmptyState } from "./EmptyState";
 import { Field, FieldGroup, TextInput } from "./Form";
 import { Modal, ModalHeader } from "./Modal";
+import { SectionBanner } from "./SectionBanner";
 
 /** 메시지 전달 모달. */
 export function ForwardModal({
@@ -61,9 +62,7 @@ export function ForwardModal({
     <Modal onClose={onClose} size="md">
       <ModalHeader title={t("modal.forward.title")} />
       {preview && (
-        <p className="shrink-0 truncate border-b border-line bg-bg-2/40 px-4 py-2 text-[12px] text-fg-3">
-          {preview}
-        </p>
+        <SectionBanner className="shrink-0 truncate">{preview}</SectionBanner>
       )}
       <FieldGroup>
         <Field label={t("common.search")} labelWidth="w-12">

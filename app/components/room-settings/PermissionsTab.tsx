@@ -8,6 +8,7 @@ import {
 } from "../../lib/matrix";
 import { SectionHeader, TextInput } from "../Form";
 import { FormError } from "../FormError";
+import { SectionBanner } from "../SectionBanner";
 import { ROLE_LEVELS, levelToRole } from "./_shared";
 
 /* ──────────── 권한 탭: 역할 + 기본 액션 PL + 이벤트별 PL (고급) ──────────── */
@@ -85,9 +86,7 @@ export function PermissionsTab({
     <>
       <div className="min-h-0 flex-1 overflow-y-auto">
         {!canEditPL && (
-          <p className="border-b border-line bg-bg-2/40 px-4 py-2 text-[12px] text-fg-3">
-            {t("perm.viewOnly")}
-          </p>
+          <SectionBanner>{t("perm.viewOnly")}</SectionBanner>
         )}
         {/* divide-y 제거 — SectionHeader가 자체 border-y로 row 사이 경계 책임.
             divide-y와 SectionHeader.border-y가 겹쳐 이중 border 발생함. */}
