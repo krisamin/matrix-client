@@ -38,6 +38,9 @@ importers:
       matrix-js-sdk:
         specifier: ^41.7.0
         version: 41.8.0
+      oidc-client-ts:
+        specifier: ^3.5.0
+        version: 3.5.0
       react:
         specifier: ^19.2.6
         version: 19.2.7
