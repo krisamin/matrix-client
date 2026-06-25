@@ -351,7 +351,7 @@ const EventLineInner = function EventLine({
 
       {/* hover 플로팅 액션 툴바 — B-final 톤 (rounded-md, shadow-2xl) */}
       {!editing && !ev.isRedacted() && (
-        <div className="absolute -top-3 right-5 z-10 hidden items-center overflow-hidden rounded-md border border-line bg-bg-1 shadow-2xl group-hover:flex">
+        <div className="absolute -top-3 right-5 z-10 hidden items-center overflow-hidden rounded-md border border-line bg-bg-1 shadow-2xl group-hover:flex group-focus-within:flex">
           <button
             type="button"
             className={actionBtn}
