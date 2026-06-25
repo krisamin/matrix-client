@@ -161,6 +161,7 @@ textarea:focus-visible {
   text-align: left;
   cursor: pointer;
 }
+.tree-row:hover {
   background: var(--color-bg-2);
 }
 .tree-row.active {
