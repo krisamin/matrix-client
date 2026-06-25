@@ -264,7 +264,7 @@ export function MessageInput({
           넣어(py-3) 입력 영역이 바 위아래로 꽉 차고, 스크롤이 끝과 끝까지 흐른다.
           멀티라인이라 items-end로 버튼은 아래 정렬, textarea만 위로 자란다. */}
       <form
-        className="flex min-h-12 items-end border-t border-line bg-bg-1 pl-5 transition-colors focus-within:bg-bg-2"
+        className="flex min-h-12 items-end border-t border-line bg-bg-1 pl-3 transition-colors focus-within:bg-bg-2"
         onSubmit={(e) => {
           e.preventDefault();
           send();
