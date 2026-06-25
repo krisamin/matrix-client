@@ -484,4 +484,13 @@ export const ja: Record<keyof typeof ko, string> = {
   "spaceView.members": "メンバー",
   "spaceView.empty.members": "メンバーがいません",
   "spaceView.meta": "メンバー {{members}} · ルーム {{rooms}} · サブスペース {{spaces}}",
+  "spaceView.noTopic": "説明なし",
+  "spaceView.stat.members": "メンバー",
+  "spaceView.stat.rooms": "ルーム",
+  "spaceView.stat.subspaces": "サブスペース",
+  "spaceView.stat.visibility": "公開設定",
+  "spaceView.visibility.public": "公開",
+  "spaceView.visibility.private": "非公開",
+  "spaceView.info": "情報",
+  "spaceView.field.created": "作成日",
 };

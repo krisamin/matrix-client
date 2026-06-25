@@ -492,6 +492,15 @@ export const ko = {
   "spaceView.members": "멤버",
   "spaceView.empty.members": "멤버가 없어요",
   "spaceView.meta": "멤버 {{members}} · 방 {{rooms}} · 하위 Space {{spaces}}",
+  "spaceView.noTopic": "설명 없음",
+  "spaceView.stat.members": "멤버",
+  "spaceView.stat.rooms": "방",
+  "spaceView.stat.subspaces": "하위 Space",
+  "spaceView.stat.visibility": "공개 여부",
+  "spaceView.visibility.public": "공개",
+  "spaceView.visibility.private": "비공개",
+  "spaceView.info": "정보",
+  "spaceView.field.created": "생성일",
 } as const;
 
 export type DictKey = keyof typeof ko;

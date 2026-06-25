@@ -483,4 +483,13 @@ export const en: Record<keyof typeof ko, string> = {
   "spaceView.members": "Members",
   "spaceView.empty.members": "No members",
   "spaceView.meta": "{{members}} members · {{rooms}} rooms · {{spaces}} subspaces",
+  "spaceView.noTopic": "No description",
+  "spaceView.stat.members": "Members",
+  "spaceView.stat.rooms": "Rooms",
+  "spaceView.stat.subspaces": "Subspaces",
+  "spaceView.stat.visibility": "Visibility",
+  "spaceView.visibility.public": "Public",
+  "spaceView.visibility.private": "Private",
+  "spaceView.info": "Info",
+  "spaceView.field.created": "Created",
 };
