@@ -475,7 +475,7 @@ export async function searchUserDirectory(
 }
 
 /** 내 프로필 정보 (표시이름 + 아바타 mxc). 실패 시 부분/빈 값. */
-interface MyProfile {
+export interface MyProfile {
   displayName: string;
   avatarUrl?: string;
 }

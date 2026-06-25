@@ -29,8 +29,10 @@ import { useRooms } from "../hooks/useRooms";
 import { roomPath, threadPath } from "../lib/format";
 import { useI18n, useT } from "../lib/i18n";
 import {
+  getMyProfile,
   isFavourite,
   isMuted,
+  type MyProfile,
   resetClient,
   toggleFavourite,
   toggleMute,
@@ -40,7 +42,7 @@ import { saveRoomSort } from "../lib/room-sort";
 import { clearSession } from "../lib/session";
 import { buildRoomTree, type SpaceNode } from "../lib/spaces";
 import { AppSettingsModal } from "./AppSettingsModal";
-import { RoomAvatar } from "./Avatar";
+import { Avatar, RoomAvatar } from "./Avatar";
 import { DelayedMessagesModal } from "./DelayedMessagesModal";
 import { NewDmModal } from "./NewDmModal";
 import { NewRoomModal } from "./NewRoomModal";
@@ -509,6 +511,19 @@ export function Sidebar({ client }: { client: MatrixClient }) {
   const { t } = useI18n();
   const userId = client.getUserId() ?? "";
   const localpart = userId.replace(/^@/, "").split(":")[0];
+  // 내 프로필 (avatar + displayName) — mount 시 1회 fetch. 부정확해도 fallback OK.
+  const [profile, setProfile] = useState<MyProfile>({ displayName: "" });
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 첫 mount + client 변화 시
+  useEffect(() => {
+    let cancelled = false;
+    getMyProfile(client).then((p) => {
+      if (!cancelled) setProfile(p);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [client]);
+  const displayName = profile.displayName || localpart;
 
   const tree = buildRoomTree(client, rooms);
 
@@ -775,14 +790,26 @@ export function Sidebar({ client }: { client: MatrixClient }) {
             E2EE
           </span>
         </div>
-        <div className="flex h-9 shrink-0 items-stretch border-t border-line">
+        <div className="flex h-12 shrink-0 items-stretch border-t border-line">
           <button
             type="button"
-            className="flex min-w-0 flex-1 items-center gap-2 px-4 text-left text-[13px] hover:bg-bg-2"
+            className="flex min-w-0 flex-1 items-center gap-2.5 px-3 text-left hover:bg-bg-2"
             onClick={() => setProfileOpen(true)}
             title={t("sidebar.action.profile")}
           >
-            <span className="truncate font-medium text-fg-0">{localpart}</span>
+            <Avatar
+              client={client}
+              mxcUrl={profile.avatarUrl}
+              name={displayName}
+              shape="round"
+              size={28}
+            />
+            <span className="flex min-w-0 flex-1 flex-col leading-tight">
+              <span className="truncate text-[13px] font-medium text-fg-0">
+                {displayName}
+              </span>
+              <span className="truncate text-[11px] text-fg-3">{userId}</span>
+            </span>
           </button>
           <button
             type="button"
