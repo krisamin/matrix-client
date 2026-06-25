@@ -1,6 +1,7 @@
 import {
   ArrowUpDown,
   BellOff,
+  CalendarClock,
   Check,
   ChevronDown,
   ChevronRight,
@@ -38,6 +39,7 @@ import { saveRoomSort } from "../lib/room-sort";
 import { clearSession } from "../lib/session";
 import { buildRoomTree, type SpaceNode } from "../lib/spaces";
 import { AppSettingsModal } from "./AppSettingsModal";
+import { DelayedMessagesModal } from "./DelayedMessagesModal";
 import { RoomAvatar } from "./Avatar";
 import { NewDmModal } from "./NewDmModal";
 import { NewRoomModal } from "./NewRoomModal";
@@ -504,6 +506,7 @@ export function Sidebar({ client }: { client: MatrixClient }) {
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [appSettingsOpen, setAppSettingsOpen] = useState(false);
+  const [delayedOpen, setDelayedOpen] = useState(false);
   const { t } = useI18n();
   const userId = client.getUserId() ?? "";
   const localpart = userId.replace(/^@/, "").split(":")[0];
@@ -672,6 +675,14 @@ export function Sidebar({ client }: { client: MatrixClient }) {
         <button
           type="button"
           className="flex aspect-square h-full shrink-0 items-center justify-center text-fg-2 hover:bg-bg-2 hover:text-fg-0"
+          onClick={() => setDelayedOpen(true)}
+          title={t("sidebar.scheduled")}
+        >
+          <CalendarClock className="h-[15px] w-[15px]" />
+        </button>
+        <button
+          type="button"
+          className="flex aspect-square h-full shrink-0 items-center justify-center text-fg-2 hover:bg-bg-2 hover:text-fg-0"
           onClick={() => setAppSettingsOpen(true)}
           title={t("sidebar.action.settings")}
         >
@@ -821,6 +832,9 @@ export function Sidebar({ client }: { client: MatrixClient }) {
           onClose={() => setAppSettingsOpen(false)}
           onLogout={logout}
         />
+      )}
+      {delayedOpen && (
+        <DelayedMessagesModal client={client} onClose={() => setDelayedOpen(false)} />
       )}
     </aside>
   );
