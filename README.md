@@ -37,30 +37,54 @@ pnpm lint         # biome check
 
 > **pnpm only.** Do not mix with `npm`/`yarn` — lockfiles will conflict with `pnpm-lock.yaml`.
 
-### Configuration
+## Configuration
 
 The login screen accepts any homeserver URL that exposes OIDC discovery
-(`/.well-known/matrix/client` → `m.authentication`). The default points at
-`https://matrix.krisam.in`; change it on the login page or hardcode in
-`app/routes/login.tsx`.
+(`/.well-known/matrix/client` → `m.authentication`). The **in-source
+default is `https://matrix.org`** — set `DEFAULT_HOMESERVER` at runtime to
+make the deployed image point at your own homeserver instead. Users can
+still override it on the login screen (their last-used homeserver is
+sticky in `localStorage`).
 
+```bash
+# Docker / docker compose
+docker run -e DEFAULT_HOMESERVER=https://matrix.example.com \
+  -p 8080:80 ghcr.io/krisamin/matrix-client:latest
+
+# Kubernetes (raw manifest)
+env:
+  - name: DEFAULT_HOMESERVER
+    value: https://matrix.example.com
+
+# Helm
+--set config.defaultHomeserver=https://matrix.example.com
+```
+
+The image runs an entrypoint script that `sed`s the literal
+`https://matrix.org` URL out of the JS bundle on container startup.
+Idempotent; leaving the env var unset keeps the source default so the
+image stays generic for anyone running it.
 
 ## Deploy
 
-The build is a static SPA — no server runtime, no environment variables
-required at the server side. All session/auth state lives in the browser
-(localStorage + IndexedDB).
+The build is a static SPA — no server runtime needed. All session/auth
+state lives in the browser (localStorage + IndexedDB).
 
 ### Docker
 
 ```bash
+# Dev (Vite HMR, bind-mounted source) → http://localhost:52836
 docker compose up --build
-# → http://localhost:8080
+
+# Prod (nginx static, mirrors the GHCR image) → http://localhost:8080
+docker compose -f docker-compose.prod.yml up --build
 ```
 
-The bundled image is `nginx:1.27-alpine` serving `/build/client`. SPA
-fallback is wired in `docker/nginx.conf` — any unknown path falls back to
-`index.html` so client-side routing works.
+The bundled runtime image is `nginx:1.27-alpine` serving `/build/client`.
+SPA fallback is wired in `docker/nginx.conf` — any unknown path falls
+back to `index.html` so client-side routing works. A startup script at
+`/docker-entrypoint.d/40-default-homeserver.sh` reads `DEFAULT_HOMESERVER`
+(see *Configuration* above) before nginx launches.
 
 ### Helm / Kubernetes
 
@@ -75,10 +99,8 @@ helm install my-chat ./charts/matrix-client \
   --set config.defaultHomeserver=https://matrix.example.com
 ```
 
-`config.defaultHomeserver` rewrites the bundled fallback URL at pod
-startup (a `sed` over the JS bundle inside `postStart`). Users can still
-override it on the login screen — their last-used homeserver is sticky in
-localStorage.
+Raw manifests work too — just set `DEFAULT_HOMESERVER` in the pod's
+`env:`. No postStart hook needed (entrypoint runs before nginx).
 
 ### Login
 

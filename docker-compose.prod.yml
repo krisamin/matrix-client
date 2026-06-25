@@ -3,13 +3,17 @@
 #   docker compose -f docker-compose.prod.yml up --build
 #
 # Exposes the SPA at http://localhost:8080. The bundled image is a static
-# nginx serve of the Vite build. Configure the homeserver in the login
-# screen at runtime (default URL is hardcoded in app/routes/login.tsx,
-# falling back to the user's last-used homeserver from localStorage).
+# nginx serve of the Vite build.  Set DEFAULT_HOMESERVER to make the login
+# screen point at your own homeserver by default (users can still change
+# it on the form). Leave it unset to keep the source default (matrix.org).
 services:
   matrix-client:
     build: .
     image: matrix-client:local
     ports:
       - "8080:80"
+    environment:
+      # Override or set in a sibling .env file. Example:
+      #   DEFAULT_HOMESERVER=https://matrix.krisam.in
+      DEFAULT_HOMESERVER: ${DEFAULT_HOMESERVER:-}
     restart: unless-stopped

@@ -36,22 +36,12 @@ spec:
               mountPath: /var/run
           {{- if .Values.config.defaultHomeserver }}
           # Optional: rewrite the bundled homeserver default at startup.
-          # Replaces the literal "https://matrix.org" placeholder in the
-          # built JS bundle. Idempotent (sed only touches matching files).
+          # The image's /docker-entrypoint.d/40-default-homeserver.sh reads
+          # this env var and sed's the JS bundle before nginx starts —
+          # idempotent, no postStart race.
           env:
             - name: DEFAULT_HOMESERVER
               value: {{ .Values.config.defaultHomeserver | quote }}
-          lifecycle:
-            postStart:
-              exec:
-                command:
-                  - sh
-                  - -c
-                  - |
-                    if [ -n "${DEFAULT_HOMESERVER}" ]; then
-                      find /usr/share/nginx/html/assets -name '*.js' -exec \
-                        sed -i "s|https://matrix.org|${DEFAULT_HOMESERVER}|g" {} +
-                    fi
           {{- end }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
