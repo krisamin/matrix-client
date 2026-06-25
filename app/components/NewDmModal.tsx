@@ -1,6 +1,6 @@
 import type { MatrixClient } from "matrix-js-sdk";
 import { useEffect, useRef, useState } from "react";
-import { useUserSearch, looksLikeUserId } from "../hooks/useUserSearch";
+import { looksLikeUserId, useUserSearch } from "../hooks/useUserSearch";
 import { useT } from "../lib/i18n";
 import { startDirectMessage } from "../lib/matrix";
 import { EmptyState } from "./EmptyState";
@@ -94,9 +94,7 @@ export function NewDmModal({
           trimmed.length > 0 && (
             <EmptyState size="sm" body={t("newDm.empty")} />
           )}
-        {searching && (
-          <EmptyState size="sm" body={t("newDm.searching")} />
-        )}
+        {searching && <EmptyState size="sm" body={t("newDm.searching")} />}
       </div>
     </Modal>
   );

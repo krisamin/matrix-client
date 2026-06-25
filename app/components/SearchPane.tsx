@@ -4,8 +4,8 @@ import type { ISearchResults } from "matrix-js-sdk/lib/@types/search";
 import { useMemo, useRef, useState } from "react";
 import { formatDateTime } from "../lib/format";
 import { useT } from "../lib/i18n";
-import { SectionHeader } from "./Form";
 import { EmptyState } from "./EmptyState";
+import { SectionHeader } from "./Form";
 import { InlineSpinner } from "./InlineSpinner";
 import { PaneHeader, PaneHeaderButton } from "./PaneHeader";
 
@@ -241,9 +241,7 @@ export function SearchPane({
           </ul>
         )}
 
-        {showEmpty && (
-          <EmptyState size="sm" body={t("search.empty2")} />
-        )}
+        {showEmpty && <EmptyState size="sm" body={t("search.empty2")} />}
 
         {busy && (
           <div className="flex justify-center py-4">

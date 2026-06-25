@@ -14,11 +14,7 @@ export default function Home() {
   const mod = isMac ? "⌘" : "Ctrl";
   return (
     <div className="flex flex-1 flex-col items-center justify-center">
-      <EmptyState
-        size="lg"
-        icon={MessageSquareDashed}
-        title={t("home.empty")}
-      >
+      <EmptyState size="lg" icon={MessageSquareDashed} title={t("home.empty")}>
         <div className="mt-2 flex flex-col items-center gap-1.5 text-[12px] text-fg-3">
           <span className="flex items-center gap-1.5">
             <kbd className="rounded border border-line bg-bg-2 px-1.5 py-0.5 font-mono text-[11px] text-fg-2">

@@ -345,6 +345,14 @@ export async function getNoThreadTimelineSet(
 /* ──────────────────── 방·Space 설정 / Power level 헬퍼 ──────────────────── */
 
 export {
+  banMember,
+  canSendStateEvent,
+  getRoomPowerLevels,
+  kickMember,
+  setUserPowerLevel,
+  unbanMember,
+} from "./matrix-power";
+export {
   getRoomDirectoryVisibility,
   setRoomAvatar,
   setRoomCanonicalAlias,
@@ -354,12 +362,3 @@ export {
   setRoomJoinRule,
   setRoomNameAndTopic,
 } from "./matrix-room-settings";
-
-export {
-  banMember,
-  canSendStateEvent,
-  getRoomPowerLevels,
-  kickMember,
-  setUserPowerLevel,
-  unbanMember,
-} from "./matrix-power";

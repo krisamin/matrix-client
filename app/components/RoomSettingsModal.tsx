@@ -26,8 +26,8 @@ import {
   unbanMember,
 } from "../lib/matrix";
 import { RoomAvatar } from "./Avatar";
-import { InlineSpinner } from "./InlineSpinner";
 import { SectionHeader, TextInput } from "./Form";
+import { InlineSpinner } from "./InlineSpinner";
 
 type Tab = "general" | "access" | "permissions" | "danger";
 

@@ -30,12 +30,8 @@ export function EmptyState({
   if (size === "md") {
     return (
       <div className="flex flex-col items-center gap-2 px-4 py-8 text-center">
-        {Icon && (
-          <Icon className="h-6 w-6 text-fg-3" strokeWidth={1.25} />
-        )}
-        {title && (
-          <p className="text-[13px] font-medium text-fg-1">{title}</p>
-        )}
+        {Icon && <Icon className="h-6 w-6 text-fg-3" strokeWidth={1.25} />}
+        {title && <p className="text-[13px] font-medium text-fg-1">{title}</p>}
         {body && (
           <p className="text-[11px] leading-relaxed text-fg-3">{body}</p>
         )}
@@ -46,9 +42,7 @@ export function EmptyState({
   // lg
   return (
     <div className="flex flex-col items-center gap-2 py-12 text-center">
-      {Icon && (
-        <Icon className="h-10 w-10 text-fg-3" strokeWidth={1.25} />
-      )}
+      {Icon && <Icon className="h-10 w-10 text-fg-3" strokeWidth={1.25} />}
       {title && <p className="text-[14px] text-fg-2">{title}</p>}
       {body && <p className="text-[12px] text-fg-3">{body}</p>}
       {children}

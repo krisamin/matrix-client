@@ -1,4 +1,4 @@
-import { EventType, Preset, type Room, type MatrixClient } from "matrix-js-sdk";
+import { EventType, type MatrixClient, Preset, type Room } from "matrix-js-sdk";
 
 /** DM 방이면 상대 userId, 아니면 null (m.direct account data 기준) */
 export function getDmUserId(client: MatrixClient, room: Room): string | null {

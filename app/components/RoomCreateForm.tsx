@@ -270,9 +270,7 @@ export function RoomCreateForm({
                 <option value="invited">{t("hist.invited")}</option>
                 <option value="joined">{t("hist.joined")}</option>
                 <option value="shared">{t(k.histShared)}</option>
-                <option value="world_readable">
-                  {t(k.histWorldReadable)}
-                </option>
+                <option value="world_readable">{t(k.histWorldReadable)}</option>
               </Select>
             </Field>
           </FieldGroup>
