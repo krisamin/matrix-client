@@ -23,6 +23,7 @@ import { getMyProfile, type MyProfile, resetClient } from "../lib/matrix";
 import { saveRoomSort } from "../lib/room-sort";
 import { clearSession } from "../lib/session";
 import { buildRoomTree, type SpaceNode } from "../lib/spaces";
+import { MenuItem } from "./Form";
 import { AppSettingsModal } from "./AppSettingsModal";
 import { Avatar, RoomAvatar } from "./Avatar";
 import { DelayedMessagesModal } from "./DelayedMessagesModal";
@@ -178,39 +179,33 @@ export function Sidebar({ client }: { client: MatrixClient }) {
                 onClick={() => setCreateMenuOpen(false)}
               />
               <div className="absolute right-0 top-full z-30 mt-1 flex w-44 flex-col divide-y divide-line overflow-hidden rounded-md border border-line bg-bg-1 shadow-2xl">
-                <button
-                  type="button"
-                  className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] text-fg-1 hover:bg-bg-2 hover:text-fg-0"
+                <MenuItem
+                  density="compact"
+                  icon={<PenSquare className="h-4 w-4" />}
+                  label={t("sidebar.create.dm")}
                   onClick={() => {
                     setCreateMenuOpen(false);
                     setNewDmOpen(true);
                   }}
-                >
-                  <PenSquare className="h-4 w-4 shrink-0 text-fg-3" />
-                  {t("sidebar.create.dm")}
-                </button>
-                <button
-                  type="button"
-                  className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] text-fg-1 hover:bg-bg-2 hover:text-fg-0"
+                />
+                <MenuItem
+                  density="compact"
+                  icon={<Hash className="h-4 w-4" />}
+                  label={t("sidebar.create.room")}
                   onClick={() => {
                     setCreateMenuOpen(false);
                     setNewRoomOpen(true);
                   }}
-                >
-                  <Hash className="h-4 w-4 shrink-0 text-fg-3" />
-                  {t("sidebar.create.room")}
-                </button>
-                <button
-                  type="button"
-                  className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] text-fg-1 hover:bg-bg-2 hover:text-fg-0"
+                />
+                <MenuItem
+                  density="compact"
+                  icon={<FolderPlus className="h-4 w-4" />}
+                  label={t("sidebar.create.space")}
                   onClick={() => {
                     setCreateMenuOpen(false);
                     setNewSpaceOpen(true);
                   }}
-                >
-                  <FolderPlus className="h-4 w-4 shrink-0 text-fg-3" />
-                  {t("sidebar.create.space")}
-                </button>
+                />
               </div>
             </>
           )}

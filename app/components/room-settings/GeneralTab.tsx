@@ -2,6 +2,7 @@ import { Upload } from "lucide-react";
 import type { MatrixClient, Room } from "matrix-js-sdk";
 import { useEffect, useRef, useState } from "react";
 import { useT } from "../../lib/i18n";
+import { CardHeader } from "../CardHeader";
 import {
   canSendStateEvent,
   setRoomAvatar,
@@ -97,7 +98,7 @@ export function GeneralTab({
         {/* 아바타 영역 — ProfileEditModal과 동일한 헤더 띠 톤.
          *  현재 방 아바타가 즉시 보이고 (RoomAvatar는 mxc 자동 해석),
          *  클릭/호버 Upload 오버레이로 이미지 변경. 새 파일 고르면 로컬 미리보기. */}
-        <div className="flex flex-col items-center gap-2 border-b border-line bg-bg-2/30 px-4 py-5">
+        <CardHeader>
           <button
             type="button"
             className="group relative rounded-md disabled:cursor-not-allowed"
@@ -132,7 +133,7 @@ export function GeneralTab({
             onChange={pickFile}
           />
           <span className="font-mono text-[11px] text-fg-3">{room.roomId}</span>
-        </div>
+        </CardHeader>
 
         {/* 필드 — divide-y row */}
         <div className="flex flex-col divide-y divide-line">

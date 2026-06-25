@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { usePresence } from "../hooks/usePresence";
 import { useT } from "../lib/i18n";
 import { Avatar, PresenceDot } from "./Avatar";
+import { CardHeader } from "./CardHeader";
 import { ModalRow } from "./ModalRow";
 
 /** 파워레벨 → 역할 라벨 (Element 관례: 100 관리자 / 50 중재자) */
@@ -80,7 +81,7 @@ export function UserProfileCard({
         }}
       >
         {/* 상단: 아바타 + 이름 (모달 헤더 톤과 같은 살짝 어두운 띠) */}
-        <div className="flex flex-col items-center gap-2 border-b border-line bg-bg-2/30 px-4 py-5">
+        <CardHeader>
           <Avatar
             client={client}
             mxcUrl={member?.getMxcAvatarUrl()}
@@ -109,7 +110,7 @@ export function UserProfileCard({
               <Copy className="h-3 w-3 shrink-0" />
             )}
           </button>
-        </div>
+        </CardHeader>
 
         {/* 이 방에서의 상태 — divide-y 그리드 (모달 row 패턴과 동일) */}
         <div className="flex flex-col divide-y divide-line">

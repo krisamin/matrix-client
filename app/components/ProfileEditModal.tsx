@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useT } from "../lib/i18n";
 import { getMyProfile, setMyAvatar, setMyDisplayName } from "../lib/matrix";
 import { Avatar } from "./Avatar";
+import { CardHeader } from "./CardHeader";
 import { Field, FieldGroup, TextInput } from "./Form";
 import { FormError } from "./FormError";
 import { Modal, ModalFooter, ModalHeader } from "./Modal";
@@ -99,7 +100,7 @@ export function ProfileEditModal({
       ) : (
         <>
           {/* 아바타 영역 */}
-          <div className="flex shrink-0 flex-col items-center gap-2 border-b border-line bg-bg-2/30 px-4 py-5">
+          <CardHeader className="shrink-0">
             <button
               type="button"
               className="group relative rounded-full"
@@ -133,7 +134,7 @@ export function ProfileEditModal({
               onChange={pickFile}
             />
             <span className="text-[11px] text-fg-3">{userId}</span>
-          </div>
+          </CardHeader>
 
           <FieldGroup>
             <Field label={t("field.displayName")}>
