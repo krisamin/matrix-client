@@ -1,4 +1,4 @@
-import { Calendar, Hash, Lock, Plus, Settings } from "lucide-react";
+import { Calendar, Eye, Hash, Lock, Plus, Settings } from "lucide-react";
 import type { MatrixClient, Room } from "matrix-js-sdk";
 import { useState } from "react";
 import { useNavigate } from "react-router";
@@ -14,8 +14,8 @@ import { PaneHeader, PaneHeaderButton } from "./PaneHeader";
 import { RoomSettingsModal } from "./RoomSettingsModal";
 
 /** Space 홈 — 메시지 타임라인 대신 보여주는 화면.
- *  카드 wrap 없는 flat grid 레이아웃 — divide-y로 섹션 구분만,
- *  메인 콘텐츠와 같은 패딩 시스템(px-5). */
+ *  PaneHeader 바로 아래 flat grid (좌: Subspaces/Rooms, 우: Members + Info).
+ *  배너/Stats 행 없이 콘텐츠 우선. */
 export function SpaceView({
   client,
   space,
@@ -73,54 +73,19 @@ export function SpaceView({
       </PaneHeader>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
-        {/* Banner — 카드 wrap 없이 px-5로 메인 영역과 같은 인셋 */}
-        <div className="flex items-start gap-3 border-b border-line px-5 py-4">
-          <RoomAvatar client={client} room={space} size={48} />
-          <div className="flex min-w-0 flex-1 flex-col gap-1">
-            <h2 className="truncate text-[16px] font-semibold text-fg-0">
-              {space.name}
-            </h2>
-            {topic ? (
-              <p className="whitespace-pre-wrap text-[12px] text-fg-2">
-                {topic}
-              </p>
-            ) : (
-              <p className="text-[12px] text-fg-3 italic">
-                {t("spaceView.noTopic")}
-              </p>
-            )}
-          </div>
-        </div>
+        {/* topic이 있으면 헤더 아래 한 줄 — 배너 없음, 본문에 자연스럽게 흡수 */}
+        {topic && (
+          <p className="whitespace-pre-wrap border-b border-line px-5 py-3 text-[12px] text-fg-2">
+            {topic}
+          </p>
+        )}
 
-        {/* Stats — banner 바로 아래 compact 행 */}
-        <div className="flex border-b border-line divide-x divide-line">
-          <Stat
-            label={t("spaceView.stat.members")}
-            value={members.length}
-          />
-          <Stat label={t("spaceView.stat.rooms")} value={childRooms.length} />
-          <Stat
-            label={t("spaceView.stat.subspaces")}
-            value={childSpaces.length}
-          />
-          <Stat
-            label={t("spaceView.stat.visibility")}
-            value={
-              isPublic
-                ? t("spaceView.visibility.public")
-                : t("spaceView.visibility.private")
-            }
-            mono={false}
-          />
-        </div>
-
-        {/* 2-column grid — divide-x로 세로 분할, 카드 없이 flat */}
+        {/* 2-column grid — flat, divide-x 세로 분할 */}
         <div className="grid grid-cols-1 md:grid-cols-[1fr_280px] md:divide-x md:divide-line">
           {/* 좌측: Subspaces + Rooms */}
           <div className="flex flex-col divide-y divide-line">
             <Section
               title={t("spaceView.subspaces")}
-              count={childSpaces.length}
               action={
                 <IconButton
                   icon={Plus}
@@ -150,7 +115,6 @@ export function SpaceView({
 
             <Section
               title={t("spaceView.rooms")}
-              count={childRooms.length}
               action={
                 <IconButton
                   icon={Plus}
@@ -181,10 +145,7 @@ export function SpaceView({
 
           {/* 우측: 멤버 + 정보 */}
           <div className="flex flex-col divide-y divide-line">
-            <Section
-              title={t("spaceView.members")}
-              count={members.length}
-            >
+            <Section title={t("spaceView.members")}>
               {members.length === 0 ? (
                 <EmptyState size="sm" title={t("spaceView.empty.members")} />
               ) : (
@@ -210,19 +171,26 @@ export function SpaceView({
               )}
             </Section>
 
-            {createdAt && (
-              <Section title={t("spaceView.info")}>
-                <div className="flex items-center gap-2.5 px-5 py-2 text-[12px]">
-                  <Calendar className="h-3 w-3 shrink-0 text-fg-3" />
-                  <span className="w-16 shrink-0 text-fg-3">
-                    {t("spaceView.field.created")}
-                  </span>
-                  <span className="flex-1 text-fg-1">
-                    {new Date(createdAt).toLocaleDateString()}
-                  </span>
-                </div>
-              </Section>
-            )}
+            <Section title={t("spaceView.info")}>
+              <div className="flex flex-col divide-y divide-line">
+                <InfoLine
+                  icon={Eye}
+                  label={t("spaceView.stat.visibility")}
+                  value={
+                    isPublic
+                      ? t("spaceView.visibility.public")
+                      : t("spaceView.visibility.private")
+                  }
+                />
+                {createdAt && (
+                  <InfoLine
+                    icon={Calendar}
+                    label={t("spaceView.field.created")}
+                    value={new Date(createdAt).toLocaleDateString()}
+                  />
+                )}
+              </div>
+            </Section>
           </div>
         </div>
       </div>
@@ -263,12 +231,10 @@ export function SpaceView({
 /** Section 헤더 + body 묶음 — 카드 wrap 없이 flat. */
 function Section({
   title,
-  count,
   action,
   children,
 }: {
   title: React.ReactNode;
-  count?: number;
   action?: React.ReactNode;
   children: React.ReactNode;
 }) {
@@ -277,9 +243,6 @@ function Section({
       <header className="flex h-9 items-center border-b border-line bg-bg-2/30">
         <span className="flex-1 truncate pl-5 text-[11px] font-semibold uppercase tracking-wider text-fg-2">
           {title}
-          {count !== undefined && count > 0 && (
-            <span className="ml-1.5 font-mono text-fg-3">{count}</span>
-          )}
         </span>
         {action}
       </header>
@@ -288,26 +251,21 @@ function Section({
   );
 }
 
-/** Stats 행 한 칸 — 큰 숫자 + 라벨 */
-function Stat({
+/** 정보 카드 한 줄 — 아이콘 + 라벨 + 값 */
+function InfoLine({
+  icon: Icon,
   label,
   value,
-  mono = true,
 }: {
+  icon: React.ComponentType<{ className?: string }>;
   label: string;
-  value: number | string;
-  mono?: boolean;
+  value: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-1 flex-col items-center gap-0.5 px-3 py-2.5">
-      <span
-        className={`text-[14px] font-semibold text-fg-0 ${mono ? "font-mono" : ""}`}
-      >
-        {value}
-      </span>
-      <span className="text-[10px] uppercase tracking-wider text-fg-3">
-        {label}
-      </span>
+    <div className="flex items-center gap-2.5 px-5 py-2 text-[12px]">
+      <Icon className="h-3 w-3 shrink-0 text-fg-3" />
+      <span className="w-20 shrink-0 text-fg-3">{label}</span>
+      <span className="flex-1 text-fg-1">{value}</span>
     </div>
   );
 }
