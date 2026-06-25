@@ -50,6 +50,7 @@ import { NewDmModal } from "./NewDmModal";
 import { NewRoomModal } from "./NewRoomModal";
 import { NewSpaceModal } from "./NewSpaceModal";
 import { ProfileEditModal } from "./ProfileEditModal";
+import { SectionLabel } from "./sidebar/SectionLabel";
 
 /** 방 하나의 트리 노드 — 클릭 시 이동, 스레드 자식 노드 펼침.
  *  우클릭 시 컨텍스트 메뉴(즐겨찾기/음소거 토글). */
@@ -472,25 +473,6 @@ function SpaceTreeNode({
             />
           ))}
         </div>
-      )}
-    </div>
-  );
-}
-
-/** 섹션 라벨 (Direct / Spaces / Rooms) — RoomInfoPane/SpaceView 카드 헤더 톤
- *  과 같은 패밀리로 (그래픽 uppercase 대신 일관된 한글 라벨 + 카운트). */
-function SectionLabel({
-  children,
-  count,
-}: {
-  children: React.ReactNode;
-  count?: number;
-}) {
-  return (
-    <div className="mt-3 flex items-center gap-1.5 px-3 pb-1 first:mt-0">
-      <span className="text-[11px] font-medium text-fg-2">{children}</span>
-      {typeof count === "number" && count > 0 && (
-        <span className="font-mono text-[11px] text-fg-3">{count}</span>
       )}
     </div>
   );
