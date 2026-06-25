@@ -156,16 +156,35 @@ export function useRoomTimeline(client: MatrixClient, roomId: string) {
         refreshNow();
       });
     };
-    const onTimeline = (_ev: MatrixEvent, r?: Room) => {
-      if (r?.roomId === roomId) refresh();
+    // m.replace 이벤트는 visibleEvents에서 필터되므로 events 배열 시그니처가
+    // 동일 → commit()이 dedup으로 setEvents 스킵 → groupTimeline 재실행 안 됨
+    // → eventVersion(=contentVersion prop)이 갱신 안 됨 → EventLine 안 그려짐.
+    // 해결: m.replace 감지 시 receiptEpoch을 올려 시그니처를 강제로 흔든다 →
+    // setEvents 통과 → groupTimeline 재실행 → contentVersion 변경 → memo 리렌더.
+    const isReplaceEvent = (ev: MatrixEvent): boolean =>
+      ev.getRelation?.()?.rel_type === "m.replace" ||
+      ev.isRelation?.("m.replace") === true;
+    const onTimeline = (ev: MatrixEvent, r?: Room) => {
+      if (r?.roomId !== roomId) return;
+      if (isReplaceEvent(ev)) receiptEpochRef.current++;
+      refresh();
     };
     const onDecrypted = (ev: MatrixEvent) => {
-      if (ev.getRoomId() === roomId) refresh();
+      if (ev.getRoomId() !== roomId) return;
+      // 복호화된 게 m.replace이면 동일하게 epoch 트리거
+      if (isReplaceEvent(ev)) receiptEpochRef.current++;
+      refresh();
     };
     // E2EE 수정(m.replace)은 복호화 후 비동기로 원본에 합쳐짐(makeReplaced)
-    // → 그 시점에 다시 그려야 최종 수정 내용이 보임 (스트리밍 봇 메시지)
+    // → 그 시점에 다시 그려야 최종 수정 내용이 보임 (스트리밍 봇 메시지).
+    // 주의: SDK는 MatrixEventEvent.Replaced를 localEvent(=내가 보낸 메시지)에만
+    // re-emit (client.ts:2862). 원격 sender 메시지의 m.replace는 이 리스너에
+    // 안 옴 — onTimeline / onDecrypted에서 잡는다.
     const onReplaced = (ev: MatrixEvent) => {
-      if (ev.getRoomId() === roomId) refresh();
+      if (ev.getRoomId() === roomId) {
+        receiptEpochRef.current++;
+        refresh();
+      }
     };
     // 스레드 답글 수 배지 갱신
     const onThreadUpdate = () => refresh();

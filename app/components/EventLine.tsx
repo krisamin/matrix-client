@@ -68,6 +68,7 @@ const EventLineInner = function EventLine({
   onReply,
   onJumpTo,
   highlighted,
+  contentVersion,
 }: {
   ev: MatrixEvent;
   /** 내용 버전 스냅샷 (group.ts eventVersion). 직접 쓰진 않지만 prop으로
@@ -437,7 +438,11 @@ const EventLineInner = function EventLine({
         </p>
       ) : (
         <div className={isPending || isFailed ? "opacity-60" : ""}>
-          <MessageBody client={client} ev={ev} />
+          <MessageBody
+            client={client}
+            ev={ev}
+            contentVersion={contentVersion}
+          />
         </div>
       )}
 

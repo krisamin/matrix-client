@@ -263,9 +263,14 @@ function revealTyping(root: HTMLElement, fromOffset: number): () => void {
 function MessageBodyInner({
   client,
   ev,
+  contentVersion: _contentVersion,
 }: {
   client: MatrixClient;
   ev: MatrixEvent;
+  /** group.ts의 eventVersion(ev) — memo 무효화 트리거.
+   *  SDK가 같은 MatrixEvent 인스턴스를 mutate(복호화/m.replace/redaction)해도
+   *  ev 참조가 같아서 memo가 스킵하던 문제 해결. 실제 값은 안 쓰고 prop 변화만 신호. */
+  contentVersion: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const content = ev.getContent();
