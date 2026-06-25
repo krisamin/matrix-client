@@ -63,18 +63,20 @@ function AvatarInner({
     };
   }, [client, mxcUrl, size]);
 
-  const borderRadius = shape === "round" ? "9999px" : "6px";
+  const borderRadius = shape === "round" ? "9999px" : size >= 32 ? "8px" : "5px";
 
   if (!url) {
     return (
       <span
         aria-hidden
-        className="flex shrink-0 select-none items-center justify-center bg-bg-3 font-semibold text-fg-2"
+        className="flex shrink-0 select-none items-center justify-center bg-bg-3 font-semibold text-fg-1"
         style={{
           width: size,
           height: size,
           borderRadius,
-          fontSize: Math.max(8, Math.round(size * 0.45)),
+          // 더 크게: 16px Avatar에서 11px(0.66) ≈ 가시성 확보.
+          fontSize: Math.max(10, Math.round(size * 0.55)),
+          lineHeight: 1,
         }}
       >
         {(name?.[0] ?? "?").toUpperCase()}
