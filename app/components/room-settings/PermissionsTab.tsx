@@ -7,6 +7,7 @@ import {
   setUserPowerLevel,
 } from "../../lib/matrix";
 import { SectionHeader, TextInput } from "../Form";
+import { FormError } from "../FormError";
 import { ROLE_LEVELS, levelToRole } from "./_shared";
 
 /* ──────────── 권한 탭: 역할 + 기본 액션 PL + 이벤트별 PL (고급) ──────────── */
@@ -154,9 +155,9 @@ export function PermissionsTab({
           />
         </div>
         {error && (
-          <p className="border-t border-line px-4 py-2.5 text-[12px] text-red-400">
-            {error}
-          </p>
+          <div className="border-t border-line">
+            <FormError>{error}</FormError>
+          </div>
         )}
       </div>
       {/* 외곽 푸터 — DefaultPLEditor의 dirty/busy/error/save를 끌어올려 렌더.

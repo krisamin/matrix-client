@@ -5,6 +5,7 @@ import { useT } from "../lib/i18n";
 import { getMyProfile, setMyAvatar, setMyDisplayName } from "../lib/matrix";
 import { Avatar } from "./Avatar";
 import { Field, FieldGroup, TextInput } from "./Form";
+import { FormError } from "./FormError";
 import { Modal, ModalFooter, ModalHeader } from "./Modal";
 
 /** 내 프로필 편집 모달. */
@@ -142,9 +143,7 @@ export function ProfileEditModal({
                 placeholder={localpart}
               />
             </Field>
-            {error && (
-              <p className="px-4 py-2.5 text-[12px] text-red-400">{error}</p>
-            )}
+            <FormError>{error}</FormError>
           </FieldGroup>
 
           <ModalFooter

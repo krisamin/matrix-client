@@ -18,6 +18,7 @@ import {
   setRoomJoinRule,
 } from "../../lib/matrix";
 import { TextInput } from "../Form";
+import { FormError } from "../FormError";
 import { Footer, Row } from "./_shared";
 
 /* ──────────── 접근 탭: alias·directory·join_rule·guest·history ──────────── */
@@ -202,9 +203,7 @@ export function AccessTab({
               <option value="world_readable">{t("hist.worldReadable")}</option>
             </select>
           </Row>
-          {error && (
-            <p className="px-4 py-2.5 text-[12px] text-red-400">{error}</p>
-          )}
+          <FormError>{error}</FormError>
         </div>
       </div>
       <Footer busy={busy} dirty={dirty} onCancel={onClose} onSave={save} />

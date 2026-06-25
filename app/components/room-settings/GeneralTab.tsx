@@ -8,6 +8,7 @@ import {
   setRoomNameAndTopic,
 } from "../../lib/matrix";
 import { RoomAvatar } from "../Avatar";
+import { FormError } from "../FormError";
 import { Footer, Row } from "./_shared";
 
 /* ──────────── 일반 탭: 이름·주제·아바타 ──────────── */
@@ -154,9 +155,7 @@ export function GeneralTab({
               className="flex-1 bg-transparent py-2.5 pl-3 pr-4 text-[13px] text-fg-0 outline-none placeholder:text-fg-3 disabled:opacity-50"
             />
           </Row>
-          {error && (
-            <p className="px-4 py-2.5 text-[12px] text-red-400">{error}</p>
-          )}
+          <FormError>{error}</FormError>
         </div>
       </div>
       <Footer busy={busy} dirty={dirty} onCancel={onClose} onSave={save} />

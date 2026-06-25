@@ -10,6 +10,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useT } from "../lib/i18n";
 import { createGroupRoom, createSpace, getJoinedSpaces } from "../lib/matrix";
 import { Field, FieldGroup, SectionHeader, Select, TextInput } from "./Form";
+import { FormError } from "./FormError";
 import { Modal, ModalFooter, ModalHeader } from "./Modal";
 
 export type RoomCreateKind = "room" | "space";
@@ -276,9 +277,7 @@ export function RoomCreateForm({
           </FieldGroup>
         )}
 
-        {error && (
-          <p className="px-4 py-2.5 text-[12px] text-red-400">{error}</p>
-        )}
+        <FormError>{error}</FormError>
       </div>
 
       <ModalFooter

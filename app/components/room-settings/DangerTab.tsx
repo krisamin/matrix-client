@@ -9,6 +9,7 @@ import {
   unbanMember,
 } from "../../lib/matrix";
 import { SectionHeader } from "../Form";
+import { FormError } from "../FormError";
 import { InlineSpinner } from "../InlineSpinner";
 
 /* ──────────── 위험 탭: 강퇴/추방/추방 해제 ──────────── */
@@ -151,9 +152,9 @@ export function DangerTab({
           )}
         </div>
         {error && (
-          <p className="border-t border-line px-4 py-2.5 text-[12px] text-red-400">
-            {error}
-          </p>
+          <div className="border-t border-line">
+            <FormError>{error}</FormError>
+          </div>
         )}
       </div>
       <div className="flex border-t border-line">
