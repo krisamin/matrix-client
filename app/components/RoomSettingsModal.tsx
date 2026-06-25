@@ -1,4 +1,4 @@
-import { Ban, ShieldOff, Upload, UserMinus } from "lucide-react";
+import { Ban, ShieldOff, UserMinus } from "lucide-react";
 import type {
   GuestAccess,
   HistoryVisibility,
@@ -7,7 +7,7 @@ import type {
   Room,
   Visibility,
 } from "matrix-js-sdk";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useT } from "../lib/i18n";
 import {
   banMember,
@@ -15,29 +15,18 @@ import {
   getRoomDirectoryVisibility,
   getRoomPowerLevels,
   kickMember,
-  setRoomAvatar,
   setRoomCanonicalAlias,
   setRoomDirectoryVisibility,
   setRoomGuestAccess,
   setRoomHistoryVisibility,
   setRoomJoinRule,
-  setRoomNameAndTopic,
   setUserPowerLevel,
   unbanMember,
 } from "../lib/matrix";
-import { RoomAvatar } from "./Avatar";
 import { SectionHeader, TextInput } from "./Form";
 import { InlineSpinner } from "./InlineSpinner";
-
-type Tab = "general" | "access" | "permissions" | "danger";
-
-// 역할 ↔ PL 매핑 (Element 관례)
-const ROLE_LEVELS = { 멤버: 0, 모더레이터: 50, 관리자: 100 } as const;
-function levelToRole(lvl: number): string {
-  if (lvl >= 100) return "admin";
-  if (lvl >= 50) return "mod";
-  return "member";
-}
+import { GeneralTab } from "./room-settings/GeneralTab";
+import { type Tab, Footer, Row, ROLE_LEVELS, levelToRole } from "./room-settings/_shared";
 
 /** 방 설정 모달 — 일반/접근/권한/위험 탭 (B-final 톤). */
 export function RoomSettingsModal({
@@ -136,226 +125,6 @@ export function RoomSettingsModal({
         </section>
       </div>
     </div>
-  );
-}
-
-/* ──────────── 공용 row 컴포넌트 ──────────── */
-
-function Row({
-  label,
-  children,
-  description,
-}: {
-  label: string;
-  children: React.ReactNode;
-  description?: string;
-}) {
-  // 라벨/입력이 자체 padding으로 row를 꽉 채우는 패턴 (B-final).
-  // children에 들어가는 input/select는 Form.tsx의 TextInput/Select처럼
-  // 자체 'py-2.5 pl-3 pr-5'를 가져야 함.
-  return (
-    <label className="flex flex-col">
-      <div className="flex items-stretch">
-        <span className="flex w-24 shrink-0 items-center pl-5 text-[12px] text-fg-3">
-          {label}
-        </span>
-        <div className="flex flex-1 items-stretch">{children}</div>
-      </div>
-      {description && (
-        <span className="px-5 pb-2 pl-[6.75rem] text-[11px] text-fg-3">
-          {description}
-        </span>
-      )}
-    </label>
-  );
-}
-
-function Footer({
-  busy,
-  dirty,
-  onCancel,
-  onSave,
-  saveLabel,
-}: {
-  busy: boolean;
-  dirty: boolean;
-  onCancel: () => void;
-  onSave: () => void;
-  saveLabel?: string;
-}) {
-  const t = useT();
-  return (
-    <div className="flex border-t border-line">
-      <button
-        type="button"
-        onClick={onCancel}
-        className="flex-1 border-r border-line py-2.5 text-[13px] text-fg-2 hover:bg-bg-2 hover:text-fg-0"
-      >
-        {t("common.cancel")}
-      </button>
-      <button
-        type="button"
-        onClick={onSave}
-        disabled={busy || !dirty}
-        className="flex-1 bg-bg-2 py-2.5 text-[13px] font-medium text-fg-0 hover:bg-bg-3 disabled:opacity-50"
-      >
-        {busy ? t("common.saving") : (saveLabel ?? t("common.save"))}
-      </button>
-    </div>
-  );
-}
-
-/* ──────────── 일반 탭: 이름·주제·아바타 ──────────── */
-
-function GeneralTab({
-  client,
-  room,
-  onClose,
-}: {
-  client: MatrixClient;
-  room: Room;
-  onClose: () => void;
-}) {
-  const t = useT();
-  const initialName = room.name;
-  const initialTopic =
-    room.currentState.getStateEvents("m.room.topic", "")?.getContent().topic ??
-    "";
-  const [name, setName] = useState(initialName);
-  const [topic, setTopic] = useState(initialTopic);
-  const [pendingFile, setPendingFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
-
-  const canName = canSendStateEvent(room, client, "m.room.name");
-  const canTopic = canSendStateEvent(room, client, "m.room.topic");
-  const canAvatar = canSendStateEvent(room, client, "m.room.avatar");
-
-  // 새로 고른 파일의 로컬 미리보기 (objectURL) — ProfileEdit 패턴 그대로
-  useEffect(() => {
-    if (!pendingFile) {
-      setPreviewUrl(null);
-      return;
-    }
-    const url = URL.createObjectURL(pendingFile);
-    setPreviewUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [pendingFile]);
-
-  function pickFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    if (!f.type.startsWith("image/")) {
-      setError(t("roomSettings.imageOnly"));
-      return;
-    }
-    setError(null);
-    setPendingFile(f);
-  }
-
-  const dirty =
-    name.trim() !== initialName ||
-    topic !== initialTopic ||
-    pendingFile !== null;
-
-  async function save() {
-    if (busy || !dirty) return;
-    setBusy(true);
-    setError(null);
-    try {
-      const changes: { name?: string; topic?: string } = {};
-      if (name.trim() !== initialName) changes.name = name.trim();
-      if (topic !== initialTopic) changes.topic = topic;
-      if (changes.name || changes.topic) {
-        await setRoomNameAndTopic(client, room.roomId, changes);
-      }
-      if (pendingFile) {
-        const up = await client.uploadContent(pendingFile, {
-          type: pendingFile.type,
-        });
-        await setRoomAvatar(client, room.roomId, up.content_uri);
-        setPendingFile(null);
-      }
-      onClose();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-      setBusy(false);
-    }
-  }
-
-  return (
-    <>
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        {/* 아바타 영역 — ProfileEditModal과 동일한 헤더 띠 톤.
-         *  현재 방 아바타가 즉시 보이고 (RoomAvatar는 mxc 자동 해석),
-         *  클릭/호버 Upload 오버레이로 이미지 변경. 새 파일 고르면 로컬 미리보기. */}
-        <div className="flex flex-col items-center gap-2 border-b border-line bg-bg-2/30 px-5 py-5">
-          <button
-            type="button"
-            className="group relative rounded-md disabled:cursor-not-allowed"
-            onClick={() => fileRef.current?.click()}
-            disabled={!canAvatar}
-            title={t(
-              canAvatar
-                ? "roomSettings.changeAvatar"
-                : "roomSettings.noPermission",
-            )}
-          >
-            {previewUrl ? (
-              <img
-                src={previewUrl}
-                alt="새 아바타 미리보기"
-                className="h-20 w-20 rounded-md object-cover"
-              />
-            ) : (
-              <RoomAvatar client={client} room={room} size={80} />
-            )}
-            {canAvatar && (
-              <span className="absolute inset-0 flex items-center justify-center rounded-md bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
-                <Upload className="h-5 w-5 text-white" />
-              </span>
-            )}
-          </button>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={pickFile}
-          />
-          <span className="font-mono text-[11px] text-fg-3">{room.roomId}</span>
-        </div>
-
-        {/* 필드 — divide-y row */}
-        <div className="flex flex-col divide-y divide-line">
-          <Row label={t("roomSettings.field.name")}>
-            <input
-              type="text"
-              value={name}
-              disabled={!canName}
-              onChange={(e) => setName(e.target.value)}
-              className="flex-1 bg-transparent py-2.5 pl-3 pr-5 text-[13px] text-fg-0 outline-none placeholder:text-fg-3 disabled:opacity-50"
-            />
-          </Row>
-          <Row label={t("roomSettings.field.topic")}>
-            <input
-              type="text"
-              value={topic}
-              disabled={!canTopic}
-              onChange={(e) => setTopic(e.target.value)}
-              placeholder={t("roomSettings.topic.placeholder")}
-              className="flex-1 bg-transparent py-2.5 pl-3 pr-5 text-[13px] text-fg-0 outline-none placeholder:text-fg-3 disabled:opacity-50"
-            />
-          </Row>
-          {error && (
-            <p className="px-5 py-2.5 text-[12px] text-red-400">{error}</p>
-          )}
-        </div>
-      </div>
-      <Footer busy={busy} dirty={dirty} onCancel={onClose} onSave={save} />
-    </>
   );
 }
 
