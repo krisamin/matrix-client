@@ -2,8 +2,6 @@ import {
   ArrowUpDown,
   CalendarClock,
   Check,
-  ChevronDown,
-  ChevronRight,
   FolderPlus,
   Hash,
   MessageSquareText,
@@ -18,13 +16,13 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { useRooms } from "../hooks/useRooms";
 import { roomPath } from "../lib/format";
-import { useI18n, useT } from "../lib/i18n";
+import { useI18n } from "../lib/i18n";
 import { getMyProfile, type MyProfile, resetClient } from "../lib/matrix";
 import { saveRoomSort } from "../lib/room-sort";
 import { clearSession } from "../lib/session";
-import { buildRoomTree, type SpaceNode } from "../lib/spaces";
+import { buildRoomTree } from "../lib/spaces";
 import { AppSettingsModal } from "./AppSettingsModal";
-import { Avatar, RoomAvatar } from "./Avatar";
+import { Avatar } from "./Avatar";
 import { DelayedMessagesModal } from "./DelayedMessagesModal";
 import { EmptyState } from "./EmptyState";
 import { MenuItem } from "./Form";

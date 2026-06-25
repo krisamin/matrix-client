@@ -202,11 +202,7 @@ export const RoomNode = memo(function RoomNodeInner({
         {/* Avatar 자리 — hasThreads면 row hover/펼침 시 chevron으로 교체.
             overlay 대신 conditional render → 배경 hover 색 충돌 없음. */}
         <div className="relative flex shrink-0 items-center">
-          <span
-            className={
-              hasThreads ? "group-hover/row:invisible" : ""
-            }
-          >
+          <span className={hasThreads ? "group-hover/row:invisible" : ""}>
             <RoomAvatar
               client={client}
               room={room}
