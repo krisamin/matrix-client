@@ -1,0 +1,23 @@
+# Vite dev 서버용 이미지 — HMR + bind mount 소스로 즉시 반영.
+# 운영 이미지는 루트 Dockerfile (nginx static serve) 참고.
+
+FROM node:20-alpine
+
+WORKDIR /app
+
+# pnpm via corepack — 운영 Dockerfile과 동일 버전 유지
+RUN corepack enable && corepack prepare pnpm@10 --activate
+
+# 의존성 먼저 (소스보다 덜 바뀜 → 캐시 적중률 ↑)
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
+
+# 나머지 소스 (compose에서 bind mount로 덮어쓰지만, COPY가 없으면 첫 빌드 시
+# 컨테이너가 빈 디렉터리로 시작해서 react-router typegen이 실패)
+COPY . .
+
+EXPOSE 5173
+
+# HOST=0.0.0.0이 없으면 컨테이너 밖에서 접근 못 함. compose env로도 전달하지만
+# 디폴트도 박아두면 docker run 직접 실행 케이스도 동작.
+CMD ["pnpm", "run", "dev", "--host", "0.0.0.0"]

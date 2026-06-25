@@ -1,0 +1,15 @@
+# 운영용 정적 빌드(=GHCR 이미지와 동일 구조). 로컬에서 운영 동작 확인할 때만.
+#
+#   docker compose -f docker-compose.prod.yml up --build
+#
+# Exposes the SPA at http://localhost:8080. The bundled image is a static
+# nginx serve of the Vite build. Configure the homeserver in the login
+# screen at runtime (default URL is hardcoded in app/routes/login.tsx,
+# falling back to the user's last-used homeserver from localStorage).
+services:
+  matrix-client:
+    build: .
+    image: matrix-client:local
+    ports:
+      - "8080:80"
+    restart: unless-stopped

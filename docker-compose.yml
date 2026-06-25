@@ -1,15 +1,29 @@
-# Local development with Docker.
+# 개발용 기본 compose. 코드 수정 → Vite HMR로 즉시 반영.
+# 외부엔 SPA 포트 하나만 노출 (52836).
 #
 #   docker compose up --build
 #
-# Exposes the SPA at http://localhost:8080. The bundled image is a static
-# build; configure the homeserver in the login screen at runtime (the
-# default URL is hardcoded in app/routes/login.tsx, falling back to the
-# user's last-used homeserver from localStorage).
+# 운영 동작 확인은 docker-compose.prod.yml 사용.
+
 services:
   matrix-client:
-    build: .
-    image: matrix-client:local
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
     ports:
-      - "8080:80"
+      # 호스트 52836 → 컨테이너 5173 (Vite dev 기본 포트).
+      - "52836:5173"
+    environment:
+      HOST: 0.0.0.0
+      PORT: 5173
+    volumes:
+      # 소스 bind mount — patch 즉시 반영
+      - ./app:/app/app
+      - ./public:/app/public
+      - ./vite.config.ts:/app/vite.config.ts:ro
+      - ./tsconfig.json:/app/tsconfig.json:ro
+      - ./react-router.config.ts:/app/react-router.config.ts:ro
+      - ./biome.json:/app/biome.json:ro
+      # node_modules는 컨테이너 거 그대로 사용 (호스트 native 충돌 방지)
+      - /app/node_modules
     restart: unless-stopped
