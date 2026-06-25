@@ -169,9 +169,10 @@ textarea:focus-visible {
   color: var(--color-fg-0);
 }
 .tree-children {
-  /* 부모 row padding-left(6) + Avatar 절반(8) = 14px → Avatar 정중앙 정렬 */
-  margin-left: 14px;
-  padding-left: 6px;
+  /* Avatar 중앙(padding 6 + 16/2 = 14)에 border-left(1px) 정렬:
+     margin-left 13.5px가 이상적이지만 정수 픽셀이라 13px로 0.5px 보정. */
+  margin-left: 13px;
+  padding-left: 7px;
   border-left: 1px solid var(--color-line);
 }
 

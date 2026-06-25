@@ -63,7 +63,7 @@ function AvatarInner({
     };
   }, [client, mxcUrl, size]);
 
-  const borderRadius = shape === "round" ? "9999px" : "4px";
+  const borderRadius = shape === "round" ? "9999px" : "6px";
 
   if (!url) {
     return (
