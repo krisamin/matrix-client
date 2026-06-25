@@ -10,7 +10,7 @@ export function SectionLabel({
   count?: number;
 }) {
   return (
-    <div className="mt-3 flex items-center gap-1.5 px-3 pb-1 first:mt-0">
+    <div className="mt-3 flex items-center gap-1.5 px-1.5 pb-1 first:mt-0">
       <span className="text-[11px] font-semibold uppercase tracking-wider text-fg-3">
         {children}
       </span>

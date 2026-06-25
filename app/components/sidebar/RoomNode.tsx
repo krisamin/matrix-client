@@ -201,7 +201,7 @@ export const RoomNode = memo(function RoomNodeInner({
       >
         {/* Avatar 자리 — hasThreads면 hover 시 chevron overlay (Avatar 위에),
             클릭은 toggle. 평소엔 Avatar만 보임. */}
-        <div className="relative shrink-0">
+        <div className="relative flex shrink-0 items-center">
           <RoomAvatar
             client={client}
             room={room}
@@ -211,11 +211,7 @@ export const RoomNode = memo(function RoomNodeInner({
           {hasThreads && (
             <button
               type="button"
-              className={`absolute inset-0 flex items-center justify-center bg-bg-2 text-fg-1 ${
-                showChildren
-                  ? "opacity-100"
-                  : "opacity-0 group-hover/row:opacity-100"
-              }`}
+              className="absolute inset-0 flex items-center justify-center bg-bg-2 text-fg-1 opacity-0 group-hover/row:opacity-100"
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();

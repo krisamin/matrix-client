@@ -169,7 +169,8 @@ textarea:focus-visible {
   color: var(--color-fg-0);
 }
 .tree-children {
-  margin-left: 11px;
+  /* 부모 row padding-left(6) + Avatar 절반(8) = 14px → Avatar 정중앙 정렬 */
+  margin-left: 14px;
   padding-left: 6px;
   border-left: 1px solid var(--color-line);
 }

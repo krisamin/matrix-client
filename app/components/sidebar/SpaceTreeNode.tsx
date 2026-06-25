@@ -39,11 +39,7 @@ export function SpaceTreeNode({
           <RoomAvatar client={client} room={node.space} size={16} />
           <button
             type="button"
-            className={`absolute inset-0 flex items-center justify-center bg-bg-2 text-fg-1 ${
-              expanded
-                ? "opacity-100"
-                : "opacity-0 group-hover/row:opacity-100"
-            }`}
+            className="absolute inset-0 flex items-center justify-center bg-bg-2 text-fg-1 opacity-0 group-hover/row:opacity-100"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
