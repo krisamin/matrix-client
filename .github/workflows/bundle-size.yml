@@ -1,0 +1,60 @@
+name: Bundle Size
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+# 빌드된 client 청크 크기를 측정해 PR에 코멘트.
+# Lighthouse는 OIDC/Matrix 로그인 흐름에서 무의미하니 우선 정적 자산 크기만 추적.
+jobs:
+  size:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm run build
+
+      - name: Measure chunks
+        id: m
+        run: |
+          set -euo pipefail
+          cd build/client/assets
+          # 가장 큰 청크 top 10 + 총합
+          {
+            echo "## 📦 Bundle size report"
+            echo ""
+            echo "| chunk | size | gzip |"
+            echo "|---|---:|---:|"
+            for f in $(ls -1S *.js | head -10); do
+              size_kb=$(du -b "$f" | awk '{printf "%.1f", $1/1024}')
+              gz_kb=$(gzip -c "$f" | wc -c | awk '{printf "%.1f", $1/1024}')
+              echo "| $f | ${size_kb} KB | ${gz_kb} KB |"
+            done
+            echo ""
+            total=$(du -b *.js | awk 'BEGIN{s=0}{s+=$1}END{printf "%.1f", s/1024}')
+            total_gz=$(cat *.js | gzip -c | wc -c | awk '{printf "%.1f", $1/1024}')
+            echo "**Total JS**: ${total} KB / ${total_gz} KB gzip"
+          } > /tmp/report.md
+          cat /tmp/report.md
+
+      - name: Comment PR
+        if: github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          path: /tmp/report.md
