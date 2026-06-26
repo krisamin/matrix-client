@@ -30,6 +30,7 @@ export const ja: Record<keyof typeof ko, string> = {
   "common.create": "作成",
   "common.creating": "作成中…",
   "common.close": "閉じる",
+  "common.back": "戻る",
   "common.confirm": "確定",
   "common.delete": "削除",
   "common.copy": "コピー",

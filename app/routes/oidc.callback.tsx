@@ -61,7 +61,7 @@ export default function OidcCallback() {
   }, [navigate]);
 
   return (
-    <main className="flex min-h-screen items-center justify-center">
+    <main className="flex min-h-dvh items-center justify-center">
       {error ? (
         <div className="flex flex-col gap-2 text-center">
           <p className="text-red-500">{error}</p>

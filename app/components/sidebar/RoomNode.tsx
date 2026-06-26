@@ -10,11 +10,13 @@ import {
   EventTimeline,
   FeatureSupport,
   NotificationCountType,
+  RoomEvent,
   Thread,
   ThreadEvent,
 } from "matrix-js-sdk";
 import { memo, useEffect, useState } from "react";
 import { Link } from "react-router";
+import { useIsMobile } from "../../hooks/useMediaQuery";
 import { roomPath, threadPath } from "../../lib/format";
 import { useT } from "../../lib/i18n";
 import {
@@ -43,6 +45,9 @@ export const RoomNode = memo(function RoomNodeInner({
   showPresence?: boolean;
 }) {
   const t = useT();
+  const isMobile = useIsMobile();
+  // 모바일에선 룸 아바타를 키워 가독성 ↑ (PC 16px / 모바일 22px)
+  const avatarSize = isMobile ? 22 : 16;
   const [, force] = useState(0);
   // hasMoreThreads는 명시 state로 — fetchRoomThreads 완료 후, paginate 후
   // 매 시점에 동기화. SDK timelineSet이 처음 빈 배열이라 token 추출이
@@ -99,6 +104,23 @@ export const RoomNode = memo(function RoomNodeInner({
       room.off(ThreadEvent.Delete, bump);
     };
   }, [room, active]);
+
+  // 읽음 상태(안 읽음 카운트) 실시간 갱신 — 이 방의 Receipt / UnreadNotifications
+  // 변화 시 force 리렌더. RoomNode는 memo라서 room 객체 참조가 그대로면(useRooms가
+  // 정렬 배열만 새로 만들 뿐 room 인스턴스는 동일) 내부 unread count가 줄어도
+  // 리렌더가 안 돼 사이드바 배지 숫자가 안 사라졌다. 방 진입 → receipt 전송 →
+  // 여기서 잡아 즉시 배지 갱신.
+  useEffect(() => {
+    const bump = () => force((n) => n + 1);
+    room.on(RoomEvent.Receipt, bump);
+    room.on(RoomEvent.UnreadNotifications, bump);
+    room.on(RoomEvent.Timeline, bump);
+    return () => {
+      room.off(RoomEvent.Receipt, bump);
+      room.off(RoomEvent.UnreadNotifications, bump);
+      room.off(RoomEvent.Timeline, bump);
+    };
+  }, [room]);
   // Thread 리스트 source 분기:
   //  - 서버가 MSC3856 (/v1/rooms/{roomId}/threads) 지원 → threadsTimelineSets
   //    [0]만 표시 (Element와 동일, 옛 메시지 스크롤로 thread가 임의 추가
@@ -194,35 +216,13 @@ export const RoomNode = memo(function RoomNodeInner({
           setMenu({ x: e.clientX, y: e.clientY });
         }}
       >
-        {/* Avatar 자리 — hasThreads면 row hover/펼침 시 chevron으로 교체.
-            overlay 대신 conditional render → 배경 hover 색 충돌 없음. */}
-        <div className="relative flex shrink-0 items-center">
-          <span className={hasThreads ? "group-hover/row:invisible" : ""}>
-            <RoomAvatar
-              client={client}
-              room={room}
-              size={16}
-              showPresence={showPresence}
-            />
-          </span>
-          {hasThreads && (
-            <button
-              type="button"
-              className="absolute inset-0 hidden items-center justify-center text-fg-1 group-hover/row:flex"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setExpanded((v) => !v);
-              }}
-              title={t(showChildren ? "common.collapse" : "common.expand")}
-            >
-              {showChildren ? (
-                <ChevronDown className="h-3.5 w-3.5" />
-              ) : (
-                <ChevronRight className="h-3.5 w-3.5" />
-              )}
-            </button>
-          )}
+        <div className="flex shrink-0 items-center">
+          <RoomAvatar
+            client={client}
+            room={room}
+            size={avatarSize}
+            showPresence={showPresence}
+          />
         </div>
         <Link
           to={roomPath(room.roomId)}
@@ -245,6 +245,27 @@ export const RoomNode = memo(function RoomNodeInner({
             </span>
           )}
         </Link>
+        {/* 우측 펼침 chevron — 데스크탑/모바일 공통. hasThreads일 때만 표시.
+            높이는 avatar(16px)와 맞춰 행이 커지지 않게. 터치 hit은 -m으로 확장. */}
+        {hasThreads && (
+          <button
+            type="button"
+            className="flex h-4 w-4 shrink-0 items-center justify-center text-fg-2 hover:text-fg-0"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setExpanded((v) => !v);
+            }}
+            aria-label={t(showChildren ? "common.collapse" : "common.expand")}
+            title={t(showChildren ? "common.collapse" : "common.expand")}
+          >
+            {showChildren ? (
+              <ChevronDown className="h-3 w-3" />
+            ) : (
+              <ChevronRight className="h-3 w-3" />
+            )}
+          </button>
+        )}
       </div>
       {menu && (
         <RoomContextMenu
@@ -279,8 +300,17 @@ export const RoomNode = memo(function RoomNodeInner({
                 to={threadPath(room.roomId, thread.id, true)}
                 className={`tree-row ${activeThreadId === thread.id ? "active" : ""}`}
               >
-                <span className="flex h-4 w-4 shrink-0 items-center justify-center">
-                  <MessageSquareText className="h-3.5 w-3.5 text-fg-3" />
+                <span
+                  className="flex shrink-0 items-center justify-center"
+                  style={{ width: avatarSize, height: avatarSize }}
+                >
+                  <MessageSquareText
+                    className="text-fg-3"
+                    style={{
+                      width: avatarSize * 0.78,
+                      height: avatarSize * 0.78,
+                    }}
+                  />
                 </span>
                 <span
                   className={`min-w-0 flex-1 truncate ${tUnread > 0 && !muted ? "font-semibold text-fg-0" : ""}`}
@@ -304,12 +334,19 @@ export const RoomNode = memo(function RoomNodeInner({
               disabled={loadingMoreThreads}
               className="tree-row text-fg-3 hover:text-fg-1 disabled:opacity-50"
             >
-              <span className="flex h-4 w-4 shrink-0 items-center justify-center">
+              <span
+                className="flex shrink-0 items-center justify-center"
+                style={{ width: avatarSize, height: avatarSize }}
+              >
                 <ChevronDown
-                  className={`h-3.5 w-3.5 ${loadingMoreThreads ? "animate-pulse" : ""}`}
+                  className={loadingMoreThreads ? "animate-pulse" : ""}
+                  style={{
+                    width: avatarSize * 0.78,
+                    height: avatarSize * 0.78,
+                  }}
                 />
               </span>
-              <span className="min-w-0 flex-1 truncate text-[12px]">
+              <span className="min-w-0 flex-1 truncate text-[12px] max-md:text-[14px]">
                 {loadingMoreThreads
                   ? t("thread.loading")
                   : t("thread.loadMore")}

@@ -1,4 +1,5 @@
 import {
+  ArrowLeft,
   Check,
   Copy,
   Lock,
@@ -11,6 +12,7 @@ import {
 import type { MatrixClient, Room, RoomMember } from "matrix-js-sdk";
 import { RoomMemberEvent, RoomStateEvent } from "matrix-js-sdk";
 import { memo, useEffect, useMemo, useState } from "react";
+import { useIsMobile } from "../hooks/useMediaQuery";
 import { looksLikeUserId, useUserSearch } from "../hooks/useUserSearch";
 import { useT } from "../lib/i18n";
 import { getDmUserId } from "../lib/matrix";
@@ -86,6 +88,7 @@ export function RoomInfoPane({
   onLeft: () => void;
 }) {
   const t = useT();
+  const isMobile = useIsMobile();
   const [, force] = useState(0);
   const [copied, setCopied] = useState(false);
   // 초대 폼 상태
@@ -190,22 +193,32 @@ export function RoomInfoPane({
   }
 
   return (
-    <section className="flex w-[340px] shrink-0 flex-col border-l border-line">
+    <section className="flex w-full shrink-0 flex-col md:w-[340px] md:border-l md:border-line">
       <PaneHeader
+        leading={
+          isMobile ? (
+            <PaneHeaderButton
+              icon={ArrowLeft}
+              title={t("common.back")}
+              onClick={onClose}
+            />
+          ) : undefined
+        }
         actions={
           <>
             <PaneHeaderButton
+              icon={Settings}
               title={t("roomInfo.action.settings")}
               onClick={() => setSettingsOpen(true)}
-            >
-              <Settings className="h-[15px] w-[15px]" />
-            </PaneHeaderButton>
-            <PaneHeaderButton
-              title={t("roomInfo.action.close")}
-              onClick={onClose}
-            >
-              <X className="h-[15px] w-[15px]" />
-            </PaneHeaderButton>
+            />
+            {/* 닫기 — 데스크탑 분할에선 우측 X. 모바일은 leading ←로 대체. */}
+            {!isMobile && (
+              <PaneHeaderButton
+                icon={X}
+                title={t("roomInfo.action.close")}
+                onClick={onClose}
+              />
+            )}
           </>
         }
       >

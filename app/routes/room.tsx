@@ -1,4 +1,4 @@
-import { Lock, Search, Users } from "lucide-react";
+import { ArrowLeft, Lock, Search, Users } from "lucide-react";
 import {
   EventType,
   type MatrixClient,
@@ -23,6 +23,7 @@ import { RoomInfoPane } from "../components/RoomInfoPane";
 import { SearchPane } from "../components/SearchPane";
 import { SpaceView } from "../components/SpaceView";
 import { Timeline, type TimelineHandle } from "../components/Timeline";
+import { useIsMobile } from "../hooks/useMediaQuery";
 import {
   useReadReceipt,
   useRoomTimeline,
@@ -60,6 +61,7 @@ export default function RoomView() {
   }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const { room, events, hasMore, loadingOlder, loadOlder } = useRoomTimeline(
     client,
     roomId!,
@@ -79,6 +81,11 @@ export default function RoomView() {
   const timelineRef = useRef<TimelineHandle>(null);
 
   const threadFull = threadId != null && searchParams.get("full") === "1";
+
+  /** 모바일에서 스레드가 열려있을 때 채팅 페인을 숨길지 여부.
+   *  좁은 화면에선 분할이 불가능 → 스레드만 풀폭으로 보여준다. CSS 미디어 쿼리로
+   *  처리해 데스크탑 결은 완전히 그대로(분할 유지). */
+  const threadOpen = threadId != null;
 
   /** 인용 박스 클릭 → 원문으로 스크롤 + 잠깐 강조.
    *  로드된 범위에 없으면 과거를 더 불러오며 시도 (최대 5페이지).
@@ -157,36 +164,48 @@ export default function RoomView() {
         buildMentionContent(text, mentions) as never,
       );
     }
+    // 전송 직후 무조건 바닥으로 — 위로 올라가있어도 내 메시지는 따라간다.
+    // local echo로 즉시 events에 추가되니 다음 rAF에 마지막 행 인덱스가 잡힘.
+    requestAnimationFrame(() => timelineRef.current?.scrollToBottom());
   }
 
   return (
     <div className="app-pane-row flex min-h-0 min-w-0 flex-1">
-      {/* 채팅 페인 — 스레드 풀 화면일 땐 숨김 */}
+      {/* 채팅 페인 — 스레드 풀 화면(데스크탑) 또는 스레드 열림(모바일)이면 숨김 */}
       {!threadFull && (
         <DropZone
-          className="flex min-w-0 flex-1 flex-col"
+          className={`${threadOpen || sidePane ? "hidden md:flex" : "flex"} min-w-0 flex-1 flex-col`}
           label={room.name}
           onFiles={(files) => uploadRef.current?.(files)}
         >
           <PaneHeader
+            leading={
+              // 모바일 뒤로가기 — 룸 리스트(/)로. 우측 액션 버튼과 동일한 톤.
+              // 데스크탑은 사이드바가 항상 보여 필요 없음.
+              isMobile ? (
+                <PaneHeaderButton
+                  icon={ArrowLeft}
+                  title={t("common.back")}
+                  onClick={() => navigate("/")}
+                />
+              ) : undefined
+            }
             actions={
               <>
                 <PaneHeaderButton
+                  icon={Search}
                   title="메시지 검색"
                   onClick={() =>
                     setSidePane((v) => (v === "search" ? null : "search"))
                   }
-                >
-                  <Search className="h-[15px] w-[15px]" />
-                </PaneHeaderButton>
+                />
                 <PaneHeaderButton
+                  icon={Users}
                   title={`멤버 ${room.getJoinedMemberCount()}명`}
                   onClick={() =>
                     setSidePane((v) => (v === "info" ? null : "info"))
                   }
-                >
-                  <Users className="h-[15px] w-[15px]" />
-                </PaneHeaderButton>
+                />
               </>
             }
           >

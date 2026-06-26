@@ -1,7 +1,13 @@
 import { Bell, KeyRound } from "lucide-react";
 import type { MatrixClient } from "matrix-js-sdk";
 import { useEffect, useState } from "react";
-import { Link, Outlet, useNavigate, useOutletContext } from "react-router";
+import {
+  Link,
+  Outlet,
+  useLocation,
+  useNavigate,
+  useOutletContext,
+} from "react-router";
 import { ConnectionToast } from "../components/ConnectionBanner";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { InlineSpinner } from "../components/InlineSpinner";
@@ -10,6 +16,7 @@ import { QuickSwitcher } from "../components/QuickSwitcher";
 import { ShortcutsModal } from "../components/ShortcutsModal";
 import { Sidebar } from "../components/Sidebar";
 import { Toast, ToastStack } from "../components/Toast";
+import { useKeyboardInset } from "../hooks/useKeyboardInset";
 import { useUnreadBadge } from "../hooks/useUnreadBadge";
 import { useT } from "../lib/i18n";
 import { ensureStarted, getReadyClient } from "../lib/matrix";
@@ -38,6 +45,14 @@ export function useAppContext(): AppContext {
 export default function AppLayout() {
   const t = useT();
   const navigate = useNavigate();
+  // 모바일 가상 키보드 높이를 --keyboard-inset CSS 변수로 발행 → 아래 root
+  // 컨테이너의 paddingBottom으로 들어가 키보드만큼 영역을 줄인다.
+  // (iOS 16.4+ interactive-widget=resizes-content가 먹으면 inset이 거의 0)
+  useKeyboardInset();
+  // 모바일 단일 페인 스택 판정: 방/스레드 라우트면 메인을, 아니면 사이드바를
+  // 풀폭으로. 데스크탑(md+)에선 둘 다 보여 기존 분할 레이아웃 유지.
+  const location = useLocation();
+  const inRoom = location.pathname.startsWith("/room/");
   const [client, setClient] = useState<MatrixClient | null>(null);
   const [verified, setVerified] = useState<boolean | null>(null);
   const [notifPerm, setNotifPerm] = useState(notificationPermission());
@@ -122,7 +137,7 @@ export default function AppLayout() {
 
   if (!client) {
     return (
-      <div className="flex h-screen items-center justify-center">
+      <div className="flex h-dvh items-center justify-center">
         <span className="flex items-center gap-1.5 font-mono text-[12px] text-fg-3">
           <InlineSpinner size="sm" />
           {t("common.loading")}
@@ -132,14 +147,26 @@ export default function AppLayout() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div
+      className="flex h-dvh overflow-hidden"
+      // 키보드가 차지한 만큼 아래쪽 영역을 비워 입력창이 키보드 위로 따라
+      // 올라오게 한다. iOS 16.4+에선 자동 처리돼 변수가 0이라 영향 0.
+      style={{ paddingBottom: "var(--keyboard-inset, 0px)" }}
+    >
       <UnreadBadgeBinder client={client} />
-      <div className="flex w-64 shrink-0 flex-col border-r border-line bg-bg-1">
+      {/* 사이드바 — 데스크탑은 항상 w-64, 모바일은 home(`/`)에서만 풀폭으로 표시.
+          방/스레드 라우트일 땐 모바일에선 숨겨 메인을 풀폭으로 (네이티브 앱 스택). */}
+      <div
+        className={`${inRoom ? "hidden md:flex" : "flex w-full"} md:w-64 shrink-0 flex-col border-r border-line bg-bg-1`}
+      >
         <ErrorBoundary label={t("sidebar.label")} size="pane">
           <Sidebar client={client} />
         </ErrorBoundary>
       </div>
-      <main className="flex min-w-0 flex-1 flex-col">
+      {/* 메인 — 모바일에선 home에서 숨기고 방/스레드에서만 표시(사이드바와 교대). */}
+      <main
+        className={`${inRoom ? "flex" : "hidden md:flex"} min-w-0 flex-1 flex-col`}
+      >
         <ErrorBoundary label={t("main.label")} size="pane">
           <Outlet context={{ client } satisfies AppContext} />
         </ErrorBoundary>

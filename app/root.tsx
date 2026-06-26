@@ -50,7 +50,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <meta charSet="utf-8" />
         <meta
           name="viewport"
-          content="width=device-width, initial-scale=1, viewport-fit=cover"
+          content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content"
         />
         {/* PWA: standalone 앱 외형 (Safari/iOS) */}
         <meta name="apple-mobile-web-app-capable" content="yes" />

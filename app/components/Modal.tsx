@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { useEffect } from "react";
+import { useIsMobile } from "../hooks/useMediaQuery";
 
 /** 모달 백드롭 + 박스 — 모든 모달의 공통 chrome.
  *  - Esc로 닫힘 (onClose 호출)
@@ -8,15 +9,19 @@ import { useEffect } from "react";
  *  - B-final 톤: rounded-md / border-line / bg-bg-1 / shadow-2xl
  *
  *  @param size 폭 프리셋. "sm"=380, "md"=460(기본), "lg"=560, "xl"=720, "full"=커스텀
- *  @param topInset 상단 여백 (vh 단위). 기본 15. RoomSettings처럼 큰 모달은 10.
+ *  @param topInset 상단 여백 (vh 단위, 데스크탑만). 기본 15.
  *  @param fixedHeight true면 모달 높이를 60vh로 고정 — 콘텐츠 변화에도 안
- *    들썩임 (Advanced 토글 같은 동적 펼침에 유용). 기본 false. */
+ *    들썩임 (Advanced 토글 같은 동적 펼침에 유용). 기본 false.
+ *  @param mobileMode 모바일(max-md) 표시 방식.
+ *    - "sheet"(기본): 화면 아래에서 올라오는 바텀시트 — 작은 폼/설정에 자연스러움.
+ *    - "fullscreen": 위아래 꽉 찬 전체화면 — 내용 많은 설정(룸/스페이스)용. */
 export function Modal({
   onClose,
   children,
   size = "md",
   topInset = 15,
   fixedHeight = false,
+  mobileMode = "sheet",
   className = "",
 }: {
   onClose: () => void;
@@ -24,6 +29,7 @@ export function Modal({
   size?: "sm" | "md" | "lg" | "xl" | "full";
   topInset?: number;
   fixedHeight?: boolean;
+  mobileMode?: "sheet" | "fullscreen";
   className?: string;
 }) {
   useEffect(() => {
@@ -33,6 +39,9 @@ export function Modal({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
+
+  // 모바일은 풀스크린/시트라 상단 inset 제거(0). 데스크탑만 topInset 적용.
+  const isMobile = useIsMobile();
 
   const sizeClass =
     size === "sm"
@@ -45,15 +54,28 @@ export function Modal({
             ? "w-[720px]"
             : "";
 
+  // 모바일 정렬: 시트는 하단 정렬(아래서 올라옴), 풀스크린은 stretch.
+  // 데스크탑은 항상 상단 정렬(items-start).
+  const backdropAlign =
+    mobileMode === "fullscreen" ? "max-md:items-stretch" : "max-md:items-end";
+
+  // 모바일 박스 형태:
+  //  - sheet: 가로 꽉 + 상단만 둥근 모서리 + 높이 자연(최대 90vh) + 아래서 슬라이드인
+  //  - fullscreen: 가로/세로 꽉 + 라운드/보더 제거
+  const mobileBox =
+    mobileMode === "fullscreen"
+      ? "max-md:h-full max-md:w-full max-md:rounded-none max-md:border-0"
+      : "max-md:w-full max-md:max-h-[90vh] max-md:rounded-b-none max-md:border-x-0 max-md:border-b-0 max-md:animate-sheet-in";
+
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-black/50"
-      style={{ paddingTop: `${topInset}vh` }}
+      className={`fixed inset-0 z-50 flex items-start justify-center bg-black/50 max-md:p-0 ${backdropAlign}`}
+      style={{ paddingTop: isMobile ? 0 : `${topInset}vh` }}
       onClick={onClose}
       role="presentation"
     >
       <div
-        className={`flex ${fixedHeight ? "h-[60vh]" : "max-h-[80vh]"} flex-col overflow-hidden rounded-md border border-line bg-bg-1 shadow-2xl ${sizeClass} ${className}`}
+        className={`flex ${fixedHeight ? "h-[60vh]" : "max-h-[80vh]"} flex-col overflow-hidden rounded-md border border-line bg-bg-1 shadow-2xl ${mobileBox} ${sizeClass} ${className}`}
         onClick={(e) => e.stopPropagation()}
         role="presentation"
       >

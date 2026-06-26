@@ -1,4 +1,5 @@
 import {
+  ArrowLeft,
   Maximize2,
   MessageSquareText,
   Minimize2,
@@ -14,6 +15,7 @@ import { MessageInput } from "../components/MessageInput";
 import { PaneHeader, PaneHeaderButton } from "../components/PaneHeader";
 import { SearchPane } from "../components/SearchPane";
 import { Timeline, type TimelineHandle } from "../components/Timeline";
+import { useIsMobile } from "../hooks/useMediaQuery";
 import { useReadReceipt } from "../hooks/useRoomTimeline";
 import { useThreadTimeline } from "../hooks/useThreadTimeline";
 import { roomPath } from "../lib/format";
@@ -38,6 +40,7 @@ export default function ThreadView() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const full = searchParams.get("full") === "1";
+  const isMobile = useIsMobile();
 
   const { events, initialising, loadingOlder, loadOlder, hasMore } =
     useThreadTimeline(client, room, threadId!);
@@ -63,10 +66,21 @@ export default function ThreadView() {
         is_falling_back: true,
       },
     } as never);
+    // 전송 직후 바닥 추적 — 룸 send()와 동일 패턴.
+    requestAnimationFrame(() => timelineRef.current?.scrollToBottom());
   }
 
+  /** 닫기/뒤로가기 — 진입 경로에 따라 목적지가 다르다.
+   *  - full=1 (사이드바 트리에서 스레드 직접 진입): 채팅방을 거치지 않았으므로
+   *    뒤로 = 룸 리스트(/)로. (모바일은 채팅방이 스택에 없음)
+   *  - 분할 (채팅 메시지에서 스레드 열기): 뒤로 = 그 채팅방으로.
+   *  데스크탑에선 분할이라 항상 채팅방이 곁에 있어 채팅방으로 닫는 게 자연스럽다. */
   function close() {
-    navigate(roomPath(roomId!));
+    if (isMobile && full) {
+      navigate("/");
+    } else {
+      navigate(roomPath(roomId!));
+    }
   }
 
   /** 검색 결과 클릭 → 해당 답글로 스크롤 + 잠깐 강조
@@ -86,34 +100,49 @@ export default function ThreadView() {
   return (
     <>
       <DropZone
-        className={`flex min-w-0 flex-1 flex-col ${full ? "" : "border-l border-line"}`}
+        className={`${searchOpen ? "hidden md:flex" : "flex"} min-w-0 flex-1 flex-col ${full ? "" : "md:border-l md:border-line"}`}
         label={t("page.thread")}
         onFiles={(files) => uploadRef.current?.(files)}
       >
         <PaneHeader
+          leading={
+            // 모바일: 좌측 뒤로가기 (우측 버튼들과 동일한 PaneHeaderButton 톤).
+            // 데스크탑: 좌측 뒤로가기 없음(분할이라 채팅이 곁에 있음).
+            isMobile ? (
+              <PaneHeaderButton
+                icon={ArrowLeft}
+                title={t("common.back")}
+                onClick={close}
+              />
+            ) : undefined
+          }
           actions={
             <>
               <PaneHeaderButton
+                icon={Search}
                 title={t("thread.search")}
                 onClick={() => setSearchOpen((v) => !v)}
-              >
-                <Search className="h-[15px] w-[15px]" />
-              </PaneHeaderButton>
-              <PaneHeaderButton
-                title={t(full ? "thread.viewSplit" : "thread.viewFull")}
-                onClick={() =>
-                  setSearchParams(full ? {} : { full: "1" }, { replace: true })
-                }
-              >
-                {full ? (
-                  <Minimize2 className="h-[15px] w-[15px]" />
-                ) : (
-                  <Maximize2 className="h-[15px] w-[15px]" />
-                )}
-              </PaneHeaderButton>
-              <PaneHeaderButton title={t("common.close")} onClick={close}>
-                <X className="h-[15px] w-[15px]" />
-              </PaneHeaderButton>
+              />
+              {/* 분할/풀 토글 + 닫기 — 데스크탑 전용. 모바일은 항상 풀이고
+                  뒤로가기(leading)로 닫으므로 숨긴다. */}
+              {!isMobile && (
+                <>
+                  <PaneHeaderButton
+                    icon={full ? Minimize2 : Maximize2}
+                    title={t(full ? "thread.viewSplit" : "thread.viewFull")}
+                    onClick={() =>
+                      setSearchParams(full ? {} : { full: "1" }, {
+                        replace: true,
+                      })
+                    }
+                  />
+                  <PaneHeaderButton
+                    icon={X}
+                    title={t("common.close")}
+                    onClick={close}
+                  />
+                </>
+              )}
             </>
           }
         >

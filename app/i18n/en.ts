@@ -31,6 +31,7 @@ export const en: Record<keyof typeof ko, string> = {
   "common.create": "Create",
   "common.creating": "Creating…",
   "common.close": "Close",
+  "common.back": "Back",
   "common.confirm": "Confirm",
   "common.delete": "Delete",
   "common.copy": "Copy",

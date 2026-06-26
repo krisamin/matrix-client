@@ -24,8 +24,9 @@ import {
   EventShieldColour,
   EventShieldReason,
 } from "matrix-js-sdk/lib/crypto-api";
-import { lazy, memo, Suspense, useState } from "react";
+import { lazy, memo, Suspense, useEffect, useState } from "react";
 import { useEventActions } from "../hooks/useEventActions";
+import { useLongPress } from "../hooks/useLongPress";
 import { useShield } from "../hooks/useShield";
 import { formatFullTime, formatTime } from "../lib/format";
 import { useT } from "../lib/i18n";
@@ -99,6 +100,32 @@ const EventLineInner = function EventLine({
   // 전달 모달 열림 여부
   const [forwarding, setForwarding] = useState(false);
   const [copied, setCopied] = useState(false);
+  // 모바일 long-press 액션바 표시 토글 — hover가 없는 터치 환경에서 데스크탑
+  // hover 메뉴를 대체. 같은 메시지를 다시 long-press하거나 다른 곳 탭하면 닫힘.
+  const [mobileActive, setMobileActive] = useState(false);
+  // 모바일 액션바 열린 상태에서 바깥 탭 → 닫기. capture: true는 자식 onClick보다
+  // 먼저 실행돼 액션 버튼 탭은 그대로 동작(stopPropagation 안 해도 OK).
+  useEffect(() => {
+    if (!mobileActive) return;
+    const onDown = (e: PointerEvent) => {
+      const el = document.getElementById(`ev-${ev.getId()}`);
+      if (el && !el.contains(e.target as Node)) setMobileActive(false);
+    };
+    document.addEventListener("pointerdown", onDown);
+    return () => document.removeEventListener("pointerdown", onDown);
+  }, [mobileActive, ev]);
+  const longPress = useLongPress(() => {
+    // 편집/삭제된 이벤트엔 액션바가 안 뜨므로 long-press도 무시
+    if (editing || ev.isRedacted()) return;
+    // 텍스트 선택 중이면 long-press 액션 무시 (iOS는 본문 long-press가 selection
+    // 핸들을 띄우는데, 그 위에 우리 메뉴까지 띄우면 충돌). 빈 selection은 OK.
+    const sel = typeof window !== "undefined" ? window.getSelection() : null;
+    if (sel && !sel.isCollapsed && sel.toString().length > 0) return;
+    setMobileActive((v) => !v);
+  });
+  // 액션 클릭 시 모바일 액션바 닫기 — 액션 실행 후 메뉴 잔존 방지.
+  // (피커/모달은 자체 anchor를 갖고 있어 닫혀도 그쪽은 독립적으로 유지됨)
+  const closeMobileActive = () => setMobileActive(false);
   // 마운트 시점에 "방금 도착한" 이벤트(5초 이내 / local echo)만 등장 애니메이션.
   // 단 한 이벤트당 최초 1회만 — 가상 스크롤 재마운트 때마다 떠오르는 잔상 방지.
   const [animateIn] = useState(() => {
@@ -206,6 +233,10 @@ const EventLineInner = function EventLine({
   return (
     <div
       id={`ev-${ev.getId()}`}
+      // 모바일 long-press / 데스크탑 우클릭으로 액션바 토글.
+      // ※ message-body / .selectable 안에선 호출부가 stopPropagation으로 막아
+      //    텍스트 선택·복사 기본 동작을 살린다 (app.css 텍스트 선택 규칙과 짝).
+      {...longPress}
       className={`group relative px-5 transition-colors duration-300 hover:bg-bg-2/60 ${
         showHeader ? "pt-3 pb-0.5" : "py-0.5"
       } ${
@@ -216,7 +247,7 @@ const EventLineInner = function EventLine({
         mentioned
           ? "border-l-2 border-amber-400/70 bg-amber-400/[0.06] pl-[18px]"
           : ""
-      }`}
+      } ${mobileActive ? "bg-bg-2/60" : ""}`}
     >
       {/* 그룹 헤더: 발신자 + 시각 (+수정됨) */}
       {showHeader && (
@@ -249,9 +280,16 @@ const EventLineInner = function EventLine({
         <span className="sr-only">{t("msg.edited")}</span>
       )}
 
-      {/* hover 플로팅 액션 툴바 — B-final 톤 (rounded-md, shadow-2xl) */}
+      {/* 액션 툴바 — 데스크탑은 hover/focus-within, 모바일은 long-press 토글.
+          모바일에선 hover 자체가 없어 group-hover가 안 먹지만, focus-within은
+          탭 후에도 잔존해 클릭 한 번이면 액션바가 stuck됨 → hover 가능 환경
+          (마우스)에서만 자동 표시되도록 [@media(hover:hover)] 가드로 한정. */}
       {!editing && !ev.isRedacted() && (
-        <div className="absolute -top-3 right-5 z-10 hidden items-center overflow-hidden rounded-md border border-line bg-bg-1 shadow-2xl group-hover:flex group-focus-within:flex">
+        <div
+          className={`absolute -top-3 right-5 z-10 items-center overflow-hidden rounded-md border border-line bg-bg-1 shadow-2xl [@media(hover:hover)]:group-hover:flex [@media(hover:hover)]:group-focus-within:flex ${
+            mobileActive ? "flex" : "hidden"
+          }`}
+        >
           <button
             type="button"
             className={actionBtn}
@@ -259,6 +297,7 @@ const EventLineInner = function EventLine({
               // rect는 핸들러 안에서 즉시 읽기 — setState 콜백 시점엔 currentTarget이 null
               const rect = e.currentTarget.getBoundingClientRect();
               setPickerAnchor((v) => (v ? null : rect));
+              closeMobileActive();
             }}
             title={t("message.action.react")}
           >
@@ -268,7 +307,10 @@ const EventLineInner = function EventLine({
             <button
               type="button"
               className={actionBtn}
-              onClick={() => onReply(ev)}
+              onClick={() => {
+                onReply(ev);
+                closeMobileActive();
+              }}
               title={t("message.action.reply")}
             >
               <Reply className="h-3.5 w-3.5" />
@@ -278,7 +320,10 @@ const EventLineInner = function EventLine({
             <button
               type="button"
               className={actionBtn}
-              onClick={() => onOpenThread(ev.getId()!)}
+              onClick={() => {
+                onOpenThread(ev.getId()!);
+                closeMobileActive();
+              }}
               title={t("message.action.thread")}
             >
               <MessageSquarePlus className="h-3.5 w-3.5" />
@@ -288,7 +333,10 @@ const EventLineInner = function EventLine({
             <button
               type="button"
               className={actionBtn}
-              onClick={() => setForwarding(true)}
+              onClick={() => {
+                setForwarding(true);
+                closeMobileActive();
+              }}
               title={t("message.action.forward")}
             >
               <Forward className="h-3.5 w-3.5" />
@@ -297,7 +345,10 @@ const EventLineInner = function EventLine({
           <button
             type="button"
             className={actionBtn}
-            onClick={copyMarkdown}
+            onClick={() => {
+              copyMarkdown();
+              closeMobileActive();
+            }}
             title={t(copied ? "common.copied" : "message.action.copyMarkdown")}
           >
             {copied ? (
@@ -310,7 +361,10 @@ const EventLineInner = function EventLine({
             <button
               type="button"
               className={actionBtn}
-              onClick={pin}
+              onClick={() => {
+                pin();
+                closeMobileActive();
+              }}
               title={t(pinned ? "message.action.unpin" : "message.action.pin")}
             >
               {pinned ? (
@@ -324,7 +378,10 @@ const EventLineInner = function EventLine({
             <button
               type="button"
               className={actionBtn}
-              onClick={startEdit}
+              onClick={() => {
+                startEdit();
+                closeMobileActive();
+              }}
               title={t("message.action.edit")}
             >
               <Pencil className="h-3.5 w-3.5" />
@@ -334,7 +391,10 @@ const EventLineInner = function EventLine({
             <button
               type="button"
               className={actionBtn}
-              onClick={remove}
+              onClick={() => {
+                remove();
+                closeMobileActive();
+              }}
               title={t("message.action.delete")}
             >
               <Trash2 className="h-3.5 w-3.5" />

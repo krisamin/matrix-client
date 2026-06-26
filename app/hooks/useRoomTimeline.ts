@@ -270,26 +270,38 @@ export function useReadReceipt(
   client: MatrixClient | null,
   events: MatrixEvent[],
 ): void {
+  // 마지막으로 receipt를 보낸 (방·이벤트) 페어 — 방 전환 시 자동 리셋되도록
+  // 키에 방 id를 같이 넣는다. 기존엔 event id만 저장해서, 방 A→B로 이동했을 때
+  // B의 마지막 이벤트가 우연히 같은 id 아니어도 lastReceiptRef가 stale 상태로
+  // 남아 즉시 전송 path를 안 타는 케이스가 있었음(특히 빠른 전환 race).
   const lastReceiptRef = useRef<string | null>(null);
   useEffect(() => {
     if (!client || events.length === 0) return;
+    const last = events[events.length - 1];
+    const id = last.getId();
+    if (!id) return;
+    const roomId = last.getRoomId() ?? "";
+    const key = `${roomId}:${id}`;
     const sendReceipt = () => {
       if (document.visibilityState !== "visible") return;
-      const last = events[events.length - 1];
-      const id = last.getId();
       // "~"로 시작하면 local echo (서버 미확정) — receipt 불가
-      if (!id || id.startsWith("~") || lastReceiptRef.current === id) return;
-      lastReceiptRef.current = id;
+      if (id.startsWith("~") || lastReceiptRef.current === key) return;
+      lastReceiptRef.current = key;
       client.sendReadReceipt(last).catch((e) => {
         lastReceiptRef.current = null; // 실패 시 재시도 허용
         console.warn("read receipt 실패:", e);
       });
     };
+    // ★ 즉시 1회 + rAF 후 1회 — 방 진입 직후 events가 아직 마지막이 안 잡힌
+    //   타이밍(필터드 타임라인 commit이 비동기로 한 번 더 옴)을 흡수한다.
+    //   같은 key는 위 guard로 중복 발사 안 됨.
     sendReceipt();
+    const raf = requestAnimationFrame(sendReceipt);
     // 백그라운드에서 새 메시지 → 탭으로 돌아왔을 때 읽음 처리
     document.addEventListener("visibilitychange", sendReceipt);
     window.addEventListener("focus", sendReceipt);
     return () => {
+      cancelAnimationFrame(raf);
       document.removeEventListener("visibilitychange", sendReceipt);
       window.removeEventListener("focus", sendReceipt);
     };

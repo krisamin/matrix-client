@@ -2,6 +2,7 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import type { MatrixClient } from "matrix-js-sdk";
 import { useState } from "react";
 import { useNavigate } from "react-router";
+import { useIsMobile } from "../../hooks/useMediaQuery";
 import { roomPath } from "../../lib/format";
 import { useT } from "../../lib/i18n";
 import type { SpaceNode } from "../../lib/spaces";
@@ -23,6 +24,8 @@ export function SpaceTreeNode({
 }) {
   const t = useT();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
+  const avatarSize = isMobile ? 22 : 16;
   /** 이 Space 서브트리에 활성 방이 들어있는지 (있으면 자동 펼침 유지) */
   const containsActive = (n: SpaceNode): boolean =>
     n.rooms.some((r) => r.roomId === activeRoomId) ||
@@ -34,27 +37,8 @@ export function SpaceTreeNode({
   return (
     <div>
       <div className={`tree-row group/row ${active ? "active" : ""}`}>
-        {/* Avatar 자리 — hover 시 chevron으로 교체 (배경 없음). */}
-        <div className="relative flex shrink-0 items-center">
-          <span className="group-hover/row:invisible">
-            <RoomAvatar client={client} room={node.space} size={16} />
-          </span>
-          <button
-            type="button"
-            className="absolute inset-0 hidden items-center justify-center text-fg-1 group-hover/row:flex"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setCollapsed((v) => !v);
-            }}
-            title={t(expanded ? "sidebar.collapse" : "sidebar.expand")}
-          >
-            {expanded ? (
-              <ChevronDown className="h-3.5 w-3.5" />
-            ) : (
-              <ChevronRight className="h-3.5 w-3.5" />
-            )}
-          </button>
+        <div className="flex shrink-0 items-center">
+          <RoomAvatar client={client} room={node.space} size={avatarSize} />
         </div>
         <button
           type="button"
@@ -64,6 +48,27 @@ export function SpaceTreeNode({
           <span className="min-w-0 flex-1 truncate text-left font-medium text-fg-0">
             {node.space.name}
           </span>
+        </button>
+        {/* 우측 펼침 chevron — 데스크탑/모바일 공통. 기존 "avatar→chevron hover
+            교체" 결은 모바일 호환·발견성 모두 떨어져 버리고, 좌측 avatar는
+            그대로 두고 우측에 항상 표시되는 chevron으로 통일.
+            높이는 avatar(16px)와 맞춰 행이 커지지 않게. 터치 hit은 -m으로 확장. */}
+        <button
+          type="button"
+          className="flex h-4 w-4 shrink-0 items-center justify-center text-fg-2 hover:text-fg-0"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setCollapsed((v) => !v);
+          }}
+          aria-label={t(expanded ? "sidebar.collapse" : "sidebar.expand")}
+          title={t(expanded ? "sidebar.collapse" : "sidebar.expand")}
+        >
+          {expanded ? (
+            <ChevronDown className="h-3 w-3" />
+          ) : (
+            <ChevronRight className="h-3 w-3" />
+          )}
         </button>
       </div>
       {expanded && (

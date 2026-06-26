@@ -1,7 +1,16 @@
-import { Calendar, Eye, Hash, Lock, Plus, Settings } from "lucide-react";
+import {
+  ArrowLeft,
+  Calendar,
+  Eye,
+  Hash,
+  Lock,
+  Plus,
+  Settings,
+} from "lucide-react";
 import type { MatrixClient, Room } from "matrix-js-sdk";
 import { useState } from "react";
 import { useNavigate } from "react-router";
+import { useIsMobile } from "../hooks/useMediaQuery";
 import { roomPath } from "../lib/format";
 import { useT } from "../lib/i18n";
 import { childRoomIds } from "../lib/spaces";
@@ -26,6 +35,7 @@ export function SpaceView({
 }) {
   const t = useT();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [newRoomOpen, setNewRoomOpen] = useState(false);
   const [newSpaceOpen, setNewSpaceOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -56,13 +66,21 @@ export function SpaceView({
   return (
     <div className="flex min-w-0 flex-1 flex-col">
       <PaneHeader
+        leading={
+          isMobile ? (
+            <PaneHeaderButton
+              icon={ArrowLeft}
+              title={t("common.back")}
+              onClick={() => navigate("/")}
+            />
+          ) : undefined
+        }
         actions={
           <PaneHeaderButton
+            icon={Settings}
             title={t("modal.spaceSettings.title")}
             onClick={() => setSettingsOpen(true)}
-          >
-            <Settings className="h-[15px] w-[15px]" />
-          </PaneHeaderButton>
+          />
         }
       >
         <RoomAvatar client={client} room={space} size={20} />

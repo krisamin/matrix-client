@@ -2,12 +2,16 @@
   "name": "matrix-client",
   "short_name": "matrix-client",
   "description": "A Matrix chat client",
+  "lang": "ko",
+  "dir": "ltr",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "display_override": ["window-controls-overlay"],
+  "display_override": ["window-controls-overlay", "standalone"],
+  "orientation": "portrait-primary",
   "background_color": "#0c0c0e",
   "theme_color": "#111113",
+  "categories": ["social", "communication", "productivity"],
   "icons": [
     {
       "src": "/icon-192.png",

@@ -1,3 +1,4 @@
+import { useIsMobile } from "../../hooks/useMediaQuery";
 import { useT } from "../../lib/i18n";
 
 export type Tab = "general" | "access" | "permissions" | "danger";
@@ -55,15 +56,20 @@ export function Footer({
   saveLabel?: string;
 }) {
   const t = useT();
+  const isMobile = useIsMobile();
   return (
     <div className="flex border-t border-line">
-      <button
-        type="button"
-        onClick={onCancel}
-        className="flex-1 border-r border-line py-2.5 text-[13px] text-fg-2 hover:bg-bg-2 hover:text-fg-0"
-      >
-        {t("common.cancel")}
-      </button>
+      {/* 취소 버튼 — 모바일 풀스크린에선 상단 뒤로가기(←)와 역할이 겹쳐
+          중복이라 숨긴다. 저장 버튼만 풀폭으로. 데스크탑은 취소/저장 양쪽. */}
+      {!isMobile && (
+        <button
+          type="button"
+          onClick={onCancel}
+          className="flex-1 border-r border-line py-2.5 text-[13px] text-fg-2 hover:bg-bg-2 hover:text-fg-0"
+        >
+          {t("common.cancel")}
+        </button>
+      )}
       <button
         type="button"
         onClick={onSave}

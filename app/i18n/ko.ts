@@ -34,6 +34,7 @@ export const ko = {
   "common.create": "만들기",
   "common.creating": "만드는 중…",
   "common.close": "닫기",
+  "common.back": "뒤로",
   "common.confirm": "확인",
   "common.delete": "삭제",
   "common.copy": "복사",

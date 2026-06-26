@@ -21,6 +21,8 @@ import { EventLine } from "./EventLine";
 export interface TimelineHandle {
   /** 로드된 범위에 해당 이벤트가 있으면 그 행으로 스크롤하고 true 반환 */
   scrollToEvent: (eventId: string) => boolean;
+  /** 무조건 바닥으로 + stick 복구. 전송 직후 호출용. */
+  scrollToBottom: () => void;
 }
 
 /** 렌더 행 — topSlot/시작구분선/이벤트를 한 배열로 통합. dateDivider/
@@ -101,6 +103,11 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
     const vRef = useRef<VirtualizerHandle>(null);
     // 직전에 바닥 근처였는지 — append 시 바닥 추적 판단의 소스.
     const stickToBottomRef = useRef(true);
+    // 사용자가 직접 스크롤 조작(wheel/touch drag) 중인지 — 이 동안의 onScroll만
+    // stick을 "해제"할 수 있다. 프로그램적 스크롤·리사이즈·로딩으로 인한 onScroll은
+    // stick을 절대 풀지 않는다(전송 후/방 이동/이미지 로드 시 풀리던 근본 원인).
+    // 마지막 사용자 입력 시각으로 관리 — 입력 후 짧은 시간(관성 스크롤 포함) 동안 유효.
+    const lastUserScrollRef = useRef(0);
     // 바닥 도달 여부(렌더 트리거용 state). stickToBottomRef는 ref라
     // 리렌더를 안 일으켜 "새 메시지 ↓" 버튼 표시 토글에 못 쓴다 → state로 미러.
     const [atBottom, setAtBottom] = useState(true);
@@ -122,6 +129,56 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
     // prepend라고 렌더 중에 판정 → shift를 정확한 그 렌더에만 켠다.
     const prevFirstKeyRef = useRef<string | null>(null);
     const prevLenRef = useRef(0);
+    // 바닥 고정 진행 중 rAF 핸들 — 중복 루프 방지.
+    const pinRafRef = useRef<number | null>(null);
+    // displayRows.length 미러 — pinToBottom이 deps 없이 최신 길이를 읽게.
+    const displayRowsLenRef = useRef(0);
+
+    // ★ 단일 바닥 고정 함수 — append/RO/전송 모든 경로가 이것 하나만 호출한다.
+    //   여러 메커니즘(virtua scrollToIndex / DOM scrollTop / 전송 핸들)이 따로
+    //   놀며 타이밍이 어긋나던 게 "보냈는데 늦게 스크롤 / 입력창 늘 때 들쭉날쭉"의
+    //   근본 원인. 여기서 통일한다:
+    //    - programmaticRef로 그 사이 onScroll의 stick 해제를 가드
+    //    - virtua scrollToIndex(측정 기반) + DOM scrollTop(즉시) 둘 다 밀고
+    //    - 콘텐츠가 늦게 커지는 케이스(이미지/typing/리액션) 대비 3프레임 연속 고정
+    const pinToBottom = useCallback(() => {
+      const last = displayRowsLenRef.current - 1;
+      if (last < 0) return;
+      stickToBottomRef.current = true;
+      programmaticRef.current = true;
+      if (pinRafRef.current != null) cancelAnimationFrame(pinRafRef.current);
+      let frame = 0;
+      const step = () => {
+        vRef.current?.scrollToIndex(displayRowsLenRef.current - 1, {
+          align: "end",
+        });
+        const el = scrollRef.current;
+        if (el) el.scrollTop = el.scrollHeight;
+        frame += 1;
+        if (frame < 3) {
+          pinRafRef.current = requestAnimationFrame(step);
+        } else {
+          pinRafRef.current = null;
+          // 마지막 고정 후 한 프레임 더 가드 유지 → 그 사이 onScroll 무시.
+          requestAnimationFrame(() => {
+            programmaticRef.current = false;
+          });
+        }
+      };
+      step();
+    }, []);
+
+    // 언마운트 시 진행 중이던 바닥-고정 rAF 루프를 정리한다. 방을 빠르게
+    // 나가면 step 루프가 사라진 ref(vRef/scrollRef)를 한두 프레임 더 건드려
+    // 불필요한 실행/누수가 생기므로 확실히 취소한다.
+    useEffect(() => {
+      return () => {
+        if (pinRafRef.current != null) {
+          cancelAnimationFrame(pinRafRef.current);
+          pinRafRef.current = null;
+        }
+      };
+    }, []);
 
     // 통합 행 배열 구성
     const rows = useMemo<Row[]>(() => {
@@ -164,6 +221,8 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
         { kind: "typing", key: "__typing__", names: typingNames },
       ];
     }, [rows, typingNames]);
+    // pinToBottom이 항상 최신 길이를 읽도록 ref 미러 (useCallback deps 비우기 위해).
+    displayRowsLenRef.current = displayRows.length;
 
     const firstKey = rows.length > 0 ? rows[0].key : null;
     const lastKey = rows.length > 0 ? rows[rows.length - 1].key : null;
@@ -198,12 +257,10 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
     // 행 변화 후 스크롤 처리: 초기 진입(맨 아래) / append 바닥 추적.
     // prepend는 virtua shift가 알아서 하므로 여기서 건드리지 않는다.
     useEffect(() => {
-      const handle = vRef.current;
-      if (!handle || rows.length === 0) return;
-      // 스크롤 타겟은 실제 렌더 리스트(displayRows)의 마지막 — typing 행이
-      // 있으면 그 행까지 보이게. 트리거 판정(endChanged/isPrepend)은 events
-      // 기준 rows로만 한다(typing이 append 판정을 흔들지 않게).
-      const lastIdx = displayRows.length - 1;
+      if (rows.length === 0) return;
+      // 트리거 판정(endChanged/isPrepend)은 events 기준 rows로만 한다
+      // (typing이 append 판정을 흔들지 않게). 실제 바닥 고정은 pinToBottom이
+      // displayRows 길이(typing 포함)를 보고 처리한다.
       const endChanged = lastKey !== prevLastKeyRef.current;
       const displayLenChanged =
         displayRows.length !== prevDisplayLenRef.current;
@@ -212,18 +269,38 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
 
       if (!initialScheduledRef.current) {
         // 초기 진입: rAF로 미뤄 측정 완료 후 맨 아래로(측정 전 호출은 부정확).
-        // done은 rAF 안에서 세팅 → 그 전 onScroll의 loadOlder 폭주를 막는다.
-        // ★ 두 번째 rAF에서 한 번 더 — 첫 rAF 시점에 이미지/링크프리뷰가
-        //   아직 안 마운트돼 측정이 흔들려 "중간"에 멈춰있던 증상 fix.
+        // done은 마지막 rAF 안에서 세팅 → 그 전 onScroll의 loadOlder/stick
+        // 오판을 막는다.
+        // ★ 3중 rAF + 직접 DOM scrollTop 푸시:
+        //   - 첫 rAF: 측정 완료 시점
+        //   - 두 번째 rAF: 이미지/링크프리뷰 마운트 후 재정렬 (중간에 멈춰
+        //     있던 증상 fix)
+        //   - 세 번째 rAF: 첫 onScroll이 stale 측정으로 stick=false 오판하는
+        //     것 방지 — virtua scrollToIndex가 정확히 바닥에 안 닿는 케이스를
+        //     DOM scrollTop=scrollHeight로 한 번 더 밀어준다.
         //   단발이라 누적 freeze 위험 없음 (initialScheduledRef로 한 번만).
         initialScheduledRef.current = true;
+        const forceBottom = () => {
+          const last = displayRows.length - 1;
+          if (last < 0) return;
+          programmaticRef.current = true;
+          vRef.current?.scrollToIndex(last, { align: "end" });
+          const el = scrollRef.current;
+          if (el) el.scrollTop = el.scrollHeight;
+          stickToBottomRef.current = true;
+        };
         requestAnimationFrame(() => {
-          vRef.current?.scrollToIndex(lastIdx, { align: "end" });
+          forceBottom();
           requestAnimationFrame(() => {
-            vRef.current?.scrollToIndex(displayRows.length - 1, {
-              align: "end",
+            forceBottom();
+            requestAnimationFrame(() => {
+              forceBottom();
+              initialDoneRef.current = true;
+              // programmatic guard는 onScroll 한 프레임 더 통과시킨 뒤 해제
+              requestAnimationFrame(() => {
+                programmaticRef.current = false;
+              });
             });
-            initialDoneRef.current = true;
           });
         });
       } else if (
@@ -232,11 +309,12 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
         stickToBottomRef.current
       ) {
         // append(events 끝 바뀜) 또는 typing 행 등장/소멸(displayLenChanged) +
-        // 바닥 근처였으면 바닥 추적. typing 행은 RO(contentGrew)만으론 virtua
-        // 측정 타이밍상 끝까지 안 닿아(실측 24px 부족) → 여기서 직접 처리.
-        handle.scrollToIndex(lastIdx, { align: "end" });
+        // 바닥 근처였으면 바닥 추적. 단일 pinToBottom으로 통일 — virtua
+        // scrollToIndex + DOM scrollTop을 3프레임 연속으로 밀어 typing/이미지
+        // 등 늦게 커지는 콘텐츠까지 끝까지 닿게 한다(과거 24px 부족 증상 fix).
+        pinToBottom();
       }
-    }, [rows.length, lastKey, isPrepend, displayRows.length]);
+    }, [rows.length, lastKey, isPrepend, displayRows.length, pinToBottom]);
 
     // 높이 변화 추적 — React 신호로는 못 잡는 두 경우를 ResizeObserver로 커버.
     //  (A) 콘텐츠(virtua 루트)가 커짐: 반응/이미지로드/링크프리뷰/수정 등. 반응은
@@ -251,24 +329,17 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
       if (!container || !content) return;
       let prevContentH = content.getBoundingClientRect().height;
       let prevViewportH = container.getBoundingClientRect().height;
-      const stickIfNeeded = () => {
+      const stickIfNeeded = (force = false) => {
         if (
           initialDoneRef.current &&
-          stickToBottomRef.current &&
+          (force || stickToBottomRef.current) &&
           rows.length > 0
         ) {
-          // virtua scrollToIndex(last,"end")는 뷰포트 축소 직후 정확히 바닥에
-          // 안 닿고, rAF로 미루면 virtua가 자기 위치로 되돌려 안 먹는다(실측).
-          // RO 콜백에서 즉시 DOM 스크롤을 바닥으로 밀고, 그 과정의 onScroll이
-          // stick을 오판하지 않게 programmaticRef로 가드한다.
-          const el = scrollRef.current;
-          if (el) {
-            programmaticRef.current = true;
-            el.scrollTop = el.scrollHeight;
-            requestAnimationFrame(() => {
-              programmaticRef.current = false;
-            });
-          }
+          // 단일 pinToBottom으로 통일: virtua scrollToIndex + DOM scrollTop을
+          // 3프레임 연속으로 밀어 키보드+입력창 리사이즈가 여러 프레임에 걸쳐
+          // 일어나도 끝까지 바닥에 붙인다. 그 사이 onScroll의 stick 해제는
+          // pinToBottom 내부 programmaticRef 가드로 무시된다.
+          pinToBottom();
         }
       };
       const ro = new ResizeObserver(() => {
@@ -283,13 +354,22 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
         const viewportChanged = Math.abs(viewportH - prevViewportH) > 0.5;
         prevContentH = contentH;
         prevViewportH = viewportH;
-        if (contentGrew || viewportChanged) stickIfNeeded();
+        // ★ 핵심: 리사이즈(콘텐츠 증가 / 뷰포트 변화)는 "사용자 스크롤"이 아니다.
+        //   직전에 stick 상태(바닥 추적 중)였다면 — 입력창 늘어남/리액션 추가/
+        //   키보드 등장 등 어떤 리사이즈든 — 무조건 바닥으로 다시 붙인다.
+        //   nearBottom DOM 재측정에 맡기면 리사이즈 도중 domDist가 일시적으로
+        //   크게 점프(모바일 키보드+입력창 동시 변화)해 false로 오판 → stick이
+        //   풀려버렸다. stickToBottomRef는 "사용자가 위로 올렸는지"만 반영하므로
+        //   그 값만 신뢰하고, 리사이즈 중 onScroll의 stick 해제는 가드로 막는다.
+        if ((contentGrew || viewportChanged) && stickToBottomRef.current) {
+          stickIfNeeded(true);
+        }
       });
       ro.observe(content);
       ro.observe(container);
       return () => ro.disconnect();
       // rows.length가 바뀌면 기준 높이를 새로 잡아야 정확 — 재구독으로 초기화.
-    }, [rows.length]);
+    }, [rows.length, pinToBottom]);
 
     // 부모(jumpTo)용: 인덱스 기반 스크롤 (가상화라 DOM에 없을 수 있어 인덱스로).
     useImperativeHandle(
@@ -303,8 +383,15 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
           vRef.current?.scrollToIndex(idx, { align: "center" });
           return true;
         },
+        scrollToBottom: () => {
+          // 전송 직후 외부 호출용: stick 복구 + 단일 pinToBottom으로 바닥 고정.
+          // pinToBottom이 3프레임 연속으로 밀어, 전송 후 입력창이 한 줄로 줄며
+          // 뷰포트가 커지는 타이밍까지 따라붙는다(늦게 스크롤되던 증상 fix).
+          setAtBottom(true);
+          pinToBottom();
+        },
       }),
-      [rows],
+      [rows, pinToBottom],
     );
 
     const onScroll = useCallback(
@@ -327,9 +414,22 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
         const el = scrollRef.current;
         if (el) {
           const domDist = el.scrollHeight - el.scrollTop - el.clientHeight;
-          const stick = domDist <= 2;
+          const wasStuck = stickToBottomRef.current;
+          // 바닥 근접 = stick ON 후보. 멀어짐 = stick OFF 후보.
+          // ★ 핵심: stick을 "푸는" 건 사용자가 직접 스크롤 조작 중일 때만 허용한다.
+          //   프로그램적 스크롤·리사이즈·이미지 로드로 인한 onScroll은 절대
+          //   stick을 풀지 않는다 → 전송 후/방 이동/로딩 중 풀리던 근본 원인 차단.
+          //   (사용자 입력 후 600ms 내 = 관성 스크롤 포함 사용자 의도로 간주)
+          const nearBottom = domDist <= (wasStuck ? 4 : 2);
+          const userScrolling = Date.now() - lastUserScrollRef.current < 600;
+          let stick = wasStuck;
+          if (nearBottom) {
+            stick = true; // 바닥 닿으면 항상 다시 붙음 (출처 무관)
+          } else if (userScrolling) {
+            stick = false; // 사용자가 직접 위로 올린 경우만 해제
+          }
+          // else: 바닥 아님 + 사용자 조작 아님(프로그램/리사이즈) → 기존 stick 유지
           stickToBottomRef.current = stick;
-          // 버튼 표시 state는 값이 바뀔 때만 갱신(불필요 리렌더 방지).
           setAtBottom((prev) => (prev !== stick ? stick : prev));
         }
         // 위로 충분히 올라오면 과거 로드. prepend는 다음 렌더에서 key 변화로
@@ -341,14 +441,11 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
       [loadingOlder, hasMore, loadOlder],
     );
 
-    // "맨 아래로" 버튼: 마지막 행으로 스크롤 + stick 복구.
+    // "맨 아래로" 버튼: 단일 pinToBottom으로 stick 복구 + 바닥 고정.
     const scrollToBottom = useCallback(() => {
-      const lastIdx = displayRows.length - 1;
-      if (lastIdx < 0) return;
-      stickToBottomRef.current = true;
       setAtBottom(true);
-      vRef.current?.scrollToIndex(lastIdx, { align: "end" });
-    }, [displayRows.length]);
+      pinToBottom();
+    }, [pinToBottom]);
 
     return (
       <div className="relative flex min-h-0 flex-1 flex-col">
@@ -367,6 +464,14 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
           ref={scrollRef}
           className="flex min-h-0 flex-1 flex-col overflow-y-auto py-3"
           style={{ overflowAnchor: "none" }}
+          // 사용자 직접 스크롤 조작 감지 — 이 입력 직후의 onScroll만 stick을
+          // 해제할 수 있다(위 onScroll 참고). 프로그램적/리사이즈 스크롤과 구분.
+          onWheel={() => {
+            lastUserScrollRef.current = Date.now();
+          }}
+          onTouchMove={() => {
+            lastUserScrollRef.current = Date.now();
+          }}
         >
           {/* spacer: 메시지가 뷰포트보다 적을 때 아래로 정렬 */}
           <div style={{ flexGrow: 1 }} />

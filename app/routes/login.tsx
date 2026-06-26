@@ -456,7 +456,7 @@ export default function Login() {
         : t("login.title");
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-bg-0 p-6">
+    <main className="flex min-h-dvh items-center justify-center bg-bg-0 p-6">
       <div className="flex w-[400px] max-w-full flex-col overflow-hidden rounded-md border border-line bg-bg-1 shadow-2xl">
         <header className="flex h-12 items-center border-b border-line pl-5">
           <h1 className="font-semibold text-fg-0">{headerTitle}</h1>

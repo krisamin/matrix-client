@@ -1,7 +1,8 @@
-import { ChevronDown, History, X } from "lucide-react";
+import { ArrowLeft, ChevronDown, History, X } from "lucide-react";
 import type { MatrixClient, MatrixEvent, Room } from "matrix-js-sdk";
 import type { ISearchResults } from "matrix-js-sdk/lib/@types/search";
 import { useMemo, useRef, useState } from "react";
+import { useIsMobile } from "../hooks/useMediaQuery";
 import { formatDateTime } from "../lib/format";
 import { useT } from "../lib/i18n";
 import { EmptyState } from "./EmptyState";
@@ -100,6 +101,7 @@ export function SearchPane({
   scope?: "room" | "thread";
 }) {
   const t = useT();
+  const isMobile = useIsMobile();
   const encrypted = room.hasEncryptionStateEvent();
   // 로컬 검색 모드: E2EE(서버가 암호문만 봄) 또는 스레드(서버 검색에 스레드 필터 없음)
   const localMode = encrypted || scope === "thread";
@@ -185,12 +187,28 @@ export function SearchPane({
     (localMode || searched !== "");
 
   return (
-    <section className="flex w-[340px] shrink-0 flex-col border-l border-line">
+    <section className="flex w-full shrink-0 flex-col md:w-[340px] md:border-l md:border-line">
       <PaneHeader
+        leading={
+          // 모바일: 좌측 뒤로가기 — 다른 화면(Space/RoomInfo/설정)과 위치 일관.
+          // 데스크탑: leading 없음(우측 X로 닫음).
+          isMobile ? (
+            <PaneHeaderButton
+              icon={ArrowLeft}
+              title={t("search.title.close")}
+              onClick={onClose}
+            />
+          ) : undefined
+        }
         actions={
-          <PaneHeaderButton title={t("search.title.close")} onClick={onClose}>
-            <X className="h-[15px] w-[15px]" />
-          </PaneHeaderButton>
+          // 데스크탑 전용 우측 닫기. 모바일은 leading ←로 대체.
+          !isMobile ? (
+            <PaneHeaderButton
+              icon={X}
+              title={t("search.title.close")}
+              onClick={onClose}
+            />
+          ) : undefined
         }
       >
         <input

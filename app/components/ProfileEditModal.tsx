@@ -122,7 +122,7 @@ export function ProfileEditModal({
                   size={80}
                 />
               )}
-              <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+              <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 transition-opacity group-hover:opacity-100 [@media(hover:none)]:opacity-100 [@media(hover:none)]:bg-black/30">
                 <Upload className="h-5 w-5 text-white" />
               </span>
             </button>

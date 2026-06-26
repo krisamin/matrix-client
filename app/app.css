@@ -25,13 +25,23 @@ html,
 body {
   @apply bg-bg-0 text-fg-1;
   color-scheme: dark;
-  /* 앱 셸: body 스크롤/바운스 차단 (내부 페인만 스크롤) */
+  /* 앱 셸: body 스크롤/바운스 차단 (내부 페인만 스크롤).
+     모바일 키보드 올라올 때 viewport가 줄어들도록 dvh 사용 — 정적 100%였을 땐
+     iOS Safari에서 키보드가 올라와도 height가 그대로라 입력창이 가려졌다.
+     dvh는 키보드/툴바를 반영한 "현재 보이는" 뷰포트 → 키보드와 같이 줄어든다.
+     viewport meta의 interactive-widget=resizes-content (iOS 16.4+)와 짝.
+     미지원 브라우저는 fallback으로 height:100% (위 라인) 사용. */
   height: 100%;
+  height: 100dvh;
   overflow: hidden;
   overscroll-behavior: none;
   /* 네이티브 앱 느낌 — 기본은 텍스트 선택 차단. 채팅 본문/인풋만 예외 */
   user-select: none;
   -webkit-user-select: none;
+  /* 모바일 더블탭 줌 차단 (핀치 줌은 살림). 탭 응답성도 ↑(300ms 지연 제거) */
+  touch-action: manipulation;
+  /* iOS Safari 탭 하이라이트 회색 박스 제거 — 자체 hover/active 스타일로 처리 */
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* 텍스트 선택 허용 영역:
@@ -67,6 +77,19 @@ body {
 /* 내부 스크롤 영역도 끝에서 body로 체이닝 안 되게 */
 .overflow-y-auto {
   overscroll-behavior: contain;
+}
+
+/* ── 모바일(터치, 좁은 화면) 보정 ──
+   iOS Safari는 focus 시 폰트 크기 16px 미만이면 자동으로 페이지를 확대한다 →
+   채팅 입력창/검색창 탭할 때마다 화면이 튐. 데스크탑에선 15px 기존 유지하고,
+   터치 환경(@media hover:none)에서만 16px로 강제해 자동 줌을 차단한다.
+   line-height는 비례 단위(em)라 함께 보정돼 1줄 높이 정합성 유지. */
+@media (hover: none) and (pointer: coarse) {
+  input,
+  textarea,
+  select {
+    font-size: max(16px, 1em);
+  }
 }
 
 /* ── PWA: Window Controls Overlay (macOS Safari "Dock에 추가" 등) ──
@@ -118,6 +141,19 @@ body {
       100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw)
     );
   }
+  /* 모바일 폭(단일 페인 스택)에서 방/스레드 헤더가 화면 최좌측이 되면,
+     leading 슬롯의 뒤로가기(←) 버튼이 OS 신호등에 깔린다. 사이드바 헤더에만
+     있던 신호등 회피를 이 경우의 PaneHeader leading에도 적용한다.
+     - 데스크탑(md+)에선 좌측 최선단이 항상 사이드바라 이 규칙이 비활성.
+     - leading의 -ml-5(헤더 pl-5 상쇄)를 0으로 돌려 신호등 폭만큼 콘텐츠를 들여씀. */
+  @media (max-width: 767px) {
+    .app-pane-lead {
+      padding-left: max(1.25rem, env(titlebar-area-x, 0px));
+    }
+    .app-pane-lead [data-pane-lead] {
+      margin-left: 0;
+    }
+  }
 }
 
 /* 키보드 사용자 접근성 — Tab으로 focus 잡힌 요소에만 visible ring */
@@ -143,10 +179,12 @@ textarea:focus-visible {
   border-radius: 6px;
   background-clip: content-box;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: #3a3a40;
-  border: 3px solid transparent;
-  background-clip: content-box;
+@media (hover: hover) {
+  ::-webkit-scrollbar-thumb:hover {
+    background: #3a3a40;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
 }
 
 /* ── 사이드바 트리: 행높이 26px 고정, 인덴트 16px 단위 ── */
@@ -161,8 +199,11 @@ textarea:focus-visible {
   text-align: left;
   cursor: pointer;
 }
-.tree-row:hover {
-  background: var(--color-bg-2);
+/* hover는 마우스 환경에서만 — 모바일은 탭 후 stuck-hover로 칙칙해진다 */
+@media (hover: hover) {
+  .tree-row:hover {
+    background: var(--color-bg-2);
+  }
 }
 .tree-row.active {
   background: var(--color-bg-3);
@@ -174,6 +215,22 @@ textarea:focus-visible {
   margin-left: 13px;
   padding-left: 7px;
   border-left: 1px solid var(--color-line);
+}
+
+/* 모바일에선 터치 영역 확보 — 행을 더 두툼하게(min-h 40px ≈ Apple HIG 44px근접),
+   글자도 살짝 더 키워서 가독성 ↑. tree-children 인덴트도 avatar 위치 변화에 맞게. */
+@media (max-width: 767.98px) {
+  .tree-row {
+    padding: 8px 10px;
+    min-height: 40px;
+    font-size: 15px;
+    gap: 10px;
+  }
+  .tree-children {
+    /* 모바일은 row padding 10px + avatar 16/2=8 = 18 → margin-left 17 + 1px line */
+    margin-left: 17px;
+    padding-left: 9px;
+  }
 }
 
 /* ── 배지 (안읽음 카운트) ── */
@@ -261,12 +318,21 @@ textarea:focus-visible {
     opacity 0.12s ease,
     color 0.12s ease;
 }
-.message-body .code-block-wrap:hover .code-copy-btn {
-  opacity: 1;
+/* 데스크탑(hover): 코드블록 위에 마우스 올리면 복사 버튼 페이드인.
+   모바일(no-hover): hover 자체가 없어 영원히 숨겨지므로 항상 표시 */
+@media (hover: hover) {
+  .message-body .code-block-wrap:hover .code-copy-btn {
+    opacity: 1;
+  }
+  .message-body .code-copy-btn:hover {
+    color: var(--color-fg-0);
+    background: var(--color-bg-2);
+  }
 }
-.message-body .code-copy-btn:hover {
-  color: var(--color-fg-0);
-  background: var(--color-bg-2);
+@media (hover: none) {
+  .message-body .code-copy-btn {
+    opacity: 0.7;
+  }
 }
 .message-body .code-copy-btn.copied {
   opacity: 1;
@@ -344,8 +410,23 @@ textarea:focus-visible {
   border-radius: 3px;
   cursor: pointer;
 }
-.message-body span[data-mx-spoiler]:hover {
-  background: transparent;
+@media (hover: hover) {
+  .message-body span[data-mx-spoiler]:hover {
+    background: transparent;
+  }
+}
+
+/* ── 바텀시트 슬라이드인 (모바일 모달) ── */
+@keyframes sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+.animate-sheet-in {
+  animation: sheet-in 0.26s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* ── 새 메시지 등장 애니메이션 — 살짝 떠오르며 페이드인 ── */

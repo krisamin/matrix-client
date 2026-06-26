@@ -77,7 +77,7 @@ class ErrorBoundaryInner extends Component<InnerProps, State> {
     return (
       <div
         className={`flex w-full ${
-          size === "full" ? "h-screen" : "h-full min-h-[200px]"
+          size === "full" ? "h-dvh" : "h-full min-h-[200px]"
         } flex-col items-center justify-center gap-3 p-6 text-center`}
       >
         <AlertTriangle className="h-8 w-8 text-red-400" />
