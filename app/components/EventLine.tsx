@@ -320,7 +320,7 @@ const EventLineInner = function EventLine({
       // ※ message-body / .selectable 안에선 호출부가 stopPropagation으로 막아
       //    텍스트 선택·복사 기본 동작을 살린다 (app.css 텍스트 선택 규칙과 짝).
       {...longPress}
-      className={`group relative px-5 transition-colors duration-300 [@media(hover:hover)and(pointer:fine)]:hover:bg-bg-2/60 active:bg-bg-2/60 ${
+      className={`group relative px-5 transition-colors duration-300 [@media(hover:hover)]:hover:bg-bg-2/60 active:bg-bg-2/60 ${
         showHeader ? "pt-3 pb-0.5" : "py-0.5"
       } ${
         highlighted
@@ -364,13 +364,16 @@ const EventLineInner = function EventLine({
       )}
 
       {/* 액션 툴바 (데스크탑) — hover/focus-within으로 자동 표시, 우클릭으로 토글.
-          ★ 삼성 안드로이드는 터치인데도 (hover:hover)를 true로 잘못 보고하는
-          펌웨어 버그가 있어 탭하면 hover 메뉴가 stuck됨. (pointer:fine) AND로
-          묶어 "진짜 마우스"만 통과시킨다 (삼성 터치는 pointer:coarse라 차단).
+          모바일에선 hover가 없어 group-hover가 안 먹지만, focus-within은 탭 후에도
+          잔존해 stuck됨 → [@media(hover:hover)] 가드로 마우스 환경에만 한정.
+          ※ 삼성 안드로이드는 펌웨어 버그로 (hover:hover)를 터치에서도 true로
+          오보고해 hover 메뉴가 stuck될 수 있음. (pointer:fine) AND로 강화하면
+          삼성은 잡히지만 일부 PC 환경(외장모니터/특수입력장치 등)에서 hover가
+          아예 안 먹는 케이스가 있어 우선 데스크탑 결을 살림.
           모바일 액션은 아래 long-press 바텀시트가 담당. */}
       {!editing && !ev.isRedacted() && (
         <div
-          className={`absolute -top-3 right-5 z-10 items-center overflow-hidden rounded-md border border-line bg-bg-1 shadow-2xl [@media(hover:hover)and(pointer:fine)]:group-hover:flex [@media(hover:hover)and(pointer:fine)]:group-focus-within:flex ${
+          className={`absolute -top-3 right-5 z-10 items-center overflow-hidden rounded-md border border-line bg-bg-1 shadow-2xl [@media(hover:hover)]:group-hover:flex [@media(hover:hover)]:group-focus-within:flex ${
             menuOpen ? "flex" : "hidden"
           }`}
         >
