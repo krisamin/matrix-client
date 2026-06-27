@@ -44,7 +44,9 @@ export function PaneHeader({
  *   - 아이콘 크기: 데스크탑 15px / 모바일(max-md) 18px 자동 — 아래 둘 중 하나로 적용.
  *     · `icon` prop으로 lucide 아이콘만 넘기면 크기를 컴포넌트가 직접 책임진다(권장).
  *     · children으로 직접 넣을 땐 `[&>svg]` selector가 svg 크기를 강제한다(호환).
- *   - hover: Tailwind v4가 자동으로 @media (hover:hover) 가드 → 모바일 stuck 없음.
+ *   - hover: Tailwind v4가 자동으로 @media (hover:hover) 가드. 단 삼성 안드로이드는
+ *     터치인데도 hover:hover를 true로 잘못 보고하는 펌웨어 버그가 있어 hover 배경이
+ *     탭 후 잔존할 수 있음 — stuck이 거슬리면 (pointer:fine) AND 가드로 강화할 것.
  *
  *  사용(권장): <PaneHeaderButton icon={Search} title="검색" onClick={...} />
  *  사용(호환): <PaneHeaderButton title="..."><CustomNode/></PaneHeaderButton> */

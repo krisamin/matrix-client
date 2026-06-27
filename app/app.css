@@ -179,7 +179,7 @@ textarea:focus-visible {
   border-radius: 6px;
   background-clip: content-box;
 }
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   ::-webkit-scrollbar-thumb:hover {
     background: #3a3a40;
     border: 3px solid transparent;
@@ -200,7 +200,7 @@ textarea:focus-visible {
   cursor: pointer;
 }
 /* hover는 마우스 환경에서만 — 모바일은 탭 후 stuck-hover로 칙칙해진다 */
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .tree-row:hover {
     background: var(--color-bg-2);
   }
@@ -320,7 +320,7 @@ textarea:focus-visible {
 }
 /* 데스크탑(hover): 코드블록 위에 마우스 올리면 복사 버튼 페이드인.
    모바일(no-hover): hover 자체가 없어 영원히 숨겨지므로 항상 표시 */
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .message-body .code-block-wrap:hover .code-copy-btn {
     opacity: 1;
   }
@@ -410,7 +410,7 @@ textarea:focus-visible {
   border-radius: 3px;
   cursor: pointer;
 }
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .message-body span[data-mx-spoiler]:hover {
     background: transparent;
   }

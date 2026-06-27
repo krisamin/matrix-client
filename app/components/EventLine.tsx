@@ -1,3 +1,4 @@
+import type { LucideIcon } from "lucide-react";
 import {
   Check,
   Copy,
@@ -25,8 +26,10 @@ import {
   EventShieldReason,
 } from "matrix-js-sdk/lib/crypto-api";
 import { lazy, memo, Suspense, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useEventActions } from "../hooks/useEventActions";
 import { useLongPress } from "../hooks/useLongPress";
+import { useIsMobile } from "../hooks/useMediaQuery";
 import { useShield } from "../hooks/useShield";
 import { formatFullTime, formatTime } from "../lib/format";
 import { useT } from "../lib/i18n";
@@ -38,6 +41,7 @@ import { extractPreviewUrls } from "../lib/url-preview";
 import { ForwardModal } from "./ForwardModal";
 import { MediaView } from "./MediaView";
 import { MessageBody } from "./MessageBody";
+import { Modal } from "./Modal";
 import { QuoteThumbnail } from "./QuoteThumbnail";
 import { ReactionBar } from "./ReactionBar";
 import { ReadReceipts } from "./ReadReceipts";
@@ -100,32 +104,40 @@ const EventLineInner = function EventLine({
   // 전달 모달 열림 여부
   const [forwarding, setForwarding] = useState(false);
   const [copied, setCopied] = useState(false);
-  // 모바일 long-press 액션바 표시 토글 — hover가 없는 터치 환경에서 데스크탑
-  // hover 메뉴를 대체. 같은 메시지를 다시 long-press하거나 다른 곳 탭하면 닫힘.
-  const [mobileActive, setMobileActive] = useState(false);
-  // 모바일 액션바 열린 상태에서 바깥 탭 → 닫기. capture: true는 자식 onClick보다
-  // 먼저 실행돼 액션 버튼 탭은 그대로 동작(stopPropagation 안 해도 OK).
+  // 데스크탑 우클릭(contextmenu) 컨텍스트 메뉴 — 우측 플로팅 액션바 토글.
+  // 모바일은 hover가 없어 이 경로로 안 뜨고, long-press → 하단 바텀시트로 분기.
+  const [menuOpen, setMenuOpen] = useState(false);
+  // 모바일 long-press 액션 바텀시트 열림 여부.
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const isMobile = useIsMobile();
+  // 데스크탑 우클릭 메뉴 열린 상태에서 바깥 탭 → 닫기. capture 없이도 자식 onClick은
+  // 그대로 동작(액션 버튼은 stopPropagation 불필요).
   useEffect(() => {
-    if (!mobileActive) return;
+    if (!menuOpen) return;
     const onDown = (e: PointerEvent) => {
       const el = document.getElementById(`ev-${ev.getId()}`);
-      if (el && !el.contains(e.target as Node)) setMobileActive(false);
+      if (el && !el.contains(e.target as Node)) setMenuOpen(false);
     };
     document.addEventListener("pointerdown", onDown);
     return () => document.removeEventListener("pointerdown", onDown);
-  }, [mobileActive, ev]);
+  }, [menuOpen, ev]);
   const longPress = useLongPress(() => {
-    // 편집/삭제된 이벤트엔 액션바가 안 뜨므로 long-press도 무시
+    // 편집/삭제된 이벤트엔 액션이 안 뜨므로 long-press도 무시
     if (editing || ev.isRedacted()) return;
-    // 텍스트 선택 중이면 long-press 액션 무시 (iOS는 본문 long-press가 selection
-    // 핸들을 띄우는데, 그 위에 우리 메뉴까지 띄우면 충돌). 빈 selection은 OK.
+    // 텍스트 선택 중이면 무시 (iOS는 본문 long-press가 selection 핸들을 띄우는데,
+    // 그 위에 우리 메뉴까지 띄우면 충돌). 빈 selection은 OK.
     const sel = typeof window !== "undefined" ? window.getSelection() : null;
     if (sel && !sel.isCollapsed && sel.toString().length > 0) return;
-    setMobileActive((v) => !v);
+    // 모바일(터치): 하단 바텀시트. 데스크탑(우클릭): 우측 플로팅 메뉴 토글.
+    if (isMobile) setSheetOpen(true);
+    else setMenuOpen((v) => !v);
   });
-  // 액션 클릭 시 모바일 액션바 닫기 — 액션 실행 후 메뉴 잔존 방지.
+  // 액션 실행 후 양쪽 메뉴 모두 닫기 — 메뉴 잔존 방지.
   // (피커/모달은 자체 anchor를 갖고 있어 닫혀도 그쪽은 독립적으로 유지됨)
-  const closeMobileActive = () => setMobileActive(false);
+  const closeMenus = () => {
+    setMenuOpen(false);
+    setSheetOpen(false);
+  };
   // 마운트 시점에 "방금 도착한" 이벤트(5초 이내 / local echo)만 등장 애니메이션.
   // 단 한 이벤트당 최초 1회만 — 가상 스크롤 재마운트 때마다 떠오르는 잔상 방지.
   const [animateIn] = useState(() => {
@@ -230,6 +242,77 @@ const EventLineInner = function EventLine({
   const actionBtn =
     "p-2 text-fg-1 hover:bg-bg-2 hover:text-fg-0 transition-colors";
 
+  // 액션 정의 단일 소스 — 데스크탑 우측 플로팅 액션바와 모바일 바텀시트가
+  // 같은 목록을 공유한다. run(rect)는 react처럼 앵커가 필요한 액션만 rect를 쓰고
+  // 나머지는 무시한다.
+  const actionList: {
+    key: string;
+    icon: LucideIcon;
+    label: string;
+    show: boolean;
+    danger?: boolean;
+    run: (rect?: DOMRect) => void;
+  }[] = [
+    {
+      key: "react",
+      icon: SmilePlus,
+      label: t("message.action.react"),
+      show: true,
+      run: (rect?: DOMRect) =>
+        setPickerAnchor((v) => (v ? null : (rect ?? null))),
+    },
+    {
+      key: "reply",
+      icon: Reply,
+      label: t("message.action.reply"),
+      show: !!onReply,
+      run: () => onReply?.(ev),
+    },
+    {
+      key: "thread",
+      icon: MessageSquarePlus,
+      label: t("message.action.thread"),
+      show: !!onOpenThread,
+      run: () => onOpenThread?.(ev.getId()!),
+    },
+    {
+      key: "forward",
+      icon: Forward,
+      label: t("message.action.forward"),
+      show: canForward,
+      run: () => setForwarding(true),
+    },
+    {
+      key: "copy",
+      icon: copied ? Check : Copy,
+      label: t(copied ? "common.copied" : "message.action.copyMarkdown"),
+      show: true,
+      run: () => copyMarkdown(),
+    },
+    {
+      key: "pin",
+      icon: pinned ? PinOff : Pin,
+      label: t(pinned ? "message.action.unpin" : "message.action.pin"),
+      show: canPin,
+      run: () => pin(),
+    },
+    {
+      key: "edit",
+      icon: Pencil,
+      label: t("message.action.edit"),
+      show: canEdit,
+      run: () => startEdit(),
+    },
+    {
+      key: "delete",
+      icon: Trash2,
+      label: t("message.action.delete"),
+      show: canModify,
+      danger: true,
+      run: () => remove(),
+    },
+  ].filter((a) => a.show);
+
   return (
     <div
       id={`ev-${ev.getId()}`}
@@ -237,7 +320,7 @@ const EventLineInner = function EventLine({
       // ※ message-body / .selectable 안에선 호출부가 stopPropagation으로 막아
       //    텍스트 선택·복사 기본 동작을 살린다 (app.css 텍스트 선택 규칙과 짝).
       {...longPress}
-      className={`group relative px-5 transition-colors duration-300 hover:bg-bg-2/60 ${
+      className={`group relative px-5 transition-colors duration-300 [@media(hover:hover)and(pointer:fine)]:hover:bg-bg-2/60 active:bg-bg-2/60 ${
         showHeader ? "pt-3 pb-0.5" : "py-0.5"
       } ${
         highlighted
@@ -247,7 +330,7 @@ const EventLineInner = function EventLine({
         mentioned
           ? "border-l-2 border-amber-400/70 bg-amber-400/[0.06] pl-[18px]"
           : ""
-      } ${mobileActive ? "bg-bg-2/60" : ""}`}
+      } ${menuOpen ? "bg-bg-2/60" : ""}`}
     >
       {/* 그룹 헤더: 발신자 + 시각 (+수정됨) */}
       {showHeader && (
@@ -280,128 +363,83 @@ const EventLineInner = function EventLine({
         <span className="sr-only">{t("msg.edited")}</span>
       )}
 
-      {/* 액션 툴바 — 데스크탑은 hover/focus-within, 모바일은 long-press 토글.
-          모바일에선 hover 자체가 없어 group-hover가 안 먹지만, focus-within은
-          탭 후에도 잔존해 클릭 한 번이면 액션바가 stuck됨 → hover 가능 환경
-          (마우스)에서만 자동 표시되도록 [@media(hover:hover)] 가드로 한정. */}
+      {/* 액션 툴바 (데스크탑) — hover/focus-within으로 자동 표시, 우클릭으로 토글.
+          ★ 삼성 안드로이드는 터치인데도 (hover:hover)를 true로 잘못 보고하는
+          펌웨어 버그가 있어 탭하면 hover 메뉴가 stuck됨. (pointer:fine) AND로
+          묶어 "진짜 마우스"만 통과시킨다 (삼성 터치는 pointer:coarse라 차단).
+          모바일 액션은 아래 long-press 바텀시트가 담당. */}
       {!editing && !ev.isRedacted() && (
         <div
-          className={`absolute -top-3 right-5 z-10 items-center overflow-hidden rounded-md border border-line bg-bg-1 shadow-2xl [@media(hover:hover)]:group-hover:flex [@media(hover:hover)]:group-focus-within:flex ${
-            mobileActive ? "flex" : "hidden"
+          className={`absolute -top-3 right-5 z-10 items-center overflow-hidden rounded-md border border-line bg-bg-1 shadow-2xl [@media(hover:hover)and(pointer:fine)]:group-hover:flex [@media(hover:hover)and(pointer:fine)]:group-focus-within:flex ${
+            menuOpen ? "flex" : "hidden"
           }`}
         >
-          <button
-            type="button"
-            className={actionBtn}
-            onClick={(e) => {
-              // rect는 핸들러 안에서 즉시 읽기 — setState 콜백 시점엔 currentTarget이 null
-              const rect = e.currentTarget.getBoundingClientRect();
-              setPickerAnchor((v) => (v ? null : rect));
-              closeMobileActive();
-            }}
-            title={t("message.action.react")}
-          >
-            <SmilePlus className="h-3.5 w-3.5" />
-          </button>
-          {onReply && (
-            <button
-              type="button"
-              className={actionBtn}
-              onClick={() => {
-                onReply(ev);
-                closeMobileActive();
-              }}
-              title={t("message.action.reply")}
-            >
-              <Reply className="h-3.5 w-3.5" />
-            </button>
-          )}
-          {onOpenThread && (
-            <button
-              type="button"
-              className={actionBtn}
-              onClick={() => {
-                onOpenThread(ev.getId()!);
-                closeMobileActive();
-              }}
-              title={t("message.action.thread")}
-            >
-              <MessageSquarePlus className="h-3.5 w-3.5" />
-            </button>
-          )}
-          {canForward && (
-            <button
-              type="button"
-              className={actionBtn}
-              onClick={() => {
-                setForwarding(true);
-                closeMobileActive();
-              }}
-              title={t("message.action.forward")}
-            >
-              <Forward className="h-3.5 w-3.5" />
-            </button>
-          )}
-          <button
-            type="button"
-            className={actionBtn}
-            onClick={() => {
-              copyMarkdown();
-              closeMobileActive();
-            }}
-            title={t(copied ? "common.copied" : "message.action.copyMarkdown")}
-          >
-            {copied ? (
-              <Check className="h-3.5 w-3.5 text-green-400" />
-            ) : (
-              <Copy className="h-3.5 w-3.5" />
-            )}
-          </button>
-          {canPin && (
-            <button
-              type="button"
-              className={actionBtn}
-              onClick={() => {
-                pin();
-                closeMobileActive();
-              }}
-              title={t(pinned ? "message.action.unpin" : "message.action.pin")}
-            >
-              {pinned ? (
-                <PinOff className="h-3.5 w-3.5" />
-              ) : (
-                <Pin className="h-3.5 w-3.5" />
-              )}
-            </button>
-          )}
-          {canEdit && (
-            <button
-              type="button"
-              className={actionBtn}
-              onClick={() => {
-                startEdit();
-                closeMobileActive();
-              }}
-              title={t("message.action.edit")}
-            >
-              <Pencil className="h-3.5 w-3.5" />
-            </button>
-          )}
-          {canModify && (
-            <button
-              type="button"
-              className={actionBtn}
-              onClick={() => {
-                remove();
-                closeMobileActive();
-              }}
-              title={t("message.action.delete")}
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
-          )}
+          {actionList.map((a) => {
+            const Icon = a.icon;
+            const isCopied = a.key === "copy" && copied;
+            return (
+              <button
+                key={a.key}
+                type="button"
+                className={actionBtn}
+                onClick={(e) => {
+                  // rect는 핸들러 안에서 즉시 읽기 — setState 콜백 시점엔 null
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  a.run(rect);
+                  closeMenus();
+                }}
+                title={a.label}
+              >
+                <Icon
+                  className={`h-3.5 w-3.5 ${isCopied ? "text-green-400" : ""}`}
+                />
+              </button>
+            );
+          })}
         </div>
       )}
+      {/* 액션 바텀시트 (모바일) — long-press로 열림. 아래서 슬라이드업.
+          createPortal로 document.body에 렌더 — 가상 스크롤 행은 transform이
+          걸려 있어 그 안에서 fixed가 행 기준으로 잡힌다. portal로 빼야 viewport
+          기준 전체 화면 시트가 된다. */}
+      {sheetOpen &&
+        createPortal(
+          <Modal onClose={closeMenus} size="sm">
+            <div className="flex flex-col py-1">
+              {actionList.map((a) => {
+                const Icon = a.icon;
+                const isCopied = a.key === "copy" && copied;
+                return (
+                  <button
+                    key={a.key}
+                    type="button"
+                    className={`flex items-center gap-3 px-5 py-3 text-left text-[15px] transition-colors active:bg-bg-2 ${
+                      a.danger ? "text-red-400" : "text-fg-0"
+                    }`}
+                    onClick={() => {
+                      // react는 앵커가 필요 — 시트엔 트리거 rect가 없으니 rect 없이
+                      // 호출하면 EmojiPicker가 적당히 배치. 그 외 액션은 rect 무시.
+                      a.run();
+                      closeMenus();
+                    }}
+                  >
+                    <Icon
+                      className={`h-5 w-5 shrink-0 ${
+                        isCopied
+                          ? "text-green-400"
+                          : a.danger
+                            ? ""
+                            : "text-fg-2"
+                      }`}
+                    />
+                    {a.label}
+                  </button>
+                );
+              })}
+            </div>
+          </Modal>,
+          document.body,
+        )}
       {/* 이모지 피커 — 버튼 앵커 기준 포털 (스크롤 컨테이너 영향 없음).
           lazy 분리되어 있어 첫 마운트에서 청크 fetch — Suspense fallback은
           null(피커가 즉시 안 떠도 시각 disturbance 없음). */}
