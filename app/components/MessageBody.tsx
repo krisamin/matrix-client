@@ -2,6 +2,7 @@ import DOMPurify from "dompurify";
 import hljs from "highlight.js/lib/common";
 import type { MatrixClient, MatrixEvent } from "matrix-js-sdk";
 import { memo, useEffect, useMemo, useRef } from "react";
+import { hasMarkdown, markdownToMatrixHtml } from "../lib/markdown";
 import { getReplyToId } from "../lib/reply";
 
 /** Matrix 스펙(11.2.1.7 m.room.message msgtypes)이 허용하는 HTML 태그 —
@@ -312,7 +313,14 @@ function MessageBodyInner({
         ? stripInterTagNewlines(
             convertMxcUrls(client, stripMxReply(trimmedFormatted)),
           )
-        : linkifyPlain(plainBody);
+        : // formatted_body가 없는 평문이라도 마크다운(테이블/코드블록/리스트
+          // 등)을 담고 있으면 렌더한다. 발신측(mention.ts)이 formatted_body를
+          // 붙이는 기준과 동일한 hasMarkdown 휴리스틱을 재사용해, 평문에 우연히
+          // 들어간 기호(*별표* 등)에 대한 동작을 발신/수신 양측에서 일관시킨다.
+          // (봇·스크립트·다른 클라가 formatted_body 없이 보낸 마크다운 대응)
+          hasMarkdown(plainBody)
+          ? markdownToMatrixHtml(plainBody)
+          : linkifyPlain(plainBody);
       const clean = DOMPurify.sanitize(raw, {
         ALLOWED_TAGS,
         ALLOWED_ATTR,
