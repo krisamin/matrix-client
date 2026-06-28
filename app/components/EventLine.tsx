@@ -404,11 +404,14 @@ const EventLineInner = function EventLine({
       {/* 액션 바텀시트 (모바일) — long-press로 열림. 아래서 슬라이드업.
           createPortal로 document.body에 렌더 — 가상 스크롤 행은 transform이
           걸려 있어 그 안에서 fixed가 행 기준으로 잡힌다. portal로 빼야 viewport
-          기준 전체 화면 시트가 된다. */}
+          기준 전체 화면 시트가 된다.
+          ※ 안쪽 행 톤은 RoomContextMenu와 통일(text-fg-1 + 아이콘 fg-3 + divide-y).
+          컨테이너 패딩(py-*) 없이 행이 시트 위/아래 끝까지 꽉 참 — 모서리 라운드는
+          Modal max-md:rounded-b-none(위만 둥글게)이 처리. */}
       {sheetOpen &&
         createPortal(
           <Modal onClose={closeMenus} size="sm">
-            <div className="flex flex-col py-1">
+            <div className="flex flex-col divide-y divide-line">
               {actionList.map((a) => {
                 const Icon = a.icon;
                 const isCopied = a.key === "copy" && copied;
@@ -417,7 +420,7 @@ const EventLineInner = function EventLine({
                     key={a.key}
                     type="button"
                     className={`flex items-center gap-3 px-5 py-3 text-left text-[15px] transition-colors active:bg-bg-2 ${
-                      a.danger ? "text-red-400" : "text-fg-0"
+                      a.danger ? "text-red-400" : "text-fg-1"
                     }`}
                     onClick={() => {
                       // react는 앵커가 필요 — 시트엔 트리거 rect가 없으니 rect 없이
@@ -431,8 +434,8 @@ const EventLineInner = function EventLine({
                         isCopied
                           ? "text-green-400"
                           : a.danger
-                            ? ""
-                            : "text-fg-2"
+                            ? "text-red-400"
+                            : "text-fg-3"
                       }`}
                     />
                     {a.label}
