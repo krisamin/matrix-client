@@ -13,7 +13,9 @@ import {
 } from "lucide-react";
 import type { MatrixClient, Room } from "matrix-js-sdk";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate, useParams } from "react-router";
+import { useIsMobile } from "../hooks/useMediaQuery";
 import { useRooms } from "../hooks/useRooms";
 import { roomPath } from "../lib/format";
 import { useI18n } from "../lib/i18n";
@@ -27,6 +29,7 @@ import { DelayedMessagesModal } from "./DelayedMessagesModal";
 import { EmptyState } from "./EmptyState";
 import { MenuItem } from "./Form";
 import { IconButton } from "./IconButton";
+import { Modal } from "./Modal";
 import { NewDmModal } from "./NewDmModal";
 import { NewRoomModal } from "./NewRoomModal";
 import { NewSpaceModal } from "./NewSpaceModal";
@@ -48,6 +51,7 @@ export function Sidebar({ client }: { client: MatrixClient }) {
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [appSettingsOpen, setAppSettingsOpen] = useState(false);
+  const isMobile = useIsMobile();
   const [delayedOpen, setDelayedOpen] = useState(false);
   const { t } = useI18n();
   const userId = client.getUserId() ?? "";
@@ -125,40 +129,74 @@ export function Sidebar({ client }: { client: MatrixClient }) {
             iconSize={14}
             fillParent
           />
-          {sortMenuOpen && (
-            <>
-              <div
-                className="fixed inset-0 z-20"
-                onClick={() => setSortMenuOpen(false)}
-                role="presentation"
-              />
-              <div className="absolute right-0 top-full z-30 mt-1 flex w-44 flex-col overflow-hidden rounded-md border border-line bg-bg-1 shadow-2xl">
-                {(
-                  [
-                    ["activity", t("sort.activity")],
-                    ["unread", t("sort.unread")],
-                    ["alpha", t("sort.alpha")],
-                  ] as const
-                ).map(([key, label]) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => {
-                      saveRoomSort(key);
-                      setSort(key);
-                      setSortMenuOpen(false);
-                    }}
-                    className={`px-3 py-2 text-left text-[13px] hover:bg-bg-2 ${
-                      sort === key ? "text-fg-0" : "text-fg-2"
-                    }`}
-                  >
-                    {sort === key ? "✓ " : "  "}
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
+          {sortMenuOpen &&
+            (isMobile ? (
+              createPortal(
+                <Modal onClose={() => setSortMenuOpen(false)} size="sm">
+                  <div className="flex flex-col divide-y divide-line">
+                    {(
+                      [
+                        ["activity", t("sort.activity")],
+                        ["unread", t("sort.unread")],
+                        ["alpha", t("sort.alpha")],
+                      ] as const
+                    ).map(([key, label]) => (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => {
+                          saveRoomSort(key);
+                          setSort(key);
+                          setSortMenuOpen(false);
+                        }}
+                        className={`flex items-center gap-3 px-5 py-3 text-left text-[15px] transition-colors active:bg-bg-2 ${
+                          sort === key ? "text-fg-0" : "text-fg-1"
+                        }`}
+                      >
+                        <Check
+                          className={`h-5 w-5 shrink-0 ${sort === key ? "text-fg-0" : "text-transparent"}`}
+                        />
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </Modal>,
+                document.body,
+              )
+            ) : (
+              <>
+                <div
+                  className="fixed inset-0 z-20"
+                  onClick={() => setSortMenuOpen(false)}
+                  role="presentation"
+                />
+                <div className="absolute right-0 top-full z-30 mt-1 flex w-44 flex-col overflow-hidden rounded-md border border-line bg-bg-1 shadow-2xl">
+                  {(
+                    [
+                      ["activity", t("sort.activity")],
+                      ["unread", t("sort.unread")],
+                      ["alpha", t("sort.alpha")],
+                    ] as const
+                  ).map(([key, label]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => {
+                        saveRoomSort(key);
+                        setSort(key);
+                        setSortMenuOpen(false);
+                      }}
+                      className={`px-3 py-2 text-left text-[13px] hover:bg-bg-2 ${
+                        sort === key ? "text-fg-0" : "text-fg-2"
+                      }`}
+                    >
+                      {sort === key ? "✓ " : "  "}
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            ))}
         </div>
         <div className="relative flex h-full">
           <IconButton
@@ -167,46 +205,82 @@ export function Sidebar({ client }: { client: MatrixClient }) {
             title={t("sidebar.action.new")}
             fillParent
           />
-          {createMenuOpen && (
-            <>
-              {/* 바깥 클릭 닫기 */}
-              <button
-                type="button"
-                aria-label={t("sidebar.menu.close")}
-                className="fixed inset-0 z-20 cursor-default"
-                onClick={() => setCreateMenuOpen(false)}
-              />
-              <div className="absolute right-0 top-full z-30 mt-1 flex w-44 flex-col divide-y divide-line overflow-hidden rounded-md border border-line bg-bg-1 shadow-2xl">
-                <MenuItem
-                  density="compact"
-                  icon={<PenSquare className="h-4 w-4" />}
-                  label={t("sidebar.create.dm")}
-                  onClick={() => {
-                    setCreateMenuOpen(false);
-                    setNewDmOpen(true);
-                  }}
-                />
-                <MenuItem
-                  density="compact"
-                  icon={<Hash className="h-4 w-4" />}
-                  label={t("sidebar.create.room")}
-                  onClick={() => {
-                    setCreateMenuOpen(false);
-                    setNewRoomOpen(true);
-                  }}
-                />
-                <MenuItem
-                  density="compact"
-                  icon={<FolderPlus className="h-4 w-4" />}
-                  label={t("sidebar.create.space")}
-                  onClick={() => {
-                    setCreateMenuOpen(false);
-                    setNewSpaceOpen(true);
-                  }}
-                />
-              </div>
-            </>
-          )}
+          {createMenuOpen &&
+            (() => {
+              const createList = [
+                {
+                  key: "dm",
+                  icon: PenSquare,
+                  label: t("sidebar.create.dm"),
+                  run: () => setNewDmOpen(true),
+                },
+                {
+                  key: "room",
+                  icon: Hash,
+                  label: t("sidebar.create.room"),
+                  run: () => setNewRoomOpen(true),
+                },
+                {
+                  key: "space",
+                  icon: FolderPlus,
+                  label: t("sidebar.create.space"),
+                  run: () => setNewSpaceOpen(true),
+                },
+              ];
+              return isMobile ? (
+                createPortal(
+                  <Modal onClose={() => setCreateMenuOpen(false)} size="sm">
+                    <div className="flex flex-col divide-y divide-line">
+                      {createList.map((a) => {
+                        const Icon = a.icon;
+                        return (
+                          <button
+                            key={a.key}
+                            type="button"
+                            className="flex items-center gap-3 px-5 py-3 text-left text-[15px] text-fg-1 transition-colors active:bg-bg-2"
+                            onClick={() => {
+                              setCreateMenuOpen(false);
+                              a.run();
+                            }}
+                          >
+                            <Icon className="h-5 w-5 shrink-0 text-fg-3" />
+                            {a.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </Modal>,
+                  document.body,
+                )
+              ) : (
+                <>
+                  {/* 바깥 클릭 닫기 */}
+                  <button
+                    type="button"
+                    aria-label={t("sidebar.menu.close")}
+                    className="fixed inset-0 z-20 cursor-default"
+                    onClick={() => setCreateMenuOpen(false)}
+                  />
+                  <div className="absolute right-0 top-full z-30 mt-1 flex w-44 flex-col divide-y divide-line overflow-hidden rounded-md border border-line bg-bg-1 shadow-2xl">
+                    {createList.map((a) => {
+                      const Icon = a.icon;
+                      return (
+                        <MenuItem
+                          key={a.key}
+                          density="compact"
+                          icon={<Icon className="h-4 w-4" />}
+                          label={a.label}
+                          onClick={() => {
+                            setCreateMenuOpen(false);
+                            a.run();
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
+                </>
+              );
+            })()}
         </div>
         <IconButton
           icon={CalendarClock}
