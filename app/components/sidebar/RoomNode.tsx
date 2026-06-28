@@ -15,7 +15,9 @@ import {
   ThreadEvent,
 } from "matrix-js-sdk";
 import { memo, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router";
+import { useLongPress } from "../../hooks/useLongPress";
 import { useIsMobile } from "../../hooks/useMediaQuery";
 import { roomPath, threadPath } from "../../lib/format";
 import { useT } from "../../lib/i18n";
@@ -27,6 +29,7 @@ import {
 } from "../../lib/matrix";
 import { quotePreview } from "../../lib/reply";
 import { RoomAvatar } from "../Avatar";
+import { Modal } from "../Modal";
 import { RoomContextMenu } from "./RoomContextMenu";
 
 /** 방 하나의 트리 노드 — 클릭 시 이동, 스레드 자식 노드 펼침.
@@ -160,8 +163,20 @@ export const RoomNode = memo(function RoomNodeInner({
       setLoadingMoreThreads(false);
     }
   }
-  // 컨텍스트 메뉴 위치 (null=닫힘)
+  // PC 우클릭 컨텍스트 메뉴 위치 (null=닫힘). 모바일 long-press는 sheetOpen로 분기.
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
+  // 모바일 long-press 액션 바텀시트 열림 여부 — 같은 액션(fav/mute)을 시트로.
+  const [sheetOpen, setSheetOpen] = useState(false);
+  // isMobile은 위에서 이미 선언됨 (avatar/행 크기 분기용) — 재사용.
+  // useLongPress: 데스크탑 우클릭은 onContextMenu(아래 JSX)에서 직접 처리하고,
+  // 모바일 long-press는 여기서 시트 띄움. 텍스트 선택은 tree-row 안엔 없어서 검사 불필요.
+  const longPress = useLongPress(() => {
+    if (isMobile) setSheetOpen(true);
+  });
+  const closeMenus = () => {
+    setMenu(null);
+    setSheetOpen(false);
+  };
   const unread = room.getUnreadNotificationCount(NotificationCountType.Total);
   const highlight = room.getUnreadNotificationCount(
     NotificationCountType.Highlight,
@@ -189,7 +204,7 @@ export const RoomNode = memo(function RoomNodeInner({
   const showChildren = hasThreads && (expanded || active);
 
   async function onFav() {
-    setMenu(null);
+    closeMenus();
     try {
       await toggleFavourite(client, room);
       force((n) => n + 1);
@@ -198,7 +213,7 @@ export const RoomNode = memo(function RoomNodeInner({
     }
   }
   async function onMute() {
-    setMenu(null);
+    closeMenus();
     try {
       await toggleMute(client, room);
       force((n) => n + 1);
@@ -211,9 +226,12 @@ export const RoomNode = memo(function RoomNodeInner({
     <div>
       <div
         className={`tree-row group/row ${active && !activeThreadId ? "active" : ""}`}
+        {...longPress}
         onContextMenu={(e) => {
+          // PC 우클릭만 메뉴 — 모바일은 useLongPress의 onContextMenu가 호출되지만
+          // isMobile 가드로 무시되고, 여기서도 모바일이면 안전하게 패스.
           e.preventDefault();
-          setMenu({ x: e.clientX, y: e.clientY });
+          if (!isMobile) setMenu({ x: e.clientX, y: e.clientY });
         }}
       >
         <div className="flex shrink-0 items-center">
@@ -278,6 +296,39 @@ export const RoomNode = memo(function RoomNodeInner({
           onClose={() => setMenu(null)}
         />
       )}
+      {/* 모바일 long-press 액션 시트 — RoomContextMenu와 같은 액션(fav/mute)을
+          하단 바텀시트로. Modal mobileMode="sheet" 재사용 + createPortal로
+          가상스크롤 transform 부모 탈출(EventLine 패턴과 동일). 톤도 통일. */}
+      {sheetOpen &&
+        createPortal(
+          <Modal onClose={closeMenus} size="sm">
+            <div className="flex flex-col divide-y divide-line">
+              <button
+                type="button"
+                className="flex items-center gap-3 px-5 py-3 text-left text-[15px] text-fg-1 transition-colors active:bg-bg-2"
+                onClick={onFav}
+              >
+                <Star
+                  className={`h-5 w-5 shrink-0 ${fav ? "fill-amber-400 text-amber-400" : "text-fg-3"}`}
+                />
+                {t(
+                  fav
+                    ? "sidebar.context.unfavorite"
+                    : "sidebar.context.favorite",
+                )}
+              </button>
+              <button
+                type="button"
+                className="flex items-center gap-3 px-5 py-3 text-left text-[15px] text-fg-1 transition-colors active:bg-bg-2"
+                onClick={onMute}
+              >
+                <BellOff className="h-5 w-5 shrink-0 text-fg-3" />
+                {t(muted ? "sidebar.context.unmute" : "sidebar.context.mute")}
+              </button>
+            </div>
+          </Modal>,
+          document.body,
+        )}
       {showChildren && (
         <div className="tree-children">
           {sortedThreads.map((thread) => {
