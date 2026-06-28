@@ -23,6 +23,7 @@ import { getMyProfile, type MyProfile, resetClient } from "../lib/matrix";
 import { saveRoomSort } from "../lib/room-sort";
 import { clearSession } from "../lib/session";
 import { buildRoomTree } from "../lib/spaces";
+import { prefetchRoomThreads } from "../lib/thread-prefetch";
 import { AppSettingsModal } from "./AppSettingsModal";
 import { Avatar } from "./Avatar";
 import { DelayedMessagesModal } from "./DelayedMessagesModal";
@@ -52,6 +53,14 @@ export function Sidebar({ client }: { client: MatrixClient }) {
   const [profileOpen, setProfileOpen] = useState(false);
   const [appSettingsOpen, setAppSettingsOpen] = useState(false);
   const isMobile = useIsMobile();
+  // 사이드바 트리 스레드 미리 채우기 — idle 시점에 동시 3개로 순차 페치.
+  // RoomNode는 active 방만 fetch하니까 진입 전엔 스레드가 안 떴음(폭주 방지용).
+  // 여기서 idle 큐로 백그라운드에서 채워 두면 진입 없이도 사이드바에 펼침 가능.
+  // launched WeakSet으로 client당 1회만 발사 — 리렌더에 중복 안 됨.
+  useEffect(() => {
+    if (rooms.length === 0) return;
+    prefetchRoomThreads(client, rooms);
+  }, [client, rooms]);
   const [delayedOpen, setDelayedOpen] = useState(false);
   const { t } = useI18n();
   const userId = client.getUserId() ?? "";
