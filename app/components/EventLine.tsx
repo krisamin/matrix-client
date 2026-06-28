@@ -104,38 +104,51 @@ const EventLineInner = function EventLine({
   // 전달 모달 열림 여부
   const [forwarding, setForwarding] = useState(false);
   const [copied, setCopied] = useState(false);
-  // 데스크탑 우클릭(contextmenu) 컨텍스트 메뉴 — 우측 플로팅 액션바 토글.
+  // 데스크탑 우클릭(contextmenu) 컨텍스트 메뉴 — 커서 위치에 세로 메뉴.
+  // hover로 뜨는 우상단 가로 액션바는 별개로 유지(즉시 접근 UX).
   // 모바일은 hover가 없어 이 경로로 안 뜨고, long-press → 하단 바텀시트로 분기.
-  const [menuOpen, setMenuOpen] = useState(false);
+  // null이면 닫힘, {x, y}면 그 위치를 anchor로 메뉴 띄움.
+  const [menuAt, setMenuAt] = useState<{ x: number; y: number } | null>(null);
   // 모바일 long-press 액션 바텀시트 열림 여부.
   const [sheetOpen, setSheetOpen] = useState(false);
   const isMobile = useIsMobile();
-  // 데스크탑 우클릭 메뉴 열린 상태에서 바깥 탭 → 닫기. capture 없이도 자식 onClick은
+  // 데스크탑 우클릭 메뉴 열린 상태에서 바깥 클릭 → 닫기. capture 없이도 자식 onClick은
   // 그대로 동작(액션 버튼은 stopPropagation 불필요).
   useEffect(() => {
-    if (!menuOpen) return;
+    if (!menuAt) return;
     const onDown = (e: PointerEvent) => {
-      const el = document.getElementById(`ev-${ev.getId()}`);
-      if (el && !el.contains(e.target as Node)) setMenuOpen(false);
+      const el = document.getElementById(`ev-context-menu`);
+      if (el && !el.contains(e.target as Node)) setMenuAt(null);
     };
-    document.addEventListener("pointerdown", onDown);
-    return () => document.removeEventListener("pointerdown", onDown);
-  }, [menuOpen, ev]);
-  const longPress = useLongPress(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuAt(null);
+    };
+    // 다음 틱부터 바깥 감지 (현재 우클릭이 바로 닫지 않게)
+    const id = setTimeout(() => {
+      document.addEventListener("pointerdown", onDown);
+    }, 0);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      clearTimeout(id);
+      document.removeEventListener("pointerdown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [menuAt]);
+  const longPress = useLongPress((x, y) => {
     // 편집/삭제된 이벤트엔 액션이 안 뜨므로 long-press도 무시
     if (editing || ev.isRedacted()) return;
     // 텍스트 선택 중이면 무시 (iOS는 본문 long-press가 selection 핸들을 띄우는데,
     // 그 위에 우리 메뉴까지 띄우면 충돌). 빈 selection은 OK.
     const sel = typeof window !== "undefined" ? window.getSelection() : null;
     if (sel && !sel.isCollapsed && sel.toString().length > 0) return;
-    // 모바일(터치): 하단 바텀시트. 데스크탑(우클릭): 우측 플로팅 메뉴 토글.
+    // 모바일(터치): 하단 바텀시트. 데스크탑(우클릭): 커서 위치 세로 메뉴.
     if (isMobile) setSheetOpen(true);
-    else setMenuOpen((v) => !v);
+    else setMenuAt({ x, y });
   });
   // 액션 실행 후 양쪽 메뉴 모두 닫기 — 메뉴 잔존 방지.
   // (피커/모달은 자체 anchor를 갖고 있어 닫혀도 그쪽은 독립적으로 유지됨)
   const closeMenus = () => {
-    setMenuOpen(false);
+    setMenuAt(null);
     setSheetOpen(false);
   };
   // 마운트 시점에 "방금 도착한" 이벤트(5초 이내 / local echo)만 등장 애니메이션.
@@ -330,7 +343,7 @@ const EventLineInner = function EventLine({
         mentioned
           ? "border-l-2 border-amber-400/70 bg-amber-400/[0.06] pl-[18px]"
           : ""
-      } ${menuOpen ? "bg-bg-2/60" : ""}`}
+      } ${menuAt ? "bg-bg-2/60" : ""}`}
     >
       {/* 그룹 헤더: 발신자 + 시각 (+수정됨) */}
       {showHeader && (
@@ -372,11 +385,7 @@ const EventLineInner = function EventLine({
           아예 안 먹는 케이스가 있어 우선 데스크탑 결을 살림.
           모바일 액션은 아래 long-press 바텀시트가 담당. */}
       {!editing && !ev.isRedacted() && (
-        <div
-          className={`absolute -top-3 right-5 z-10 items-center overflow-hidden rounded-md border border-line bg-bg-1 shadow-2xl [@media(hover:hover)]:group-hover:flex [@media(hover:hover)]:group-focus-within:flex ${
-            menuOpen ? "flex" : "hidden"
-          }`}
-        >
+        <div className="absolute -top-3 right-5 z-10 hidden items-center overflow-hidden rounded-md border border-line bg-bg-1 shadow-2xl [@media(hover:hover)]:group-hover:flex [@media(hover:hover)]:group-focus-within:flex">
           {actionList.map((a) => {
             const Icon = a.icon;
             const isCopied = a.key === "copy" && copied;
@@ -401,6 +410,55 @@ const EventLineInner = function EventLine({
           })}
         </div>
       )}
+      {/* 컨텍스트 메뉴 (데스크탑 우클릭) — 커서 위치에 세로 메뉴.
+          톤은 바텀시트와 동일(divide-y + text-fg-1 + 아이콘 fg-3). createPortal로
+          document.body 렌더 — 가상 스크롤 행은 transform이 걸려 fixed가 행 기준
+          으로 잡히기 때문(바텀시트와 같은 이유). 위치는 viewport 클램프 처리. */}
+      {menuAt &&
+        createPortal(
+          <div
+            id="ev-context-menu"
+            className="fixed z-50 flex min-w-[200px] flex-col divide-y divide-line overflow-hidden rounded-md border border-line bg-bg-1 shadow-2xl"
+            style={{
+              // 우측/하단 잘림 방지: 메뉴 폭/높이 대략값으로 클램프.
+              // 정확한 측정은 비용 큼 — 200px / 8행*36px 근사로 충분.
+              left: Math.min(menuAt.x, window.innerWidth - 220),
+              top: Math.min(menuAt.y, window.innerHeight - 320),
+            }}
+            onClick={(e) => e.stopPropagation()}
+            role="presentation"
+          >
+            {actionList.map((a) => {
+              const Icon = a.icon;
+              const isCopied = a.key === "copy" && copied;
+              return (
+                <button
+                  key={a.key}
+                  type="button"
+                  className={`flex items-center gap-2.5 px-3 py-2 text-left text-[13px] transition-colors hover:bg-bg-2 ${
+                    a.danger ? "text-red-400" : "text-fg-1 hover:text-fg-0"
+                  }`}
+                  onClick={() => {
+                    a.run();
+                    closeMenus();
+                  }}
+                >
+                  <Icon
+                    className={`h-3.5 w-3.5 shrink-0 ${
+                      isCopied
+                        ? "text-green-400"
+                        : a.danger
+                          ? "text-red-400"
+                          : "text-fg-3"
+                    }`}
+                  />
+                  {a.label}
+                </button>
+              );
+            })}
+          </div>,
+          document.body,
+        )}
       {/* 액션 바텀시트 (모바일) — long-press로 열림. 아래서 슬라이드업.
           createPortal로 document.body에 렌더 — 가상 스크롤 행은 transform이
           걸려 있어 그 안에서 fixed가 행 기준으로 잡힌다. portal로 빼야 viewport

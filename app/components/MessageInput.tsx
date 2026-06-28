@@ -362,6 +362,12 @@ export function MessageInput({
           className="flex h-12 w-12 shrink-0 items-center justify-center text-fg-2 hover:bg-bg-2 hover:text-fg-0 disabled:opacity-50"
           disabled={sending || !draft.trim()}
           title={t("input.send")}
+          // ★ 모바일 키보드 깜빡임 차단 — 버튼 누를 때 textarea focus가 빼앗기지
+          // 않게 mouseDown/touchStart에서 preventDefault. focus가 유지되면
+          // 키보드도 안 내려감 → 연속 전송이 자연스러움(Telegram/iMessage 결).
+          // submit 자체는 영향 받지 않음(click은 그대로 발생).
+          onMouseDown={(e) => e.preventDefault()}
+          onTouchStart={(e) => e.preventDefault()}
         >
           <SendHorizontal className="h-[15px] w-[15px]" />
         </button>
