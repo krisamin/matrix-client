@@ -73,17 +73,24 @@ export function ActionMenu({
   // 트리거 버튼 측정용 ref — onClick에 rect 넘김
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  const renderItem = (item: ActionMenuItem) => {
+  const renderItem = (item: ActionMenuItem, variant: "sheet" | "menu") => {
     const Icon = item.icon;
+    // 시트(모바일): 큰 톤 — px-5 py-3 / text-15 / 아이콘 5×5
+    // 메뉴(PC 우클릭): compact 톤 — px-3 py-2 / text-13 / 아이콘 3.5×3.5
+    const sizing =
+      variant === "sheet"
+        ? "gap-3 px-5 py-3 text-[15px]"
+        : "gap-2.5 px-3 py-2 text-[13px]";
+    const iconSize = variant === "sheet" ? "h-5 w-5" : "h-3.5 w-3.5";
     const baseColor = item.danger
-      ? "text-red-400 active:bg-red-500/10"
+      ? "text-red-400 active:bg-red-500/10 hover:bg-bg-2"
       : "text-fg-1 active:bg-bg-2 hover:bg-bg-2 hover:text-fg-0";
     const iconColor = item.danger ? "text-red-400" : "text-fg-3";
     return (
       <button
         key={item.key}
         type="button"
-        className={`flex w-full items-center gap-3 px-5 py-3 text-left text-[15px] ${baseColor}`}
+        className={`flex w-full items-center text-left ${sizing} ${baseColor}`}
         onClick={(e) => {
           const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
           item.onClick(rect);
@@ -91,7 +98,7 @@ export function ActionMenu({
       >
         {Icon ? (
           <Icon
-            className={`h-5 w-5 shrink-0 ${iconColor} ${item.iconClassName ?? ""}`}
+            className={`${iconSize} shrink-0 ${iconColor} ${item.iconClassName ?? ""}`}
           />
         ) : null}
         <span className="flex-1 truncate">{item.label}</span>
@@ -108,7 +115,7 @@ export function ActionMenu({
               ref={containerRef}
               className="flex flex-col divide-y divide-line"
             >
-              {items.map(renderItem)}
+              {items.map((it) => renderItem(it, "sheet"))}
             </div>
           </Modal>,
           document.body,
@@ -125,7 +132,7 @@ export function ActionMenu({
           onClick={(e) => e.stopPropagation()}
           role="presentation"
         >
-          {items.map(renderItem)}
+          {items.map((it) => renderItem(it, "menu"))}
         </div>,
         document.body,
       )

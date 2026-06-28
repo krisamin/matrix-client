@@ -106,25 +106,26 @@ const EventLineInner = function EventLine({
   // hover로 뜨는 우상단 가로 액션바는 별개로 유지(즉시 접근 UX).
   // 모바일은 hover가 없어 이 경로로 안 뜨고, long-press → 하단 바텀시트로 분기.
   // null이면 닫힘, {x, y}면 그 위치를 anchor로 메뉴 띄움.
-  const [menuAt, setMenuAt] = useState<{ x: number; y: number } | null>(null);
   // 모바일 long-press 액션 바텀시트 열림 여부.
+  // ※ 데스크탑은 우상단 hover 가로 액션바로 충분하므로 PC 우클릭 메뉴는 두지 않음
+  //   (우클릭 = 브라우저 기본 동작 살림 — 텍스트 복사 등).
   const [sheetOpen, setSheetOpen] = useState(false);
   const isMobile = useIsMobile();
-  const longPress = useLongPress((x, y) => {
+  const longPress = useLongPress((_x, _y) => {
     // 편집/삭제된 이벤트엔 액션이 안 뜨므로 long-press도 무시
     if (editing || ev.isRedacted()) return;
     // 텍스트 선택 중이면 무시 (iOS는 본문 long-press가 selection 핸들을 띄우는데,
     // 그 위에 우리 메뉴까지 띄우면 충돌). 빈 selection은 OK.
     const sel = typeof window !== "undefined" ? window.getSelection() : null;
     if (sel && !sel.isCollapsed && sel.toString().length > 0) return;
-    // 모바일(터치): 하단 바텀시트. 데스크탑(우클릭): 커서 위치 세로 메뉴.
+    // 모바일(터치)만 하단 바텀시트. 데스크탑 우클릭은 무시(기본 동작 유지).
     if (isMobile) setSheetOpen(true);
-    else setMenuAt({ x, y });
   });
-  // 액션 실행 후 양쪽 메뉴 모두 닫기 — 메뉴 잔존 방지.
-  // (피커/모달은 자체 anchor를 갖고 있어 닫혀도 그쪽은 독립적으로 유지됨)
+  // 데스크탑(마우스)에선 long-press의 onContextMenu가 우클릭을 가로채지 않도록
+  // 모바일 환경에서만 바인딩한다. → PC 우클릭 = 브라우저 기본 메뉴.
+  const pressBindings = isMobile ? longPress : {};
+  // 액션 실행 후 시트 닫기.
   const closeMenus = () => {
-    setMenuAt(null);
     setSheetOpen(false);
   };
   // 마운트 시점에 "방금 도착한" 이벤트(5초 이내 / local echo)만 등장 애니메이션.
@@ -326,7 +327,7 @@ const EventLineInner = function EventLine({
       // 모바일 long-press / 데스크탑 우클릭으로 액션바 토글.
       // ※ message-body / .selectable 안에선 호출부가 stopPropagation으로 막아
       //    텍스트 선택·복사 기본 동작을 살린다 (app.css 텍스트 선택 규칙과 짝).
-      {...longPress}
+      {...pressBindings}
       className={`group relative px-5 transition-colors duration-300 [@media(hover:hover)]:hover:bg-bg-2/60 active:bg-bg-2/60 ${
         showHeader ? "pt-3 pb-0.5" : "py-0.5"
       } ${
@@ -337,7 +338,7 @@ const EventLineInner = function EventLine({
         mentioned
           ? "border-l-2 border-amber-400/70 bg-amber-400/[0.06] pl-[18px]"
           : ""
-      } ${menuAt ? "bg-bg-2/60" : ""}`}
+      }`}
     >
       {/* 그룹 헤더: 발신자 + 시각 (+수정됨) */}
       {showHeader && (
@@ -403,23 +404,13 @@ const EventLineInner = function EventLine({
           })}
         </div>
       )}
-      {/* PC 우클릭 컨텍스트 메뉴 + 모바일 long-press 바텀시트 — ActionMenu가 둘 다
-          처리. createPortal(document.body) + 같은 톤(divide-y + fg-1 + 아이콘 fg-3)
-          + viewport 클램프까지 캡슐화. 우상단 hover 가로 액션바는 별개로 위에서
-          렌더(즉시 접근 UX). */}
+      {/* 모바일 long-press 바텀시트 — ActionMenu가 처리. createPortal(document.body)
+          + 같은 톤(divide-y + fg-1 + 아이콘 fg-3). PC는 우상단 hover 가로 액션바로
+          충분하므로 우클릭 메뉴는 두지 않음(우클릭 = 브라우저 기본 동작). */}
       <ActionMenu
         items={actionList}
         sheetOpen={sheetOpen}
         onCloseSheet={closeMenus}
-        menuAt={
-          menuAt
-            ? {
-                x: Math.min(menuAt.x, window.innerWidth - 220),
-                y: Math.min(menuAt.y, window.innerHeight - 320),
-              }
-            : null
-        }
-        onCloseMenu={closeMenus}
       />
       {/* 이모지 피커 — 버튼 앵커 기준 포털 (스크롤 컨테이너 영향 없음).
           lazy 분리되어 있어 첫 마운트에서 청크 fetch — Suspense fallback은
