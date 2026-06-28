@@ -15,7 +15,6 @@ import {
   ThreadEvent,
 } from "matrix-js-sdk";
 import { memo, useEffect, useState } from "react";
-import { createPortal } from "react-dom";
 import { Link } from "react-router";
 import { useLongPress } from "../../hooks/useLongPress";
 import { useIsMobile } from "../../hooks/useMediaQuery";
@@ -28,9 +27,8 @@ import {
   toggleMute,
 } from "../../lib/matrix";
 import { quotePreview } from "../../lib/reply";
+import { ActionMenu, type ActionMenuItem } from "../ActionMenu";
 import { RoomAvatar } from "../Avatar";
-import { Modal } from "../Modal";
-import { RoomContextMenu } from "./RoomContextMenu";
 
 /** 방 하나의 트리 노드 — 클릭 시 이동, 스레드 자식 노드 펼침.
  *  우클릭 시 컨텍스트 메뉴(즐겨찾기/음소거 토글). */
@@ -222,6 +220,23 @@ export const RoomNode = memo(function RoomNodeInner({
     }
   }
 
+  // 공통 액션 목록 — PC 우클릭 메뉴와 모바일 long-press 시트가 같은 소스 공유.
+  const actionList: ActionMenuItem[] = [
+    {
+      key: "fav",
+      icon: Star,
+      iconClassName: fav ? "fill-amber-400 text-amber-400" : "",
+      label: t(fav ? "sidebar.context.unfavorite" : "sidebar.context.favorite"),
+      onClick: onFav,
+    },
+    {
+      key: "mute",
+      icon: BellOff,
+      label: t(muted ? "sidebar.context.unmute" : "sidebar.context.mute"),
+      onClick: onMute,
+    },
+  ];
+
   return (
     <div>
       <div
@@ -285,50 +300,16 @@ export const RoomNode = memo(function RoomNodeInner({
           </button>
         )}
       </div>
-      {menu && (
-        <RoomContextMenu
-          x={menu.x}
-          y={menu.y}
-          fav={fav}
-          muted={muted}
-          onFav={onFav}
-          onMute={onMute}
-          onClose={() => setMenu(null)}
-        />
-      )}
-      {/* 모바일 long-press 액션 시트 — RoomContextMenu와 같은 액션(fav/mute)을
-          하단 바텀시트로. Modal mobileMode="sheet" 재사용 + createPortal로
-          가상스크롤 transform 부모 탈출(EventLine 패턴과 동일). 톤도 통일. */}
-      {sheetOpen &&
-        createPortal(
-          <Modal onClose={closeMenus} size="sm">
-            <div className="flex flex-col divide-y divide-line">
-              <button
-                type="button"
-                className="flex items-center gap-3 px-5 py-3 text-left text-[15px] text-fg-1 transition-colors active:bg-bg-2"
-                onClick={onFav}
-              >
-                <Star
-                  className={`h-5 w-5 shrink-0 ${fav ? "fill-amber-400 text-amber-400" : "text-fg-3"}`}
-                />
-                {t(
-                  fav
-                    ? "sidebar.context.unfavorite"
-                    : "sidebar.context.favorite",
-                )}
-              </button>
-              <button
-                type="button"
-                className="flex items-center gap-3 px-5 py-3 text-left text-[15px] text-fg-1 transition-colors active:bg-bg-2"
-                onClick={onMute}
-              >
-                <BellOff className="h-5 w-5 shrink-0 text-fg-3" />
-                {t(muted ? "sidebar.context.unmute" : "sidebar.context.mute")}
-              </button>
-            </div>
-          </Modal>,
-          document.body,
-        )}
+      {/* PC 우클릭 메뉴 + 모바일 long-press 시트 — ActionMenu가 둘 다 처리.
+          createPortal + 같은 톤(divide-y + fg-1 + 아이콘 fg-3) + viewport 탈출. */}
+      <ActionMenu
+        items={actionList}
+        sheetOpen={sheetOpen}
+        onCloseSheet={closeMenus}
+        menuAt={menu}
+        onCloseMenu={() => setMenu(null)}
+        minWidth={180}
+      />
       {showChildren && (
         <div className="tree-children">
           {sortedThreads.map((thread) => {

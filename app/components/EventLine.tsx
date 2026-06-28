@@ -1,4 +1,3 @@
-import type { LucideIcon } from "lucide-react";
 import {
   Check,
   Copy,
@@ -25,8 +24,7 @@ import {
   EventShieldColour,
   EventShieldReason,
 } from "matrix-js-sdk/lib/crypto-api";
-import { lazy, memo, Suspense, useEffect, useState } from "react";
-import { createPortal } from "react-dom";
+import { lazy, memo, Suspense, useState } from "react";
 import { useEventActions } from "../hooks/useEventActions";
 import { useLongPress } from "../hooks/useLongPress";
 import { useIsMobile } from "../hooks/useMediaQuery";
@@ -38,10 +36,10 @@ import { mentionsUser } from "../lib/mention";
 import { quotePreview, thumbnailSource } from "../lib/reply";
 import { MEDIA_MSGTYPES } from "../lib/timeline";
 import { extractPreviewUrls } from "../lib/url-preview";
+import { ActionMenu, type ActionMenuItem } from "./ActionMenu";
 import { ForwardModal } from "./ForwardModal";
 import { MediaView } from "./MediaView";
 import { MessageBody } from "./MessageBody";
-import { Modal } from "./Modal";
 import { QuoteThumbnail } from "./QuoteThumbnail";
 import { ReactionBar } from "./ReactionBar";
 import { ReadReceipts } from "./ReadReceipts";
@@ -112,28 +110,6 @@ const EventLineInner = function EventLine({
   // 모바일 long-press 액션 바텀시트 열림 여부.
   const [sheetOpen, setSheetOpen] = useState(false);
   const isMobile = useIsMobile();
-  // 데스크탑 우클릭 메뉴 열린 상태에서 바깥 클릭 → 닫기. capture 없이도 자식 onClick은
-  // 그대로 동작(액션 버튼은 stopPropagation 불필요).
-  useEffect(() => {
-    if (!menuAt) return;
-    const onDown = (e: PointerEvent) => {
-      const el = document.getElementById(`ev-context-menu`);
-      if (el && !el.contains(e.target as Node)) setMenuAt(null);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setMenuAt(null);
-    };
-    // 다음 틱부터 바깥 감지 (현재 우클릭이 바로 닫지 않게)
-    const id = setTimeout(() => {
-      document.addEventListener("pointerdown", onDown);
-    }, 0);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      clearTimeout(id);
-      document.removeEventListener("pointerdown", onDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [menuAt]);
   const longPress = useLongPress((x, y) => {
     // 편집/삭제된 이벤트엔 액션이 안 뜨므로 long-press도 무시
     if (editing || ev.isRedacted()) return;
@@ -255,66 +231,81 @@ const EventLineInner = function EventLine({
   const actionBtn =
     "p-2 text-fg-1 hover:bg-bg-2 hover:text-fg-0 transition-colors";
 
-  // 액션 정의 단일 소스 — 데스크탑 우측 플로팅 액션바와 모바일 바텀시트가
-  // 같은 목록을 공유한다. run(rect)는 react처럼 앵커가 필요한 액션만 rect를 쓰고
-  // 나머지는 무시한다.
-  const actionList: {
-    key: string;
-    icon: LucideIcon;
-    label: string;
-    show: boolean;
-    danger?: boolean;
-    run: (rect?: DOMRect) => void;
-  }[] = [
+  // 액션 정의 단일 소스 — 우상단 hover 가로 액션바 / 우클릭 PC 메뉴 / 모바일
+  // 바텀시트가 같은 목록을 공유한다. 후자 두 결은 ActionMenu가 렌더.
+  // onClick(rect)는 react처럼 앵커가 필요한 액션만 rect를 쓰고 나머지는 무시.
+  const copyKey = `copy${copied ? ":done" : ""}`;
+  const actionList: (ActionMenuItem & { show: boolean })[] = [
     {
       key: "react",
       icon: SmilePlus,
       label: t("message.action.react"),
       show: true,
-      run: (rect?: DOMRect) =>
-        setPickerAnchor((v) => (v ? null : (rect ?? null))),
+      onClick: (rect?: DOMRect) => {
+        setPickerAnchor((v) => (v ? null : (rect ?? null)));
+        closeMenus();
+      },
     },
     {
       key: "reply",
       icon: Reply,
       label: t("message.action.reply"),
       show: !!onReply,
-      run: () => onReply?.(ev),
+      onClick: () => {
+        onReply?.(ev);
+        closeMenus();
+      },
     },
     {
       key: "thread",
       icon: MessageSquarePlus,
       label: t("message.action.thread"),
       show: !!onOpenThread,
-      run: () => onOpenThread?.(ev.getId()!),
+      onClick: () => {
+        onOpenThread?.(ev.getId()!);
+        closeMenus();
+      },
     },
     {
       key: "forward",
       icon: Forward,
       label: t("message.action.forward"),
       show: canForward,
-      run: () => setForwarding(true),
+      onClick: () => {
+        setForwarding(true);
+        closeMenus();
+      },
     },
     {
-      key: "copy",
+      key: copyKey,
       icon: copied ? Check : Copy,
+      iconClassName: copied ? "text-green-400" : "",
       label: t(copied ? "common.copied" : "message.action.copyMarkdown"),
       show: true,
-      run: () => copyMarkdown(),
+      onClick: () => {
+        copyMarkdown();
+        closeMenus();
+      },
     },
     {
       key: "pin",
       icon: pinned ? PinOff : Pin,
       label: t(pinned ? "message.action.unpin" : "message.action.pin"),
       show: canPin,
-      run: () => pin(),
+      onClick: () => {
+        pin();
+        closeMenus();
+      },
     },
     {
       key: "edit",
       icon: Pencil,
       label: t("message.action.edit"),
       show: canEdit,
-      run: () => startEdit(),
+      onClick: () => {
+        startEdit();
+        closeMenus();
+      },
     },
     {
       key: "delete",
@@ -322,7 +313,10 @@ const EventLineInner = function EventLine({
       label: t("message.action.delete"),
       show: canModify,
       danger: true,
-      run: () => remove(),
+      onClick: () => {
+        remove();
+        closeMenus();
+      },
     },
   ].filter((a) => a.show);
 
@@ -387,8 +381,8 @@ const EventLineInner = function EventLine({
       {!editing && !ev.isRedacted() && (
         <div className="absolute -top-3 right-5 z-10 hidden items-center overflow-hidden rounded-md border border-line bg-bg-1 shadow-2xl [@media(hover:hover)]:group-hover:flex [@media(hover:hover)]:group-focus-within:flex">
           {actionList.map((a) => {
-            const Icon = a.icon;
-            const isCopied = a.key === "copy" && copied;
+            const Icon = a.icon!;
+            const isCopied = a.key.startsWith("copy:done");
             return (
               <button
                 key={a.key}
@@ -397,8 +391,7 @@ const EventLineInner = function EventLine({
                 onClick={(e) => {
                   // rect는 핸들러 안에서 즉시 읽기 — setState 콜백 시점엔 null
                   const rect = e.currentTarget.getBoundingClientRect();
-                  a.run(rect);
-                  closeMenus();
+                  a.onClick(rect);
                 }}
                 title={a.label}
               >
@@ -410,100 +403,24 @@ const EventLineInner = function EventLine({
           })}
         </div>
       )}
-      {/* 컨텍스트 메뉴 (데스크탑 우클릭) — 커서 위치에 세로 메뉴.
-          톤은 바텀시트와 동일(divide-y + text-fg-1 + 아이콘 fg-3). createPortal로
-          document.body 렌더 — 가상 스크롤 행은 transform이 걸려 fixed가 행 기준
-          으로 잡히기 때문(바텀시트와 같은 이유). 위치는 viewport 클램프 처리. */}
-      {menuAt &&
-        createPortal(
-          <div
-            id="ev-context-menu"
-            className="fixed z-50 flex min-w-[200px] flex-col divide-y divide-line overflow-hidden rounded-md border border-line bg-bg-1 shadow-2xl"
-            style={{
-              // 우측/하단 잘림 방지: 메뉴 폭/높이 대략값으로 클램프.
-              // 정확한 측정은 비용 큼 — 200px / 8행*36px 근사로 충분.
-              left: Math.min(menuAt.x, window.innerWidth - 220),
-              top: Math.min(menuAt.y, window.innerHeight - 320),
-            }}
-            onClick={(e) => e.stopPropagation()}
-            role="presentation"
-          >
-            {actionList.map((a) => {
-              const Icon = a.icon;
-              const isCopied = a.key === "copy" && copied;
-              return (
-                <button
-                  key={a.key}
-                  type="button"
-                  className={`flex items-center gap-2.5 px-3 py-2 text-left text-[13px] transition-colors hover:bg-bg-2 ${
-                    a.danger ? "text-red-400" : "text-fg-1 hover:text-fg-0"
-                  }`}
-                  onClick={() => {
-                    a.run();
-                    closeMenus();
-                  }}
-                >
-                  <Icon
-                    className={`h-3.5 w-3.5 shrink-0 ${
-                      isCopied
-                        ? "text-green-400"
-                        : a.danger
-                          ? "text-red-400"
-                          : "text-fg-3"
-                    }`}
-                  />
-                  {a.label}
-                </button>
-              );
-            })}
-          </div>,
-          document.body,
-        )}
-      {/* 액션 바텀시트 (모바일) — long-press로 열림. 아래서 슬라이드업.
-          createPortal로 document.body에 렌더 — 가상 스크롤 행은 transform이
-          걸려 있어 그 안에서 fixed가 행 기준으로 잡힌다. portal로 빼야 viewport
-          기준 전체 화면 시트가 된다.
-          ※ 안쪽 행 톤은 RoomContextMenu와 통일(text-fg-1 + 아이콘 fg-3 + divide-y).
-          컨테이너 패딩(py-*) 없이 행이 시트 위/아래 끝까지 꽉 참 — 모서리 라운드는
-          Modal max-md:rounded-b-none(위만 둥글게)이 처리. */}
-      {sheetOpen &&
-        createPortal(
-          <Modal onClose={closeMenus} size="sm">
-            <div className="flex flex-col divide-y divide-line">
-              {actionList.map((a) => {
-                const Icon = a.icon;
-                const isCopied = a.key === "copy" && copied;
-                return (
-                  <button
-                    key={a.key}
-                    type="button"
-                    className={`flex items-center gap-3 px-5 py-3 text-left text-[15px] transition-colors active:bg-bg-2 ${
-                      a.danger ? "text-red-400" : "text-fg-1"
-                    }`}
-                    onClick={() => {
-                      // react는 앵커가 필요 — 시트엔 트리거 rect가 없으니 rect 없이
-                      // 호출하면 EmojiPicker가 적당히 배치. 그 외 액션은 rect 무시.
-                      a.run();
-                      closeMenus();
-                    }}
-                  >
-                    <Icon
-                      className={`h-5 w-5 shrink-0 ${
-                        isCopied
-                          ? "text-green-400"
-                          : a.danger
-                            ? "text-red-400"
-                            : "text-fg-3"
-                      }`}
-                    />
-                    {a.label}
-                  </button>
-                );
-              })}
-            </div>
-          </Modal>,
-          document.body,
-        )}
+      {/* PC 우클릭 컨텍스트 메뉴 + 모바일 long-press 바텀시트 — ActionMenu가 둘 다
+          처리. createPortal(document.body) + 같은 톤(divide-y + fg-1 + 아이콘 fg-3)
+          + viewport 클램프까지 캡슐화. 우상단 hover 가로 액션바는 별개로 위에서
+          렌더(즉시 접근 UX). */}
+      <ActionMenu
+        items={actionList}
+        sheetOpen={sheetOpen}
+        onCloseSheet={closeMenus}
+        menuAt={
+          menuAt
+            ? {
+                x: Math.min(menuAt.x, window.innerWidth - 220),
+                y: Math.min(menuAt.y, window.innerHeight - 320),
+              }
+            : null
+        }
+        onCloseMenu={closeMenus}
+      />
       {/* 이모지 피커 — 버튼 앵커 기준 포털 (스크롤 컨테이너 영향 없음).
           lazy 분리되어 있어 첫 마운트에서 청크 fetch — Suspense fallback은
           null(피커가 즉시 안 떠도 시각 disturbance 없음). */}
