@@ -161,6 +161,9 @@ export function MessageInput({
       mentionsRef.current = [];
       setMentionQuery(null);
       clearTyping();
+      // 모바일에서 전송 버튼 탭 시 textarea가 blur돼 키보드가 내려가는 걸 방지.
+      // 다음 프레임에 focus 복원 — 연속 전송이 자연스러움(Telegram/iMessage 결).
+      requestAnimationFrame(() => textInputRef.current?.focus());
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {

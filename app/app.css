@@ -199,11 +199,20 @@ textarea:focus-visible {
   text-align: left;
   cursor: pointer;
 }
-/* hover는 마우스 환경에서만 — 모바일은 탭 후 stuck-hover로 칙칙해진다 */
+/* tree-row: PC hover = 모바일 active 통일 결.
+   - PC 마우스: :hover (mouseleave에 자동 해제)
+   - 모바일 터치: :active (떼면 자동 해제 — 누르고 있는 동안만)
+   - 선택된 방: .tree-row.active (클래스로 박힘, 별개 더 진한 배경)
+   ※ hover는 @media (hover: hover)로 가드해도 삼성 안드는 펌웨어 버그로 true 보고
+     → 탭하면 stuck. 그래서 active에 약한 배경이라도 명시적으로 깔아두면
+     stuck-hover와 시각적으로 구분돼 \"눌렀다 떼고 나면 active만 남는\" 결이 산다. */
 @media (hover: hover) {
   .tree-row:hover {
     background: var(--color-bg-2);
   }
+}
+.tree-row:active {
+  background: var(--color-bg-2);
 }
 .tree-row.active {
   background: var(--color-bg-3);
