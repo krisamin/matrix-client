@@ -1,6 +1,6 @@
 import { Check, Copy, ShieldCheck } from "lucide-react";
 import type { MatrixClient, Room, RoomMember } from "matrix-js-sdk";
-import { useState } from "react";
+import { useCopyFeedback } from "../hooks/useCopyFeedback";
 import { usePresence } from "../hooks/usePresence";
 import { useT } from "../lib/i18n";
 import { AnchoredPopover } from "./AnchoredPopover";
@@ -35,22 +35,12 @@ export function UserProfileCard({
   onClose: () => void;
 }) {
   const t = useT();
-  const [copied, setCopied] = useState(false);
+  const { copied, copy } = useCopyFeedback();
   const member: RoomMember | null = room.getMember(userId);
   const name = member?.name ?? userId;
   const role = member ? roleLabel(member.powerLevel) : null;
   const isMe = userId === client.getUserId();
   const presence = usePresence(client, userId);
-
-  async function copyUserId() {
-    try {
-      await navigator.clipboard.writeText(userId);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1200);
-    } catch (e) {
-      console.warn("클립보드 복사 실패:", e);
-    }
-  }
 
   return (
     <AnchoredPopover
@@ -82,7 +72,7 @@ export function UserProfileCard({
           type="button"
           className="flex max-w-full items-center gap-1.5 rounded-md px-2 py-1 font-mono text-[11px] text-fg-3 hover:bg-bg-2 hover:text-fg-1"
           title={t("userCard.copyTitle")}
-          onClick={copyUserId}
+          onClick={() => copy(userId)}
         >
           <span className="truncate">{userId}</span>
           {copied ? (

@@ -12,6 +12,7 @@ import {
 import type { MatrixClient, Room, RoomMember } from "matrix-js-sdk";
 import { RoomMemberEvent, RoomStateEvent } from "matrix-js-sdk";
 import { memo, useEffect, useMemo, useState } from "react";
+import { useCopyFeedback } from "../hooks/useCopyFeedback";
 import { useIsMobile } from "../hooks/useMediaQuery";
 import { looksLikeUserId, useUserSearch } from "../hooks/useUserSearch";
 import { useT } from "../lib/i18n";
@@ -90,7 +91,7 @@ export function RoomInfoPane({
   const t = useT();
   const isMobile = useIsMobile();
   const [, force] = useState(0);
-  const [copied, setCopied] = useState(false);
+  const { copied, copy } = useCopyFeedback();
   // 초대 폼 상태
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteTerm, setInviteTerm] = useState("");
@@ -148,16 +149,6 @@ export function RoomInfoPane({
     inviteTerm,
     excludeIds,
   );
-
-  async function copyRoomId() {
-    try {
-      await navigator.clipboard.writeText(room.roomId);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1200);
-    } catch (e) {
-      console.warn("클립보드 복사 실패:", e);
-    }
-  }
 
   async function invite(target: string) {
     if (inviteBusy) return;
@@ -244,7 +235,7 @@ export function RoomInfoPane({
             type="button"
             className="flex max-w-full items-center gap-1.5 rounded-md px-2 py-1 font-mono text-[11px] text-fg-3 hover:bg-bg-2 hover:text-fg-1"
             title={t("roomInfo.copy.title")}
-            onClick={copyRoomId}
+            onClick={() => copy(room.roomId)}
           >
             <span className="truncate">{dmUserId ?? room.roomId}</span>
             {copied ? (

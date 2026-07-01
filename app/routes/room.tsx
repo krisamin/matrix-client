@@ -15,7 +15,7 @@ import {
 } from "react-router";
 import { RoomAvatar } from "../components/Avatar";
 import { DropZone } from "../components/DropZone";
-import { InlineSpinner } from "../components/InlineSpinner";
+import { LoadingPane } from "../components/LoadingPane";
 import { MessageInput } from "../components/MessageInput";
 import { PaneHeader, PaneHeaderButton } from "../components/PaneHeader";
 import { PinnedBanner } from "../components/PinnedBanner";
@@ -23,6 +23,7 @@ import { RoomInfoPane } from "../components/RoomInfoPane";
 import { SearchPane } from "../components/SearchPane";
 import { SpaceView } from "../components/SpaceView";
 import { Timeline, type TimelineHandle } from "../components/Timeline";
+import { useJumpToEvent } from "../hooks/useJumpToEvent";
 import { useIsMobile } from "../hooks/useMediaQuery";
 import {
   useReadReceipt,
@@ -31,7 +32,8 @@ import {
 } from "../hooks/useRoomTimeline";
 import { threadPath } from "../lib/format";
 import { useT } from "../lib/i18n";
-import { buildMentionContent, type Mention } from "../lib/mention";
+import type { Mention } from "../lib/mention";
+import { buildSendContent } from "../lib/reply";
 import { useAppContext } from "./app-layout";
 
 export function meta() {
@@ -72,13 +74,18 @@ export default function RoomView() {
   useReadReceipt(client, events);
 
   const [replyTo, setReplyTo] = useState<MatrixEvent | null>(null);
-  const [highlightId, setHighlightId] = useState<string | null>(null);
   // 우측 패널: 검색/방정보 상호 배타 (둘 다 열리면 좁아져서)
   const [sidePane, setSidePane] = useState<"search" | "info" | null>(null);
   // 드롭존 → MessageInput.sendFiles 브리지 (업로드 진행/에러 UI 재사용)
   const uploadRef = useRef<((files: File[]) => void) | null>(null);
   // 가상 스크롤 타임라인 명령형 핸들 (점프용 — DOM 존재 무관 인덱스 스크롤)
   const timelineRef = useRef<TimelineHandle>(null);
+  // 인용/검색 클릭 → 원문 스크롤 + 강조 (룸/스레드 공용 훅)
+  const { highlightId, jumpTo } = useJumpToEvent(
+    timelineRef,
+    hasMore,
+    loadOlder,
+  );
 
   const threadFull = threadId != null && searchParams.get("full") === "1";
 
@@ -86,26 +93,6 @@ export default function RoomView() {
    *  좁은 화면에선 분할이 불가능 → 스레드만 풀폭으로 보여준다. CSS 미디어 쿼리로
    *  처리해 데스크탑 결은 완전히 그대로(분할 유지). */
   const threadOpen = threadId != null;
-
-  /** 인용 박스 클릭 → 원문으로 스크롤 + 잠깐 강조.
-   *  로드된 범위에 없으면 과거를 더 불러오며 시도 (최대 5페이지).
-   *  가상 스크롤이라 DOM 유무와 무관하게 인덱스 기반(timelineRef)으로 스크롤.
-   *  useCallback: EventLine memo가 깨지지 않도록 안정 참조 유지.
-   *  (훅 규칙 — 아래 `if (!room)` 조기 반환보다 위에 있어야 함) */
-  const jumpTo = useCallback(
-    async (eventId: string) => {
-      for (let i = 0; i < 5; i++) {
-        if (timelineRef.current?.scrollToEvent(eventId)) {
-          setHighlightId(eventId);
-          setTimeout(() => setHighlightId(null), 2400);
-          return;
-        }
-        if (!hasMore) break;
-        await loadOlder();
-      }
-    },
-    [hasMore, loadOlder],
-  );
 
   const openThread = useCallback(
     (rootId: string) => {
@@ -115,14 +102,7 @@ export default function RoomView() {
   );
 
   if (!room) {
-    return (
-      <div className="flex flex-1 items-center justify-center">
-        <span className="flex items-center gap-1.5 font-mono text-[12px] text-fg-3">
-          <InlineSpinner size="sm" />
-          {t("common.loading")}
-        </span>
-      </div>
-    );
+    return <LoadingPane />;
   }
 
   // Space room이면 타임라인 대신 Space 홈(방 목록/설명)을 보여준다.
@@ -138,32 +118,13 @@ export default function RoomView() {
   }
 
   async function send(text: string, mentions: Mention[]) {
-    if (replyTo) {
-      // 답장: m.in_reply_to 관계 + 구식 클라용 fallback 인용문 (스펙 권장).
-      // buildMentionContent가 마크다운+멘션을 모두 처리해 formatted_body를 만든다.
-      const orig = replyTo.getContent().body ?? "";
-      const fallbackQuote = orig
-        .split("\n")
-        .map((l: string, i: number) =>
-          i === 0 ? `> <${replyTo.getSender()}> ${l}` : `> ${l}`,
-        )
-        .join("\n");
-      await client.sendEvent(roomId!, EventType.RoomMessage, {
-        ...buildMentionContent(text, mentions),
-        body: `${fallbackQuote}\n\n${text}`,
-        "m.relates_to": {
-          "m.in_reply_to": { event_id: replyTo.getId()! },
-        },
-      } as never);
-      setReplyTo(null);
-    } else {
-      // 일반 전송 — 멘션 유무와 무관하게 buildMentionContent 사용 (마크다운 처리).
-      await client.sendEvent(
-        roomId!,
-        EventType.RoomMessage,
-        buildMentionContent(text, mentions) as never,
-      );
-    }
+    // 답장/일반 전송 모두 buildSendContent로 통일 (멘션·마크다운·인용 관계).
+    await client.sendEvent(
+      roomId!,
+      EventType.RoomMessage,
+      buildSendContent({ text, mentions, replyTo }) as never,
+    );
+    if (replyTo) setReplyTo(null);
     // 전송 직후 무조건 바닥으로 — 위로 올라가있어도 내 메시지는 따라간다.
     // local echo로 즉시 events에 추가되니 다음 rAF에 마지막 행 인덱스가 잡힘.
     requestAnimationFrame(() => timelineRef.current?.scrollToBottom());

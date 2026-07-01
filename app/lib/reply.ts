@@ -1,4 +1,5 @@
 import type { MatrixEvent } from "matrix-js-sdk";
+import { buildMentionContent, type Mention } from "./mention";
 
 /** 이벤트에서 답장 대상(m.in_reply_to) event_id 추출.
  *  스레드 답글은 fallback용 in_reply_to를 같이 달고 오므로
@@ -9,6 +10,57 @@ export function getReplyToId(ev: MatrixEvent): string | null {
   if (!replyTo) return null;
   if (relates.rel_type === "m.thread" && relates.is_falling_back) return null;
   return replyTo;
+}
+
+/** 전송용 메시지 content 생성 — 멘션/마크다운(buildMentionContent) 위에
+ *  답장(m.in_reply_to)과 스레드(m.thread) 관계를 얹는다. 룸/스레드 공용.
+ *
+ *  - replyTo: 답장 대상. 구식 클라용 fallback 인용문("> <@u> ...")을 body에
+ *    포함 (스펙 권장). 수신측 ReplyQuote는 이 인용부를 걷어내고 따로 그림.
+ *  - threadId: 스레드 루트. replyTo와 함께면 "스레드 안의 답장"
+ *    (is_falling_back: false — 진짜 답장), replyTo 없이면 일반 스레드 답글
+ *    (is_falling_back: true — in_reply_to는 스레드 미지원 클라 fallback). */
+export function buildSendContent({
+  text,
+  mentions = [],
+  replyTo,
+  threadId,
+}: {
+  text: string;
+  mentions?: Mention[];
+  replyTo?: MatrixEvent | null;
+  threadId?: string;
+}): Record<string, unknown> {
+  const content = buildMentionContent(text, mentions);
+
+  if (replyTo) {
+    // 구식 클라용 fallback 인용문 (스펙 권장)
+    const orig: string = replyTo.getContent().body ?? "";
+    const fallbackQuote = orig
+      .split("\n")
+      .map((l: string, i: number) =>
+        i === 0 ? `> <${replyTo.getSender()}> ${l}` : `> ${l}`,
+      )
+      .join("\n");
+    content.body = `${fallbackQuote}\n\n${text}`;
+    content["m.relates_to"] = threadId
+      ? {
+          rel_type: "m.thread",
+          event_id: threadId,
+          // 진짜 답장 (fallback 아님) — 수신측이 인용 박스를 그린다
+          is_falling_back: false,
+          "m.in_reply_to": { event_id: replyTo.getId()! },
+        }
+      : { "m.in_reply_to": { event_id: replyTo.getId()! } };
+  } else if (threadId) {
+    content["m.relates_to"] = {
+      rel_type: "m.thread",
+      event_id: threadId,
+      is_falling_back: true,
+    };
+  }
+
+  return content;
 }
 
 /** 인용/미리보기 텍스트 (한 줄 요약) */

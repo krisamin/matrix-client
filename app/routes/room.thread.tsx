@@ -10,18 +10,19 @@ import { EventType } from "matrix-js-sdk";
 import { useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { DropZone } from "../components/DropZone";
-import { InlineSpinner } from "../components/InlineSpinner";
+import { LoadingPane } from "../components/LoadingPane";
 import { MessageInput } from "../components/MessageInput";
 import { PaneHeader, PaneHeaderButton } from "../components/PaneHeader";
 import { SearchPane } from "../components/SearchPane";
 import { Timeline, type TimelineHandle } from "../components/Timeline";
+import { useJumpToEvent } from "../hooks/useJumpToEvent";
 import { useIsMobile } from "../hooks/useMediaQuery";
 import { useReadReceipt } from "../hooks/useRoomTimeline";
 import { useThreadTimeline } from "../hooks/useThreadTimeline";
 import { roomPath } from "../lib/format";
 import { useT } from "../lib/i18n";
-import { buildMentionContent, type Mention } from "../lib/mention";
-import { quotePreview } from "../lib/reply";
+import type { Mention } from "../lib/mention";
+import { buildSendContent, quotePreview } from "../lib/reply";
 import { useRoomContext } from "./room";
 
 export function meta() {
@@ -49,7 +50,13 @@ export default function ThreadView() {
   const uploadRef = useRef<((files: File[]) => void) | null>(null);
   const timelineRef = useRef<TimelineHandle>(null);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [highlightId, setHighlightId] = useState<string | null>(null);
+  // 검색 결과 클릭 → 답글 스크롤 + 강조 (룸/스레드 공용 훅, 스레드는 1600ms)
+  const { highlightId, jumpTo } = useJumpToEvent(
+    timelineRef,
+    hasMore,
+    loadOlder,
+    1600,
+  );
 
   const rootEvent =
     room.findEventById(threadId!) ?? room.getThread(threadId!)?.rootEvent;
@@ -57,15 +64,13 @@ export default function ThreadView() {
   const replyCount = room.getThread(threadId!)?.length ?? 0;
 
   async function sendReply(text: string, mentions: Mention[]) {
-    // 멘션 유무와 무관하게 buildMentionContent로 통일 (마크다운 처리).
-    await client.sendEvent(room.roomId, threadId!, EventType.RoomMessage, {
-      ...buildMentionContent(text, mentions),
-      "m.relates_to": {
-        rel_type: "m.thread",
-        event_id: threadId!,
-        is_falling_back: true,
-      },
-    } as never);
+    // 룸 send()와 동일하게 buildSendContent로 통일 (스레드 관계 포함).
+    await client.sendEvent(
+      room.roomId,
+      threadId!,
+      EventType.RoomMessage,
+      buildSendContent({ text, mentions, threadId }) as never,
+    );
     // 전송 직후 바닥 추적 — 룸 send()와 동일 패턴.
     requestAnimationFrame(() => timelineRef.current?.scrollToBottom());
   }
@@ -80,20 +85,6 @@ export default function ThreadView() {
       navigate("/");
     } else {
       navigate(roomPath(roomId!));
-    }
-  }
-
-  /** 검색 결과 클릭 → 해당 답글로 스크롤 + 잠깐 강조
-   *  (로드 안 됐으면 과거 답글을 더 불러오며 시도, 최대 5페이지) */
-  async function jumpTo(eventId: string) {
-    for (let i = 0; i < 5; i++) {
-      if (timelineRef.current?.scrollToEvent(eventId)) {
-        setHighlightId(eventId);
-        setTimeout(() => setHighlightId(null), 1600);
-        return;
-      }
-      if (!hasMore) break;
-      await loadOlder();
     }
   }
 
@@ -156,12 +147,7 @@ export default function ThreadView() {
         </PaneHeader>
 
         {initialising ? (
-          <div className="flex flex-1 items-center justify-center">
-            <span className="flex items-center gap-1.5 font-mono text-[12px] text-fg-3">
-              <InlineSpinner size="sm" />
-              {t("common.loading")}
-            </span>
-          </div>
+          <LoadingPane />
         ) : (
           <Timeline
             ref={timelineRef}
