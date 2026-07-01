@@ -68,8 +68,13 @@ export default function Login() {
   const [resetSent, setResetSent] = useState(false);
   const recaptchaRef = useRef<HTMLDivElement | null>(null);
 
+  // completeCaptcha는 매 렌더 새 함수라 deps에 넣으면 captcha 단계 동안
+  // 매 렌더마다 effect 재실행(위젯 재마운트)됨 — ref로 최신 참조만 유지하고
+  // effect는 uia 변화에만 반응 (함수 선언이라 호이스팅돼 여기서 참조 가능)
+  const completeCaptchaRef = useRef(completeCaptcha);
+  completeCaptchaRef.current = completeCaptcha;
+
   // CAPTCHA stage 진입 시 위젯 마운트
-  // biome-ignore lint/correctness/useExhaustiveDependencies: cleanup은 매번 새 closure
   useEffect(() => {
     if (uia.kind !== "captcha") return;
     let cleanup = () => {};
@@ -82,7 +87,11 @@ export default function Login() {
           recaptchaRef.current,
           uia.sitekey,
           (token) => {
-            void completeCaptcha(uia.sessionId, uia.completed, token);
+            void completeCaptchaRef.current(
+              uia.sessionId,
+              uia.completed,
+              token,
+            );
           },
         );
         cleanup = () => handle.reset();
@@ -91,7 +100,7 @@ export default function Login() {
       }
     })();
     return () => cleanup();
-  }, [uia, completeCaptcha]);
+  }, [uia]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
