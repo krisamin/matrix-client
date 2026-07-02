@@ -13,7 +13,7 @@ export function getDmUserId(client: MatrixClient, room: Room): string | null {
 }
 
 /** 현재 m.direct 맵 (userId → roomId[]). 없으면 빈 객체. */
-export function getDirectMap(client: MatrixClient): Record<string, string[]> {
+function getDirectMap(client: MatrixClient): Record<string, string[]> {
   const content = client.getAccountData(EventType.Direct)?.getContent() as
     | Record<string, string[]>
     | undefined;
@@ -23,10 +23,7 @@ export function getDirectMap(client: MatrixClient): Record<string, string[]> {
 
 /** 상대 userId와의 기존 (참여중) DM 방을 찾는다. 없으면 null.
  *  m.direct에 박제된 roomId 중 실제로 join 상태인 방만 유효 취급. */
-export function findExistingDm(
-  client: MatrixClient,
-  userId: string,
-): Room | null {
+function findExistingDm(client: MatrixClient, userId: string): Room | null {
   const map = getDirectMap(client);
   const roomIds = map[userId];
   if (!Array.isArray(roomIds)) return null;

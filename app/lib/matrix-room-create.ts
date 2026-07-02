@@ -134,7 +134,7 @@ function viaServers(client: MatrixClient, roomId: string): string[] {
  * (자식 방의 parent 쓰기 권한이 없으면 child만 성공해도 트리 표시는 됨 —
  *  buildRoomTree가 child만 신뢰하므로)
  */
-export async function addRoomToSpace(
+async function addRoomToSpace(
   client: MatrixClient,
   spaceId: string,
   roomId: string,

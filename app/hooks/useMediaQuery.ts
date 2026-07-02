@@ -3,10 +3,11 @@ import { useEffect, useState } from "react";
 /**
  * CSS 미디어 쿼리의 매치 여부를 구독하는 훅. SSR-safe(초기값 false).
  * matchMedia 변화에 반응해 리렌더 → 레이아웃 분기에 사용.
+ * (현재는 useIsMobile 전용 — 다른 브레이크포인트가 생기면 export.)
  *
  *   const isMobile = useMediaQuery("(max-width: 767.98px)");
  */
-export function useMediaQuery(query: string): boolean {
+function useMediaQuery(query: string): boolean {
   const [matches, setMatches] = useState(() => {
     if (typeof window === "undefined" || !window.matchMedia) return false;
     return window.matchMedia(query).matches;

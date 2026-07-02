@@ -162,18 +162,9 @@ export function resetClient(): void {
   clientPromise = null;
 }
 
-export {
-  findExistingDm,
-  getDirectMap,
-  getDmUserId,
-  startDirectMessage,
-} from "./matrix-dm";
+export { getDmUserId, startDirectMessage } from "./matrix-dm";
 
-export {
-  addRoomToSpace,
-  createGroupRoom,
-  createSpace,
-} from "./matrix-room-create";
+export { createGroupRoom, createSpace } from "./matrix-room-create";
 
 /** 참여중인 Space 목록 (생성/이동 UI의 드롭다운 소스) */
 export function getJoinedSpaces(client: MatrixClient): Room[] {

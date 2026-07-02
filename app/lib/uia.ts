@@ -1,9 +1,3 @@
-import {
-  createClient,
-  type MatrixClient,
-  type MatrixError,
-} from "matrix-js-sdk";
-
 /** input "https://matrix.example.com" / "matrix.example.com" / "@user:example.com"
  *  → https URL + .well-known 따라가서 진짜 base URL. */
 export async function discoverHomeserver(input: string): Promise<string> {
@@ -43,7 +37,3 @@ export function buildIdentifier(
   const user = v.startsWith("@") ? v.slice(1).split(":")[0] : v;
   return { type: "m.id.user", user: user ?? "" };
 }
-
-export type { MatrixClient, MatrixError };
-// Re-export for callers that need to make their own client
-export { createClient };
