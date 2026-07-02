@@ -11,9 +11,8 @@ import {
   ThreadEvent,
 } from "matrix-js-sdk";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { eventVersion } from "../lib/group";
 import { getNoThreadTimelineSet } from "../lib/matrix";
-import { visibleEvents } from "../lib/timeline";
+import { eventsSignature, visibleEvents } from "../lib/timeline";
 
 /** 타임라인의 미복호화 이벤트에 복호화 시도 */
 function decryptPending(client: MatrixClient, events: MatrixEvent[]): void {
@@ -22,17 +21,6 @@ function decryptPending(client: MatrixClient, events: MatrixEvent[]): void {
       client.decryptEventIfNeeded(ev);
     }
   }
-}
-
-/** events 배열의 내용 서명 — id + 버전(복호화/수정/삭제 상태)으로 구성.
- *  이게 같으면 화면에 그릴 내용이 동일하다는 뜻 → 새 배열을 만들어도
- *  이전 참조를 유지해 Timeline 전체 리렌더를 막는다(D3 정체성 보존).
- *  eventVersion은 group.ts와 동일 소스 — 복호화로 버전이 바뀌면 서명이
- *  달라져 통과하므로, 리렌더 폭주는 막으면서 복호화 반영은 놓치지 않는다. */
-function eventsSignature(events: MatrixEvent[]): string {
-  let sig = "";
-  for (const ev of events) sig += `${ev.getId()}@${eventVersion(ev)};`;
-  return sig;
 }
 
 /**
@@ -66,15 +54,19 @@ export function useRoomTimeline(client: MatrixClient, roomId: string) {
 
   /** 현재 방의 표시 이벤트를 state에 반영. 단:
    *  1) gen이 어긋나면(방 전환됨) 무시 — stale write 차단
-   *  2) 내용 서명이 직전과 같으면 setEvents 스킵 — 배열 참조 보존(리렌더 폭주 방지) */
-  const commit = useCallback((r: Room, gen: number) => {
-    if (gen !== genRef.current) return;
-    const next = visibleEvents(r, tlSetRef.current);
-    const sig = `${receiptEpochRef.current}:${eventsSignature(next)}`;
-    if (sig === lastSigRef.current) return;
-    lastSigRef.current = sig;
-    setEvents(next);
-  }, []);
+   *  2) 내용 서명이 직전과 같으면 setEvents 스킵 — 배열 참조 보존(리렌더 폭주 방지)
+   *  precomputed: 호출부가 이미 visibleEvents를 계산했으면 재사용(중복 필터 방지). */
+  const commit = useCallback(
+    (r: Room, gen: number, precomputed?: MatrixEvent[]) => {
+      if (gen !== genRef.current) return;
+      const next = precomputed ?? visibleEvents(r, tlSetRef.current);
+      const sig = `${receiptEpochRef.current}:${eventsSignature(next)}`;
+      if (sig === lastSigRef.current) return;
+      lastSigRef.current = sig;
+      setEvents(next);
+    },
+    [],
+  );
 
   useEffect(() => {
     const gen = ++genRef.current;
@@ -92,7 +84,10 @@ export function useRoomTimeline(client: MatrixClient, roomId: string) {
       loadingOlderRef.current = true;
       try {
         const tlSet = tlSetRef.current;
-        for (let i = 0; i < 10 && visibleEvents(r, tlSet).length < 15; i++) {
+        // 루프 조건용 카운트는 paginate 결과로만 갱신 — 매 반복 전체 필터 재계산
+        // (visibleEvents는 filter+정렬 O(n))을 피한다. 최초 1회만 현재 상태를 센다.
+        let visibleCount = visibleEvents(r, tlSet).length;
+        for (let i = 0; i < 10 && visibleCount < 15; i++) {
           if (gen !== genRef.current) return; // 방 전환됨 — 중단
           const timeline = tlSet?.getLiveTimeline() ?? r.getLiveTimeline();
           let more: boolean;
@@ -107,7 +102,10 @@ export function useRoomTimeline(client: MatrixClient, roomId: string) {
           }
           if (gen !== genRef.current) return; // await 사이 방 전환됨
           decryptPending(client, timeline.getEvents());
-          commit(r, gen);
+          // paginate 후 한 번만 필터 — 조건용 카운트와 commit이 같은 배열을 공유.
+          const next = visibleEvents(r, tlSet);
+          visibleCount = next.length;
+          commit(r, gen, next);
           if (!more) {
             if (gen === genRef.current) setHasMore(false);
             break;

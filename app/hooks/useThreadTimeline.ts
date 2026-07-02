@@ -7,7 +7,7 @@ import {
   ThreadEvent,
 } from "matrix-js-sdk";
 import { useEffect, useRef, useState } from "react";
-import { visibleThreadEvents } from "../lib/timeline";
+import { eventsSignature, visibleThreadEvents } from "../lib/timeline";
 
 /**
  * 스레드 타임라인 훅 — ThreadPanel에서 추출한 데이터 레이어:
@@ -30,20 +30,36 @@ export function useThreadTimeline(
   const [hasMore, setHasMore] = useState(true);
   const backfillingRef = useRef(false);
   const loadingOlderRef = useRef(false);
+  // D3 dedup: 마지막 커밋 서명. 같으면 setEvents 스킵 → 배열 참조 보존.
+  const lastSigRef = useRef<string>("\u0000init");
+  // receipt는 events 내용을 안 바꾸므로 epoch을 올려 서명을 강제로 흔들어
+  // 리렌더를 유발한다(읽음 아바타 갱신). 룸 훅과 동일 패턴.
+  const receiptEpochRef = useRef(0);
 
   useEffect(() => {
     setEvents([]);
     setInitialising(true);
     setHasMore(true);
+    lastSigRef.current = "\u0000init";
     const thread =
       room.getThread(rootId) ??
       room.createThread(rootId, room.findEventById(rootId), [], true);
+
+    /** 표시 이벤트를 state에 반영 — 서명이 직전과 같으면 스킵(참조 보존).
+     *  precomputed: 호출부가 이미 visibleThreadEvents를 계산했으면 재사용. */
+    const commit = (precomputed?: MatrixEvent[]) => {
+      const next = precomputed ?? visibleThreadEvents(client, thread.events);
+      const sig = `${receiptEpochRef.current}:${eventsSignature(next)}`;
+      if (sig === lastSigRef.current) return;
+      lastSigRef.current = sig;
+      setEvents(next);
+    };
 
     const refreshNow = () => {
       // 주의: liveTimeline 레퍼런스를 미리 잡아두면 안 됨 —
       // SDK가 초기화 시 resetLiveTimeline()으로 갈아끼움.
       // thread.events getter는 항상 현재 타임라인을 가리킴.
-      setEvents(visibleThreadEvents(client, thread.events));
+      commit();
       if (thread.initialEventsFetched) {
         setInitialising(false);
         void backfillUntilVisible();
@@ -64,17 +80,19 @@ export function useThreadTimeline(
       if (backfillingRef.current) return;
       backfillingRef.current = true;
       try {
-        for (
-          let i = 0;
-          i < 10 && visibleThreadEvents(client, thread.events).length < 15;
-          i++
-        ) {
+        // 조건용 카운트는 paginate 결과로만 갱신 — 매 반복 전체 필터+정렬
+        // (visibleThreadEvents) 재계산을 피한다. 최초 1회만 현재 상태를 센다.
+        let visibleCount = visibleThreadEvents(client, thread.events).length;
+        for (let i = 0; i < 10 && visibleCount < 15; i++) {
           // backward 토큰이 없으면 스레드 시작 도달
           const more = await client.paginateEventTimeline(thread.liveTimeline, {
             backwards: true,
             limit: 50,
           });
-          setEvents(visibleThreadEvents(client, thread.events));
+          // paginate 후 한 번만 필터 — 조건용 카운트와 commit이 같은 배열 공유.
+          const next = visibleThreadEvents(client, thread.events);
+          visibleCount = next.length;
+          commit(next);
           if (!more) {
             setHasMore(false);
             break;
@@ -109,9 +127,13 @@ export function useThreadTimeline(
       if (ev.threadRootId === rootId || ev.getId() === rootId) refresh();
     };
     client.on(MatrixEventEvent.Replaced, onReplaced);
-    // 스레드 read receipt (MSC3771) 도착 — 읽음 아바타 갱신
+    // 스레드 read receipt (MSC3771) 도착 — 읽음 아바타 갱신.
+    // receipt는 events 내용을 안 바꾸므로 epoch을 올려 dedup을 우회한다.
     const onReceipt = (_ev: MatrixEvent, r: Room) => {
-      if (r.roomId === room.roomId) refresh();
+      if (r.roomId === room.roomId) {
+        receiptEpochRef.current++;
+        refresh();
+      }
     };
     client.on(RoomEvent.Receipt, onReceipt);
     return () => {
@@ -139,7 +161,11 @@ export function useThreadTimeline(
         limit: 60,
       });
       setHasMore(more);
-      setEvents(visibleThreadEvents(client, thread.events));
+      // 과거 답글을 실제로 붙였으니 배열이 바뀐다. lastSigRef도 갱신해
+      // 이후 refresh()가 stale 서명과 비교해 중복 커밋하지 않게 한다.
+      const next = visibleThreadEvents(client, thread.events);
+      lastSigRef.current = `${receiptEpochRef.current}:${eventsSignature(next)}`;
+      setEvents(next);
       return more;
     } catch (e) {
       console.warn("[thread loadOlder] 실패:", e);

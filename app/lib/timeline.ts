@@ -7,6 +7,7 @@ import {
   RelationType,
   type Room,
 } from "matrix-js-sdk";
+import { eventVersion } from "./group";
 
 export const MEDIA_MSGTYPES = [
   MsgType.Image,
@@ -59,4 +60,18 @@ export function visibleThreadEvents(
     }
   }
   return evs;
+}
+
+/** events 배열의 내용 서명 — id + eventVersion(복호화/수정/삭제 상태).
+ *  이게 같으면 화면에 그릴 내용이 동일 → 새 배열을 만들어도 이전 참조를 유지해
+ *  Timeline 전체 리렌더를 막는다(정체성 보존 dedup). 복호화/수정으로 버전이
+ *  바뀌면 서명이 달라져 통과하므로 리렌더 폭주는 막되 반영은 놓치지 않는다.
+ *  룸/스레드 타임라인 훅이 공유. */
+export function eventsSignature(events: MatrixEvent[]): string {
+  const parts = new Array<string>(events.length);
+  for (let i = 0; i < events.length; i++) {
+    const ev = events[i];
+    parts[i] = `${ev.getId()}@${eventVersion(ev)}`;
+  }
+  return parts.join(";");
 }
