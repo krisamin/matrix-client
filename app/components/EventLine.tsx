@@ -19,6 +19,7 @@ import {
   type Room,
 } from "matrix-js-sdk";
 import { lazy, memo, Suspense, useState } from "react";
+import { useCopyFeedback } from "../hooks/useCopyFeedback";
 import { useEventActions } from "../hooks/useEventActions";
 import { useLongPress } from "../hooks/useLongPress";
 import { useIsMobile } from "../hooks/useMediaQuery";
@@ -95,7 +96,7 @@ const EventLineInner = function EventLine({
   const [profileAnchor, setProfileAnchor] = useState<DOMRect | null>(null);
   // 전달 모달 열림 여부
   const [forwarding, setForwarding] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const { copied, copy } = useCopyFeedback();
   // 데스크탑 우클릭(contextmenu) 컨텍스트 메뉴 — 커서 위치에 세로 메뉴.
   // hover로 뜨는 우상단 가로 액션바는 별개로 유지(즉시 접근 UX).
   // 모바일은 hover가 없어 이 경로로 안 뜨고, long-press → 하단 바텀시트로 분기.
@@ -209,10 +210,8 @@ const EventLineInner = function EventLine({
     setEditDraft,
     setEditing,
     setBusy,
-    setCopied,
   });
-  const { submitEdit, remove, pin, react, resend, cancelFailed, copyMarkdown } =
-    actions;
+  const { submitEdit, remove, pin, react, resend, cancelFailed } = actions;
   // startEdit는 위에서 inline 정의 (setEditDraft + setEditing만 사용 — 단순)
 
   // 전송 상태 (local echo): null이면 서버 확정된 메시지
@@ -278,7 +277,7 @@ const EventLineInner = function EventLine({
       label: t(copied ? "common.copied" : "message.action.copyMarkdown"),
       show: true,
       onClick: () => {
-        copyMarkdown();
+        copy((ev.getContent().body as string) ?? "");
         closeMenus();
       },
     },

@@ -26,7 +26,6 @@ export function useEventActions({
   setEditDraft,
   setEditing,
   setBusy,
-  setCopied,
 }: {
   client: MatrixClient;
   room: Room;
@@ -36,7 +35,6 @@ export function useEventActions({
   setEditDraft: (v: string) => void;
   setEditing: (v: boolean) => void;
   setBusy: (v: boolean) => void;
-  setCopied: (v: boolean) => void;
 }) {
   const t = useT();
   return useMemo(
@@ -50,22 +48,10 @@ export function useEventActions({
         setEditDraft,
         setEditing,
         setBusy,
-        setCopied,
         t,
       }),
     // 원본과 동일하게: ev/room/client + 외부 의존성 모두 갱신될 때 새로 만든다.
-    [
-      client,
-      room,
-      ev,
-      busy,
-      editDraft,
-      setEditDraft,
-      setEditing,
-      setBusy,
-      setCopied,
-      t,
-    ],
+    [client, room, ev, busy, editDraft, setEditDraft, setEditing, setBusy, t],
   );
 }
 
@@ -78,7 +64,6 @@ function buildActions({
   setEditDraft,
   setEditing,
   setBusy,
-  setCopied,
   t,
 }: {
   client: MatrixClient;
@@ -89,7 +74,6 @@ function buildActions({
   setEditDraft: (v: string) => void;
   setEditing: (v: boolean) => void;
   setBusy: (v: boolean) => void;
-  setCopied: (v: boolean) => void;
   t: T;
 }) {
   function startEdit() {
@@ -192,17 +176,6 @@ function buildActions({
     }
   }
 
-  async function copyMarkdown() {
-    try {
-      const body = (ev.getContent().body as string) ?? "";
-      await navigator.clipboard.writeText(body);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1200);
-    } catch (e) {
-      console.warn("메시지 복사 실패:", e);
-    }
-  }
-
   return {
     startEdit,
     submitEdit,
@@ -211,6 +184,5 @@ function buildActions({
     react,
     resend,
     cancelFailed,
-    copyMarkdown,
   };
 }
