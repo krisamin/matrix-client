@@ -1,7 +1,6 @@
 import {
   ClientEvent,
   type EventTimelineSet,
-  EventType,
   type MatrixClient,
   type MatrixEvent,
   MatrixEventEvent,
@@ -12,16 +11,11 @@ import {
 } from "matrix-js-sdk";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getNoThreadTimelineSet } from "../lib/matrix";
-import { eventsSignature, visibleEvents } from "../lib/timeline";
-
-/** 타임라인의 미복호화 이벤트에 복호화 시도 */
-function decryptPending(client: MatrixClient, events: MatrixEvent[]): void {
-  for (const ev of events) {
-    if (ev.getType() === EventType.RoomMessageEncrypted) {
-      client.decryptEventIfNeeded(ev);
-    }
-  }
-}
+import {
+  decryptPending,
+  eventsSignature,
+  visibleEvents,
+} from "../lib/timeline";
 
 /**
  * 방 타임라인 훅 — 채팅 화면의 데이터 레이어 전부.

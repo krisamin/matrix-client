@@ -9,6 +9,20 @@ import {
 } from "matrix-js-sdk";
 import { eventVersion } from "./group";
 
+/** 배열 내 미복호화(RoomMessageEncrypted) 이벤트에 복호화를 시도한다.
+ *  fire-and-forget — 완료되면 SDK가 Decrypted 이벤트를 emit해 타임라인이
+ *  갱신된다. 룸/스레드 타임라인이 공유. */
+export function decryptPending(
+  client: MatrixClient,
+  events: MatrixEvent[],
+): void {
+  for (const ev of events) {
+    if (ev.getType() === EventType.RoomMessageEncrypted) {
+      client.decryptEventIfNeeded(ev);
+    }
+  }
+}
+
 export const MEDIA_MSGTYPES = [
   MsgType.Image,
   MsgType.Video,
@@ -54,11 +68,7 @@ export function visibleThreadEvents(
   const evs = threadEvents
     .filter(isDisplayableMessage)
     .sort((a, b) => a.getTs() - b.getTs());
-  for (const ev of evs) {
-    if (ev.getType() === EventType.RoomMessageEncrypted) {
-      client.decryptEventIfNeeded(ev);
-    }
-  }
+  decryptPending(client, evs);
   return evs;
 }
 
