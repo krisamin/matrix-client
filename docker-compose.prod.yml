@@ -14,6 +14,6 @@ services:
       - "8080:80"
     environment:
       # Override or set in a sibling .env file. Example:
-      #   DEFAULT_HOMESERVER=https://matrix.krisam.in
+      #   DEFAULT_HOMESERVER=https://matrix.example.com
       DEFAULT_HOMESERVER: ${DEFAULT_HOMESERVER:-}
     restart: unless-stopped
