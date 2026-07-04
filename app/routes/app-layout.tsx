@@ -1,6 +1,6 @@
 import { Bell, KeyRound } from "lucide-react";
 import type { MatrixClient } from "matrix-js-sdk";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Link,
   Outlet,
@@ -19,6 +19,8 @@ import { Toast, ToastStack } from "../components/Toast";
 import { useKeyboardInset } from "../hooks/useKeyboardInset";
 import { useUnreadBadge } from "../hooks/useUnreadBadge";
 import { useT } from "../lib/i18n";
+import { loadLastRoute, saveLastRoute } from "../lib/last-route";
+import { attachLifecycleLogger } from "../lib/lifecycle-log";
 import { ensureStarted, getReadyClient } from "../lib/matrix";
 import {
   attachNotifications,
@@ -53,6 +55,32 @@ export default function AppLayout() {
   // 풀폭으로. 데스크탑(md+)에선 둘 다 보여 기존 분할 레이아웃 유지.
   const location = useLocation();
   const inRoom = location.pathname.startsWith("/room/");
+
+  // 라이프사이클 계측 — "저절로 새로고침" 원인 판별용 (설정 → 진단에서 열람).
+  // 모듈 내부 가드로 1회만 부착되므로 매 렌더 호출해도 무해.
+  useEffect(() => {
+    attachLifecycleLogger();
+  }, []);
+
+  // 마지막 라우트 저장 + cold start 복원.
+  // OS가 백그라운드 PWA를 discard하면 아이콘 재실행 시 start_url("/")로
+  // 떨어져 보던 방이 날아감 → 저장해 둔 마지막 방으로 1회 복귀.
+  // restoredRef로 세션당 1회만 — 사용자가 직접 홈("/")으로 가는 건 존중.
+  const restoredRef = useRef(false);
+  useEffect(() => {
+    if (!restoredRef.current) {
+      restoredRef.current = true;
+      if (location.pathname === "/") {
+        const last = loadLastRoute();
+        if (last) {
+          navigate(last, { replace: true });
+          return;
+        }
+      }
+    }
+    saveLastRoute(location.pathname);
+  }, [location.pathname, navigate]);
+
   const [client, setClient] = useState<MatrixClient | null>(null);
   const [verified, setVerified] = useState<boolean | null>(null);
   const [notifPerm, setNotifPerm] = useState(notificationPermission());
