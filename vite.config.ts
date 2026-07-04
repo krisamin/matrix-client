@@ -85,6 +85,9 @@ export default defineConfig(({ command }) => ({
               ],
               skipWaiting: true,
               clientsClaim: true,
+              // 알림 클릭 핸들러 — 안드로이드는 SW showNotification 경유라
+              // notificationclick을 SW가 처리해야 함 (public/notification-sw.js)
+              importScripts: ["/notification-sw.js"],
             },
             devOptions: { enabled: false },
           }),

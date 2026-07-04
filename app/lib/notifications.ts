@@ -52,20 +52,38 @@ function shouldNotify(
   return room.getJoinedMemberCount() <= 2;
 }
 
-function fireNotification(ev: MatrixEvent, room: Room) {
+async function fireNotification(ev: MatrixEvent, room: Room) {
   const sender =
     room.getMember(ev.getSender() ?? "")?.name ?? ev.getSender() ?? "?";
   const isDm = room.getJoinedMemberCount() <= 2;
   const title = isDm ? sender : `${room.name} — ${sender}`;
-  const n = new Notification(title, {
-    body: ev.isEncrypted() && !ev.getClearContent() ? "새 메시지" : preview(ev),
-    tag: room.roomId, // 같은 방 알림은 갱신 (스팸 방지)
-  });
-  n.onclick = () => {
-    window.focus();
-    window.location.href = roomPath(room.roomId);
-    n.close();
-  };
+  const body =
+    ev.isEncrypted() && !ev.getClearContent() ? "새 메시지" : preview(ev);
+  const path = roomPath(room.roomId);
+
+  try {
+    // 데스크탑: 페이지 컨텍스트 Notification 생성자 사용 가능
+    const n = new Notification(title, {
+      body,
+      tag: room.roomId, // 같은 방 알림은 갱신 (스팸 방지)
+    });
+    n.onclick = () => {
+      window.focus();
+      window.location.href = path;
+      n.close();
+    };
+  } catch {
+    // 안드로이드 Chrome: 페이지 컨텍스트 생성자가 금지됨 ("Illegal
+    // constructor" — 실기기 로그로 확인) → SW 경유로만 표시 가능.
+    // 클릭 이동은 SW의 notificationclick 핸들러(public/notification-sw.js)가
+    // data.path로 처리.
+    const reg = await navigator.serviceWorker?.getRegistration();
+    await reg?.showNotification(title, {
+      body,
+      tag: room.roomId,
+      data: { path },
+    });
+  }
 }
 
 /** 클라이언트에 알림 리스너 부착 (앱 수명 동안 1회).
