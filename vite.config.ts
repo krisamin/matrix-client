@@ -14,7 +14,9 @@ export default defineConfig(({ command }) => ({
       ? [
           VitePWA({
             registerType: "autoUpdate",
-            injectRegister: "auto",
+            // RR v7 framework mode는 index.html을 프리렌더해서 auto 주입이
+            // 조용히 실패함 (sw=false 실측) → root.tsx에서 직접 등록.
+            injectRegister: false,
             srcDir: "app",
             outDir: "build/client",
             manifest: false,

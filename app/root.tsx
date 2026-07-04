@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import {
   isRouteErrorResponse,
   Links,
@@ -6,10 +7,10 @@ import {
   Scripts,
   ScrollRestoration,
 } from "react-router";
-
 import type { Route } from "./+types/root";
 import "./app.css";
 import { I18nProvider } from "./lib/i18n";
+import { registerServiceWorker } from "./lib/register-sw";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -74,6 +75,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
+  // SW 등록 — injectRegister("auto")가 RR v7 프리렌더 index.html에 주입을
+  // 못 해서 (sw=false 실측) 앱 코드에서 직접. 상세는 lib/register-sw.ts.
+  useEffect(() => {
+    registerServiceWorker();
+  }, []);
   return (
     <I18nProvider>
       <Outlet />

@@ -97,7 +97,10 @@ export function attachLifecycleLogger(): void {
   // 크래시 전조 추적: 리로드 직전 마지막 항목이 error면 "렌더러 크래시 →
   // 자동 리로드" 시나리오의 강한 신호가 된다.
   window.addEventListener("error", (e) => {
-    logLifecycle("error", String(e.message ?? "").slice(0, 200));
+    const msg = String(e.message ?? "");
+    // Chrome의 무해한 벤치마크 경고 — 진짜 에러가 아니라 로그 노이즈만 유발
+    if (msg.startsWith("ResizeObserver loop")) return;
+    logLifecycle("error", msg.slice(0, 200));
   });
   window.addEventListener("unhandledrejection", (e) => {
     const reason =
