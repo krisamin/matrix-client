@@ -75,6 +75,10 @@ export const ko = {
   // 설정 모달 (앱 설정)
   "settings.section.general": "일반",
   "settings.section.account": "계정",
+  "settings.section.diagnostics": "진단",
+  "settings.diagnostics.title": "앱 동작 기록",
+  "settings.diagnostics.clear": "기록 지우기",
+  "settings.diagnostics.empty": "기록이 없습니다",
   "settings.lang": "표시 언어",
   "settings.lang.auto": "자동",
   "settings.lang.desc": "기본은 브라우저 설정을 따릅니다.",

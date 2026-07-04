@@ -1,4 +1,4 @@
-import { LogOut, UserCog } from "lucide-react";
+import { Activity, LogOut, UserCog } from "lucide-react";
 import type { MatrixClient } from "matrix-js-sdk";
 import { useState } from "react";
 import { useI18n } from "../lib/i18n";
@@ -8,6 +8,7 @@ import {
   type LocalePref,
   SUPPORTED_LOCALES,
 } from "../lib/locale";
+import { DiagnosticsModal } from "./DiagnosticsModal";
 import { Field, FieldGroup, MenuItem, SectionHeader, Select } from "./Form";
 import { Modal, ModalHeader } from "./Modal";
 import { ProfileEditModal } from "./ProfileEditModal";
@@ -24,6 +25,7 @@ export function AppSettingsModal({
 }) {
   const { t, pref, setPref } = useI18n();
   const [profileOpen, setProfileOpen] = useState(false);
+  const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   // "자동" 옵션 라벨에 현재 감지된 브라우저 언어 표시.
   const detected = detectBrowserLocale();
 
@@ -67,6 +69,15 @@ export function AppSettingsModal({
               }}
             />
           </FieldGroup>
+
+          <SectionHeader>{t("settings.section.diagnostics")}</SectionHeader>
+          <FieldGroup>
+            <MenuItem
+              icon={<Activity className="h-3.5 w-3.5" />}
+              label={t("settings.diagnostics.title")}
+              onClick={() => setDiagnosticsOpen(true)}
+            />
+          </FieldGroup>
         </div>
 
         {/* 단일 닫기 푸터 (취소/저장 패턴 아님) */}
@@ -86,6 +97,10 @@ export function AppSettingsModal({
           client={client}
           onClose={() => setProfileOpen(false)}
         />
+      )}
+
+      {diagnosticsOpen && (
+        <DiagnosticsModal onClose={() => setDiagnosticsOpen(false)} />
       )}
     </>
   );

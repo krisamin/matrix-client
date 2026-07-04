@@ -1,4 +1,10 @@
-import { ClientEvent, type MatrixClient, SyncState } from "matrix-js-sdk";
+import {
+  ClientEvent,
+  HttpApiEvent,
+  type MatrixClient,
+  SyncState,
+} from "matrix-js-sdk";
+import { logLifecycle } from "./lifecycle-log";
 
 /** 자동 재연결 — sync가 Error에 갇혔을 때 복구 트리거를 건다.
  *  matrix-js-sdk는 자체 백오프 재시도를 하지만, 모바일/PWA에서 화면이 꺼졌다
@@ -6,6 +12,7 @@ import { ClientEvent, type MatrixClient, SyncState } from "matrix-js-sdk";
  *  Error에 머물러 "새로고침해야만 복구"되는 현상이 생긴다. 그래서:
  *   - online (네트워크 복구)
  *   - visibilitychange / focus (탭·앱 복귀)
+ *   - pageshow persisted (BFCache 복귀)
  *  시점에 sync 상태가 Error면 retryImmediately()로 즉시 재시도시킨다.
  *  client당 1회만 등록(중복 리스너 방지). */
 const _autoReconnectAttached = new WeakSet<MatrixClient>();
@@ -22,6 +29,7 @@ export function attachAutoReconnect(client: MatrixClient): void {
     // Error(끊김) 상태이거나, 네트워크는 살아있는데 sync가 멈춘 경우 즉시 재시도.
     // Syncing/Prepared(정상)면 호출해도 무해하지만 불필요하므로 건너뜀.
     if (state === SyncState.Error || state === null) {
+      logLifecycle("reconnect-kick", `state=${state}`);
       try {
         client.retryImmediately();
       } catch {
@@ -37,11 +45,21 @@ export function attachAutoReconnect(client: MatrixClient): void {
   window.addEventListener("online", kick);
   window.addEventListener("focus", kick);
   document.addEventListener("visibilitychange", onVisible);
+  // BFCache에서 복귀한 페이지는 load 이벤트 없이 살아나므로 별도 트리거
+  window.addEventListener("pageshow", (e) => {
+    if (e.persisted) kick();
+  });
 
   // sync가 Error로 떨어졌고 네트워크가 살아있으면, SDK 백오프를 기다리지 않고
   // 짧게 자체 재촉(한 번)을 건다. 반복 폭주 방지를 위해 Error 진입 시 1회만.
   let nudged = false;
+  // 상태 "전이"만 라이프사이클 로그에 남긴다 (Syncing 틱마다 찍으면 노이즈)
+  let lastLogged: SyncState | null = null;
   client.on(ClientEvent.Sync, (state: SyncState) => {
+    if (state !== lastLogged) {
+      logLifecycle("sync", String(state));
+      lastLogged = state;
+    }
     if (state === SyncState.Error) {
       if (!nudged && navigator.onLine) {
         nudged = true;
@@ -50,5 +68,11 @@ export function attachAutoReconnect(client: MatrixClient): void {
     } else {
       nudged = false;
     }
+  });
+
+  // 토큰 갱신 실패 등으로 세션이 서버에서 무효화된 경우 — 앱이 직접 reload를
+  // 하진 않지만, "저절로 로그인 화면/새로고침"류 증상의 원인 후보라 기록.
+  client.on(HttpApiEvent.SessionLoggedOut, () => {
+    logLifecycle("session-logged-out");
   });
 }

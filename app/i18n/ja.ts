@@ -67,6 +67,10 @@ export const ja: Record<keyof typeof ko, string> = {
 
   "settings.section.general": "一般",
   "settings.section.account": "アカウント",
+  "settings.section.diagnostics": "診断",
+  "settings.diagnostics.title": "アプリ動作ログ",
+  "settings.diagnostics.clear": "ログを消去",
+  "settings.diagnostics.empty": "記録がありません",
   "settings.lang": "言語",
   "settings.lang.auto": "自動",
   "settings.lang.desc": "デフォルトはブラウザ設定に従います。",

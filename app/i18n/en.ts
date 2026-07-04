@@ -68,6 +68,10 @@ export const en: Record<keyof typeof ko, string> = {
 
   "settings.section.general": "General",
   "settings.section.account": "Account",
+  "settings.section.diagnostics": "Diagnostics",
+  "settings.diagnostics.title": "App activity log",
+  "settings.diagnostics.clear": "Clear log",
+  "settings.diagnostics.empty": "No entries",
   "settings.lang": "Language",
   "settings.lang.auto": "Auto",
   "settings.lang.desc": "Defaults to your browser language.",
