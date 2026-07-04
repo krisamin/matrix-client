@@ -21,8 +21,10 @@ export default defineConfig(({ command }) => ({
             workbox: {
               navigateFallback: "/index.html",
               navigateFallbackDenylist: [/^\/_/, /^\/oidc/, /^\/.well-known/],
-              globPatterns: ["**/*.{js,css,html,svg,png,ico}"],
-              maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
+              globPatterns: ["**/*.{js,css,html,svg,png,ico,wasm}"],
+              // crypto WASM(~5.5MB)까지 precache에 포함 — 오프라인 cold boot
+              // 시에도 E2EE 스택이 뜨도록 (4MB 캡이면 wasm이 빠짐)
+              maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
               runtimeCaching: [
                 {
                   urlPattern: ({ url }) =>
@@ -61,6 +63,20 @@ export default defineConfig(({ command }) => ({
                     expiration: {
                       maxEntries: 30,
                       maxAgeSeconds: 365 * 24 * 60 * 60,
+                    },
+                  },
+                },
+                {
+                  // 본문/이모지 폰트 CDN (Wanted Sans, Tossface) — 이게 없으면
+                  // 오프라인 부팅 시 폰트가 전부 fallback으로 깨짐
+                  urlPattern: ({ url }) => url.hostname === "cdn.jsdelivr.net",
+                  handler: "CacheFirst",
+                  options: {
+                    cacheName: "cdn-fonts",
+                    expiration: {
+                      maxEntries: 60,
+                      maxAgeSeconds: 365 * 24 * 60 * 60,
+                      purgeOnQuotaError: true,
                     },
                   },
                 },
