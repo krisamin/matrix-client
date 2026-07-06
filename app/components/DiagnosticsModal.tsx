@@ -17,6 +17,7 @@ function entryTone(e: LifecycleEntry): string {
   )
     return "text-red-400";
   if (e.type === "boot") return "text-fg-0";
+  if (e.type === "perf") return "text-sky-400";
   if (e.type === "sync" && e.detail === "ERROR") return "text-amber-400";
   if (e.type === "offline") return "text-amber-400";
   return "text-fg-2";

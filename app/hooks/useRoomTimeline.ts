@@ -11,6 +11,7 @@ import {
 } from "matrix-js-sdk";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getNoThreadTimelineSet } from "../lib/matrix";
+import { perfSpan } from "../lib/perf-log";
 import {
   decryptPending,
   eventsSignature,
@@ -69,6 +70,9 @@ export function useRoomTimeline(client: MatrixClient, roomId: string) {
     setHasMore(true);
     tlSetRef.current = null;
     lastSigRef.current = "\u0000init";
+    // 방 전환 계측 — bind(방 준비)→filter(MSC3874 왕복)→fill(백필+복호화).
+    // total은 "화면에 메시지가 처음 뜰 때까지"의 체감 시간과 대응.
+    const endSwitchTotal = perfSpan(`room:total ${roomId.slice(0, 12)}`);
 
     // 보이는 이벤트가 최소치를 넘거나 타임라인 끝에 닿을 때까지 backwards 페이지네이션
     // limit 30: 메시지 짧은 방에서 1회 50개=과도. 30이면 점진적 + decryption 부담 분산.
@@ -76,6 +80,8 @@ export function useRoomTimeline(client: MatrixClient, roomId: string) {
     const fillUntilVisible = async (r: Room) => {
       if (loadingOlderRef.current) return;
       loadingOlderRef.current = true;
+      const endFill = perfSpan("room:fill");
+      let pages = 0;
       try {
         const tlSet = tlSetRef.current;
         // 루프 조건용 카운트는 paginate 결과로만 갱신 — 매 반복 전체 필터 재계산
@@ -90,6 +96,7 @@ export function useRoomTimeline(client: MatrixClient, roomId: string) {
               backwards: true,
               limit: 30,
             });
+            pages++;
           } catch (e) {
             console.warn("[fillUntilVisible] paginate 실패:", e);
             break;
@@ -105,6 +112,8 @@ export function useRoomTimeline(client: MatrixClient, roomId: string) {
             break;
           }
         }
+        endFill(`pages=${pages} visible=${visibleCount}`);
+        endSwitchTotal();
       } finally {
         loadingOlderRef.current = false;
       }
@@ -119,7 +128,9 @@ export function useRoomTimeline(client: MatrixClient, roomId: string) {
       // MSC3874: 스레드 답글 제외 필터드 타임라인 → 이후 페이지네이션은
       // 서버가 스레드 답글 빼고 줌 (빈 페이지 데드락 원천 차단)
       void (async () => {
+        const endFilter = perfSpan("room:filter");
         const tlSet = await getNoThreadTimelineSet(client, r);
+        endFilter(tlSet ? undefined : "fallback=live");
         if (gen !== genRef.current) return; // await 사이 방 전환됨
         tlSetRef.current = tlSet;
         if (tlSet) commit(r, gen);
@@ -234,6 +245,7 @@ export function useRoomTimeline(client: MatrixClient, roomId: string) {
     loadingOlderRef.current = true;
     setLoadingOlder(true);
     const gen = genRef.current;
+    const endOlder = perfSpan("older:page");
     try {
       const timeline =
         tlSetRef.current?.getLiveTimeline() ?? room.getLiveTimeline();
@@ -245,6 +257,7 @@ export function useRoomTimeline(client: MatrixClient, roomId: string) {
       setHasMore(more);
       decryptPending(client, timeline.getEvents());
       commit(room, gen);
+      endOlder(`events=${timeline.getEvents().length}`);
       return true;
     } finally {
       loadingOlderRef.current = false;

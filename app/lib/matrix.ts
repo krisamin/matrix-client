@@ -1,4 +1,5 @@
 import {
+  ClientEvent,
   createClient,
   type EventTimelineSet,
   EventType,
@@ -8,6 +9,7 @@ import {
   type MatrixEvent,
   OidcTokenRefresher,
   type Room,
+  SyncState,
 } from "matrix-js-sdk";
 import type { RoomMessageEventContent } from "matrix-js-sdk/lib/@types/events";
 import {
@@ -16,6 +18,7 @@ import {
 } from "matrix-js-sdk/lib/crypto-api";
 import type { SecretStorageKeyDescription } from "matrix-js-sdk/lib/secret-storage";
 import { attachAutoReconnect } from "./matrix-reconnect";
+import { perfSpan } from "./perf-log";
 import { loadSession, updateSessionTokens } from "./session";
 
 let clientPromise: Promise<MatrixClient> | null = null;
@@ -59,6 +62,8 @@ export function getReadyClient(): Promise<MatrixClient> | null {
   const session = loadSession();
   if (!session) return null;
   clientPromise = (async () => {
+    // 콜드 스타트 계측 — 어느 단계가 무거운지 (설정 → 진단에서 열람)
+    const endBootTotal = perfSpan("boot:total");
     // OIDC 토큰 자동 갱신: M_UNKNOWN_TOKEN 시 http-api가 이 함수를 호출
     let tokenRefreshFunction:
       | ((refreshToken: string) => Promise<{
@@ -96,6 +101,7 @@ export function getReadyClient(): Promise<MatrixClient> | null {
     // (없으면 매번 initial sync — 방 많아질수록 첫 화면 느려짐)
     // startup 실패(시크릿 모드, 손상된 DB 등) 시 메모리 스토어로 폴백
     let store: IndexedDBStore | undefined;
+    const endStore = perfSpan("boot:store-startup");
     try {
       store = new IndexedDBStore({
         indexedDB: window.indexedDB,
@@ -104,7 +110,9 @@ export function getReadyClient(): Promise<MatrixClient> | null {
       });
       // 주의: createClient 전에 반드시 startup() — 안 하면 조용히 깨짐
       await store.startup();
+      endStore();
     } catch (e) {
+      endStore("fallback=memory");
       console.warn("IndexedDBStore startup 실패 — 메모리 스토어로 폴백:", e);
       store = undefined;
     }
@@ -136,10 +144,13 @@ export function getReadyClient(): Promise<MatrixClient> | null {
         },
       },
     });
+    const endCrypto = perfSpan("boot:init-crypto");
     await client.initRustCrypto({
       useIndexedDB: true,
       cryptoDatabasePrefix: `matrix-client-crypto-${session.deviceId}`,
     });
+    endCrypto();
+    endBootTotal();
     // dev 디버깅: 콘솔에서 window.__mxc로 client 접근 가능.
     // 프로덕션 영향 0(글로벌 한 변수 추가 뿐, 외부 노출 위험은 client가 이미
     // 메모리에 인증 토큰 들고 있는 SPA 특성상 디버그 도구로만 의미 있음).
@@ -218,6 +229,16 @@ export {
  *  중이라 별도 설정 불필요. */
 export function ensureStarted(client: MatrixClient): void {
   if (!client.clientRunning) {
+    // 첫 sync 완료(Prepared)까지 계측 — IndexedDB 복원이면 수백 ms,
+    // 서버 initial sync를 타면 수 초 단위로 갈린다 (콜드 스타트 범인 판별용)
+    const endFirstSync = perfSpan("boot:first-sync");
+    const onSync = (state: SyncState) => {
+      if (state === SyncState.Prepared || state === SyncState.Syncing) {
+        endFirstSync(`state=${state}`);
+        client.off(ClientEvent.Sync, onSync);
+      }
+    };
+    client.on(ClientEvent.Sync, onSync);
     client.startClient({
       initialSyncLimit: 20,
       threadSupport: true,
