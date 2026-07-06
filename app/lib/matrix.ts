@@ -99,23 +99,17 @@ export function getReadyClient(): Promise<MatrixClient> | null {
 
     // sync 영속화: 새로고침 시 마지막 sync 지점부터 이어받음
     // (없으면 매번 initial sync — 방 많아질수록 첫 화면 느려짐)
-    // startup 실패(시크릿 모드, 손상된 DB 등) 시 메모리 스토어로 폴백
-    let store: IndexedDBStore | undefined;
-    const endStore = perfSpan("boot:store-startup");
-    try {
-      store = new IndexedDBStore({
-        indexedDB: window.indexedDB,
-        localStorage: window.localStorage,
-        dbName: `matrix-client-sync-${session.deviceId}`,
-      });
-      // 주의: createClient 전에 반드시 startup() — 안 하면 조용히 깨짐
-      await store.startup();
-      endStore();
-    } catch (e) {
-      endStore("fallback=memory");
-      console.warn("IndexedDBStore startup 실패 — 메모리 스토어로 폴백:", e);
-      store = undefined;
-    }
+    // ★순서 함정: startup()은 createClient "후"에 불러야 한다. client
+    // 생성자가 store.setUserCreator()를 주입하는데, 그 전에 startup()을
+    // 부르면 저장된 presence 복원에서 "must be called after assigning it
+    // to the client" 예외 → 조용히 메모리 폴백. 빈 DB인 첫 부팅은
+    // presence가 없어 통과하고 2회차부터 깨지는 함정이라 발견이 늦었다
+    // (진단 로그 boot:store-startup fallback=memory의 정체).
+    const store = new IndexedDBStore({
+      indexedDB: window.indexedDB,
+      localStorage: window.localStorage,
+      dbName: `matrix-client-sync-${session.deviceId}`,
+    });
 
     const client = createClient({
       baseUrl: session.homeserverUrl,
@@ -144,6 +138,17 @@ export function getReadyClient(): Promise<MatrixClient> | null {
         },
       },
     });
+
+    // startup 실패(시크릿 모드, 손상된 DB 등)해도 client는 계속 쓸 수 있다 —
+    // SDK degradable 래퍼가 이후 store 접근을 MemoryStore로 자동 강등.
+    const endStore = perfSpan("boot:store-startup");
+    try {
+      await store.startup();
+      endStore();
+    } catch (e) {
+      endStore(`fallback=memory ${String(e).slice(0, 120)}`);
+      console.warn("IndexedDBStore startup 실패 — 메모리 스토어로 폴백:", e);
+    }
     const endCrypto = perfSpan("boot:init-crypto");
     await client.initRustCrypto({
       useIndexedDB: true,
