@@ -155,18 +155,28 @@ export function MessageInput({
     if (!draft.trim() || sending) return;
     setSending(true);
     setError(null);
+    // ★ 낙관적 클리어 — 서버 ack(await)을 기다리지 않고 즉시 입력창을 비운다.
+    //   ack까지 draft를 유지하면 멀티라인 입력창이 RTT 동안 그대로 남았다가
+    //   ack 순간 한 줄로 확 줄며 타임라인이 점프("보내는 순간 버벅"의 절반).
+    //   실패하면 catch에서 원문 복원 — 입력 내용은 유실되지 않는다.
+    const text = draft;
+    const mentions = mentionsRef.current;
+    setDraft("");
+    localStorage.removeItem(draftKeyRef.current);
+    mentionsRef.current = [];
+    setMentionQuery(null);
+    clearTyping();
+    // 모바일에서 전송 버튼 탭 시 textarea가 blur돼 키보드가 내려가는 걸 방지.
+    // 다음 프레임에 focus 복원 — 연속 전송이 자연스러움(Telegram/iMessage 결).
+    requestAnimationFrame(() => textInputRef.current?.focus());
     try {
-      await onSend(draft, mentionsRef.current);
-      setDraft("");
-      localStorage.removeItem(draftKeyRef.current);
-      mentionsRef.current = [];
-      setMentionQuery(null);
-      clearTyping();
-      // 모바일에서 전송 버튼 탭 시 textarea가 blur돼 키보드가 내려가는 걸 방지.
-      // 다음 프레임에 focus 복원 — 연속 전송이 자연스러움(Telegram/iMessage 결).
-      requestAnimationFrame(() => textInputRef.current?.focus());
+      await onSend(text, mentions);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
+      // 실패 시 draft 복원 (그 사이 새로 입력했다면 덮지 않음)
+      setDraft((cur) => (cur ? cur : text));
+      mentionsRef.current = mentions;
+      if (text) localStorage.setItem(draftKeyRef.current, text);
     } finally {
       setSending(false);
     }

@@ -65,14 +65,16 @@ export default function ThreadView() {
 
   async function sendReply(text: string, mentions: Mention[]) {
     // 룸 send()와 동일하게 buildSendContent로 통일 (스레드 관계 포함).
-    await client.sendEvent(
+    const promise = client.sendEvent(
       room.roomId,
       threadId!,
       EventType.RoomMessage,
       buildSendContent({ text, mentions, threadId }) as never,
     );
-    // 전송 직후 바닥 추적 — 룸 send()와 동일 패턴.
+    // 전송 직후 바닥 추적 — 룸 send()와 동일 패턴. local echo는 호출 즉시
+    // 붙으므로 서버 ack(await)을 기다리지 않는다 (보내는 순간 버벅임 방지).
     requestAnimationFrame(() => timelineRef.current?.scrollToBottom());
+    await promise;
   }
 
   /** 닫기/뒤로가기 — 진입 경로에 따라 목적지가 다르다.

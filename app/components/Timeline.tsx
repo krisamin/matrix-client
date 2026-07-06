@@ -145,6 +145,7 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
       const last = displayRowsLenRef.current - 1;
       if (last < 0) return;
       stickToBottomRef.current = true;
+      setAtBottom(true);
       programmaticRef.current = true;
       if (pinRafRef.current != null) cancelAnimationFrame(pinRafRef.current);
       let frame = 0;
@@ -352,6 +353,7 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
         //    마지막 메시지가 바닥에서 뜬다(전송했는데 안 내려가던 증상의 원인).
         const contentGrew = contentH > prevContentH + 0.5;
         const viewportChanged = Math.abs(viewportH - prevViewportH) > 0.5;
+        const viewportShrankBy = prevViewportH - viewportH; // >0 = 줄어듦
         prevContentH = contentH;
         prevViewportH = viewportH;
         // ★ 핵심: 리사이즈(콘텐츠 증가 / 뷰포트 변화)는 "사용자 스크롤"이 아니다.
@@ -363,6 +365,20 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
         //   그 값만 신뢰하고, 리사이즈 중 onScroll의 stick 해제는 가드로 막는다.
         if ((contentGrew || viewportChanged) && stickToBottomRef.current) {
           stickIfNeeded(true);
+          return;
+        }
+        // ★ 복구 경로: stick이 풀려 있어도(트랙패드 미세 스크롤 등) 뷰포트가
+        //   줄어드는 순간(입력창 확장/모바일 키보드) "직전 위치"가 바닥 근처였다면
+        //   다시 붙인다. 뷰포트가 shrink만큼 줄면 domDist도 그만큼 커지므로,
+        //   축소분을 뺀 값(≈직전 domDist)으로 판정 — 사용자가 진짜 위로 올라가
+        //   있으면(수백px) 안 붙고, 사실상 바닥이었으면 입력창이 커져도 마지막
+        //   메시지가 계속 보인다("입력중 입력창 커지면 스크롤 방치" 증상 fix).
+        if (viewportShrankBy > 0.5) {
+          const el = scrollRef.current;
+          if (el) {
+            const dist = el.scrollHeight - el.scrollTop - el.clientHeight;
+            if (dist - viewportShrankBy <= 32) stickIfNeeded(true);
+          }
         }
       });
       ro.observe(content);

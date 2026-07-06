@@ -119,15 +119,19 @@ export default function RoomView() {
 
   async function send(text: string, mentions: Mention[]) {
     // 답장/일반 전송 모두 buildSendContent로 통일 (멘션·마크다운·인용 관계).
-    await client.sendEvent(
+    const promise = client.sendEvent(
       roomId!,
       EventType.RoomMessage,
       buildSendContent({ text, mentions, replyTo }) as never,
     );
-    if (replyTo) setReplyTo(null);
     // 전송 직후 무조건 바닥으로 — 위로 올라가있어도 내 메시지는 따라간다.
-    // local echo로 즉시 events에 추가되니 다음 rAF에 마지막 행 인덱스가 잡힘.
+    // local echo는 sendEvent "호출 즉시" 타임라인에 붙으므로 서버 ack을
+    // 기다리지 않는다 — await 뒤에 두면 네트워크 RTT만큼 스크롤이 멈췄다가
+    // 한 번에 점프해 "보내는 순간 버벅"거리던 원인. rAF 한 프레임은 echo가
+    // events에 커밋되어 마지막 행 인덱스가 잡히는 시간.
     requestAnimationFrame(() => timelineRef.current?.scrollToBottom());
+    await promise;
+    if (replyTo) setReplyTo(null);
   }
 
   return (
