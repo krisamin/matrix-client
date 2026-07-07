@@ -49,6 +49,12 @@ export function useThreadRoot(
   return root;
 }
 
+/** 백필 예산 소진 스레드 기억 + 시간 예산 — room fill과 동일 처방.
+ *  실측: thread:fill 10192ms pages=10 visible=0 (표시할 게 없는 스레드를
+ *  향해 10페이지 풀 소진). 소진 확인한 스레드는 재진입 시 1페이지만. */
+const backfillExhaustedThreads = new Set<string>();
+const THREAD_FILL_BUDGET_MS = 3000;
+
 /**
  * 스레드 타임라인 훅 — ThreadPanel에서 추출한 데이터 레이어:
  *
@@ -124,11 +130,19 @@ export function useThreadTimeline(
       // 적응형 limit — 리액션 많은 스레드도 왕복 수를 로그 스케일로 제한
       // (useRoomTimeline.fillUntilVisible과 동일 패턴)
       let limit = 50;
+      const exhausted = backfillExhaustedThreads.has(rootId);
+      const maxPages = exhausted ? 1 : 10;
+      const deadline = performance.now() + THREAD_FILL_BUDGET_MS;
       try {
         // 조건용 카운트는 paginate 결과로만 갱신 — 매 반복 전체 필터+정렬
         // (visibleThreadEvents) 재계산을 피한다. 최초 1회만 현재 상태를 센다.
         let visibleCount = visibleThreadEvents(client, thread.events).length;
-        for (let i = 0; i < 10 && visibleCount < 15; i++) {
+        let sawEnd = false;
+        for (
+          let i = 0;
+          i < maxPages && visibleCount < 15 && performance.now() < deadline;
+          i++
+        ) {
           // backward 토큰이 없으면 스레드 시작 도달
           const more = await client.paginateEventTimeline(thread.liveTimeline, {
             backwards: true,
@@ -141,11 +155,17 @@ export function useThreadTimeline(
           visibleCount = next.length;
           commit(next);
           if (!more) {
+            sawEnd = true;
             setHasMore(false);
             break;
           }
         }
-        endFill(`pages=${pages} visible=${visibleCount}`);
+        if (visibleCount < 15 && !sawEnd && pages >= maxPages) {
+          backfillExhaustedThreads.add(rootId);
+        }
+        endFill(
+          `pages=${pages} visible=${visibleCount}${exhausted ? " (exhausted-skip)" : ""}`,
+        );
       } catch (e) {
         console.warn("[thread backfill] 실패:", e);
       } finally {

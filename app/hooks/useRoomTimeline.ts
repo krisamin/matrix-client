@@ -18,6 +18,18 @@ import {
   visibleEvents,
 } from "../lib/timeline";
 
+/** fill이 페이지 예산을 다 쓰고도 목표 미달로 끝난 방 (모듈 레벨 기억).
+ *  스레드 위주 E2EE 방(DM 등)은 메인 타임라인에 표시할 메시지가 원래 거의
+ *  없어 "15개 모으기"가 도달 불가능한 목표다 — 서버가 스레드 답글을 못
+ *  거르므로(암호문 속 rel_type) 긁고→복호화→버리기만 반복. 실측: 진입마다
+ *  10페이지 ~2400이벤트 풀 소진(2.7~6.2s). 한 번 소진을 확인한 방은
+ *  재진입 시 1페이지만 시도해 최신분만 보충한다. */
+const fillExhaustedRooms = new Set<string>();
+
+/** fill 루프 시간 예산(ms) — 이 시간을 넘기면 목표 미달이어도 중단.
+ *  느린 모바일/콜드 크립토에서 방 진입이 수 초씩 잠기는 것 방지. */
+const FILL_BUDGET_MS = 3000;
+
 /**
  * 방 타임라인 훅 — 채팅 화면의 데이터 레이어 전부.
  * (클라이언트는 AppLayout이 준비해서 주입 — 여기선 방 바인딩부터)
@@ -86,12 +98,21 @@ export function useRoomTimeline(client: MatrixClient, roomId: string) {
       const endFill = perfSpan("room:fill");
       let pages = 0;
       let limit = 40;
+      // 이전에 예산 소진했던 방(스레드 위주 등)은 1페이지만 — 최신분 보충용
+      const exhausted = fillExhaustedRooms.has(r.roomId);
+      const maxPages = exhausted ? 1 : 10;
+      const deadline = performance.now() + FILL_BUDGET_MS;
       try {
         const tlSet = tlSetRef.current;
         // 루프 조건용 카운트는 paginate 결과로만 갱신 — 매 반복 전체 필터 재계산
         // (visibleEvents는 filter+정렬 O(n))을 피한다. 최초 1회만 현재 상태를 센다.
         let visibleCount = visibleEvents(r, tlSet).length;
-        for (let i = 0; i < 10 && visibleCount < 15; i++) {
+        let sawEnd = false;
+        for (
+          let i = 0;
+          i < maxPages && visibleCount < 15 && performance.now() < deadline;
+          i++
+        ) {
           if (gen !== genRef.current) return; // 방 전환됨 — 중단
           const timeline = tlSet?.getLiveTimeline() ?? r.getLiveTimeline();
           let more: boolean;
@@ -113,11 +134,19 @@ export function useRoomTimeline(client: MatrixClient, roomId: string) {
           visibleCount = next.length;
           commit(r, gen, next);
           if (!more) {
+            sawEnd = true;
             if (gen === genRef.current) setHasMore(false);
             break;
           }
         }
-        endFill(`pages=${pages} visible=${visibleCount}`);
+        // 예산(페이지/시간)을 다 쓰고도 목표 미달 + 타임라인 끝도 아님
+        // → 이 방은 fill로 채울 수 없는 방. 기억해서 재진입 낭비 차단.
+        if (visibleCount < 15 && !sawEnd && pages >= maxPages) {
+          fillExhaustedRooms.add(r.roomId);
+        }
+        endFill(
+          `pages=${pages} visible=${visibleCount}${exhausted ? " (exhausted-skip)" : ""}`,
+        );
         endSwitchTotal();
       } finally {
         loadingOlderRef.current = false;
