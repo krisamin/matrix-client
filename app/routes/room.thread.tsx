@@ -18,7 +18,7 @@ import { Timeline, type TimelineHandle } from "../components/Timeline";
 import { useJumpToEvent } from "../hooks/useJumpToEvent";
 import { useIsMobile } from "../hooks/useMediaQuery";
 import { useReadReceipt } from "../hooks/useRoomTimeline";
-import { useThreadTimeline } from "../hooks/useThreadTimeline";
+import { useThreadRoot, useThreadTimeline } from "../hooks/useThreadTimeline";
 import { roomPath } from "../lib/format";
 import { useT } from "../lib/i18n";
 import type { Mention } from "../lib/mention";
@@ -58,8 +58,7 @@ export default function ThreadView() {
     1600,
   );
 
-  const rootEvent =
-    room.findEventById(threadId!) ?? room.getThread(threadId!)?.rootEvent;
+  const rootEvent = useThreadRoot(client, room, threadId!);
   const title = rootEvent ? quotePreview(rootEvent) : t("thread.title");
   const replyCount = room.getThread(threadId!)?.length ?? 0;
 

@@ -6,8 +6,48 @@ import {
   RoomEvent,
   ThreadEvent,
 } from "matrix-js-sdk";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
+import { perfSpan } from "../lib/perf-log";
 import { eventsSignature, visibleThreadEvents } from "../lib/timeline";
+
+/** 스레드 루트 이벤트 훅 — 헤더 제목("Thread"로 박제되던 버그의 해결).
+ *
+ *  루트가 메인 타임라인에 로드 안 된 오래된 메시지면 mount 시점엔
+ *  findEventById도 thread.rootEvent도 undefined다. SDK가 비동기로
+ *  fetchRootEvent를 수행해 rootEvent를 채우지만(constructor →
+ *  updateThreadMetadata), 그걸 리렌더로 연결하는 코드가 없으면 제목이
+ *  fallback("Thread")으로 박제된다 — 다른 곳 갔다 와야(재마운트) 그새
+ *  채워진 rootEvent가 보이던 증상의 원인.
+ *
+ *  ThreadEvent.Update(fetchRootEvent 완료 후 emit)와 루트 복호화 완료
+ *  (E2EE 방은 fetch 직후 암호문이라 미리보기 생성 불가) 시점에 강제
+ *  리렌더해 최신 루트를 다시 읽는다. */
+export function useThreadRoot(
+  client: MatrixClient,
+  room: Room,
+  rootId: string,
+): MatrixEvent | undefined {
+  const [, force] = useReducer((n: number) => n + 1, 0);
+  const root = room.findEventById(rootId) ?? room.getThread(rootId)?.rootEvent;
+  useEffect(() => {
+    // 암호화된 루트는 복호화 트리거 — 완료되면 아래 Decrypted 리스너가 리렌더
+    if (root) client.decryptEventIfNeeded(root);
+    // useThreadTimeline의 effect가 먼저 실행돼 thread를 생성해두므로
+    // (훅 선언 순서 = effect 실행 순서) 여기선 getThread로 충분.
+    const thread = room.getThread(rootId);
+    const onUpdate = () => force();
+    thread?.on(ThreadEvent.Update, onUpdate);
+    const onDecrypted = (ev: MatrixEvent) => {
+      if (ev.getId() === rootId) force();
+    };
+    client.on(MatrixEventEvent.Decrypted, onDecrypted);
+    return () => {
+      thread?.off(ThreadEvent.Update, onUpdate);
+      client.off(MatrixEventEvent.Decrypted, onDecrypted);
+    };
+  }, [client, room, rootId, root]);
+  return root;
+}
 
 /**
  * 스레드 타임라인 훅 — ThreadPanel에서 추출한 데이터 레이어:
@@ -79,6 +119,11 @@ export function useThreadTimeline(
     const backfillUntilVisible = async () => {
       if (backfillingRef.current) return;
       backfillingRef.current = true;
+      const endFill = perfSpan("thread:fill");
+      let pages = 0;
+      // 적응형 limit — 리액션 많은 스레드도 왕복 수를 로그 스케일로 제한
+      // (useRoomTimeline.fillUntilVisible과 동일 패턴)
+      let limit = 50;
       try {
         // 조건용 카운트는 paginate 결과로만 갱신 — 매 반복 전체 필터+정렬
         // (visibleThreadEvents) 재계산을 피한다. 최초 1회만 현재 상태를 센다.
@@ -87,8 +132,10 @@ export function useThreadTimeline(
           // backward 토큰이 없으면 스레드 시작 도달
           const more = await client.paginateEventTimeline(thread.liveTimeline, {
             backwards: true,
-            limit: 50,
+            limit,
           });
+          pages++;
+          limit = Math.min(limit * 2, 320);
           // paginate 후 한 번만 필터 — 조건용 카운트와 commit이 같은 배열 공유.
           const next = visibleThreadEvents(client, thread.events);
           visibleCount = next.length;
@@ -98,6 +145,7 @@ export function useThreadTimeline(
             break;
           }
         }
+        endFill(`pages=${pages} visible=${visibleCount}`);
       } catch (e) {
         console.warn("[thread backfill] 실패:", e);
       } finally {

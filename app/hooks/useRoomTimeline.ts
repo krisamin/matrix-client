@@ -75,13 +75,17 @@ export function useRoomTimeline(client: MatrixClient, roomId: string) {
     const endSwitchTotal = perfSpan(`room:total ${roomId.slice(0, 12)}`);
 
     // 보이는 이벤트가 최소치를 넘거나 타임라인 끝에 닿을 때까지 backwards 페이지네이션
-    // limit 30: 메시지 짧은 방에서 1회 50개=과도. 30이면 점진적 + decryption 부담 분산.
+    // ★적응형 limit: 리액션 비중이 높은 방(실측 94%가 m.reaction인 방 존재)은
+    // 고정 30이면 페이지당 실메시지 ~2개 → 10왕복(1.1s+). 부족할수록 페이지를
+    // 2배씩 키워(40→80→160→320) 왕복 수를 로그 스케일로 줄인다. 리액션 적은
+    // 방은 첫 40으로 끝나므로 과다 로드 없음.
     // ref guard: 빠른 방 전환 + scroll 시 fillUntilVisible과 loadOlder 동시 진입 방지.
     const fillUntilVisible = async (r: Room) => {
       if (loadingOlderRef.current) return;
       loadingOlderRef.current = true;
       const endFill = perfSpan("room:fill");
       let pages = 0;
+      let limit = 40;
       try {
         const tlSet = tlSetRef.current;
         // 루프 조건용 카운트는 paginate 결과로만 갱신 — 매 반복 전체 필터 재계산
@@ -94,9 +98,10 @@ export function useRoomTimeline(client: MatrixClient, roomId: string) {
           try {
             more = await client.paginateEventTimeline(timeline, {
               backwards: true,
-              limit: 30,
+              limit,
             });
             pages++;
+            limit = Math.min(limit * 2, 320);
           } catch (e) {
             console.warn("[fillUntilVisible] paginate 실패:", e);
             break;
