@@ -105,6 +105,11 @@ const EventLineInner = function EventLine({
   // ※ 데스크탑은 우상단 hover 가로 액션바로 충분하므로 PC 우클릭 메뉴는 두지 않음
   //   (우클릭 = 브라우저 기본 동작 살림 — 텍스트 복사 등).
   const [sheetOpen, setSheetOpen] = useState(false);
+  // ★DOM 다이어트: hover 액션 툴바(버튼 8개+SVG 8개)를 처음부터 그리지 않고
+  // 첫 마우스 진입/포커스에 마운트한다. 가상 스크롤이 스크롤 중 행을 계속
+  // 마운트/언마운트하므로 행당 초기 DOM을 줄이는 게 스크롤 비용에 직결
+  // (30행 기준 ~240 SVG 절약). 표시/숨김 자체는 기존 group-hover CSS 그대로.
+  const [hoverReady, setHoverReady] = useState(false);
   const isMobile = useIsMobile();
   const longPress = useLongPress((_x, _y) => {
     // 편집/삭제된 이벤트엔 액션이 안 뜨므로 long-press도 무시
@@ -321,6 +326,8 @@ const EventLineInner = function EventLine({
       // ※ message-body / .selectable 안에선 호출부가 stopPropagation으로 막아
       //    텍스트 선택·복사 기본 동작을 살린다 (app.css 텍스트 선택 규칙과 짝).
       {...pressBindings}
+      onMouseEnter={() => setHoverReady(true)}
+      onFocusCapture={() => setHoverReady(true)}
       className={`group relative px-5 transition-colors duration-300 [@media(hover:hover)]:hover:bg-bg-2/60 active:bg-bg-2/60 ${
         showHeader ? "pt-3 pb-0.5" : "py-0.5"
       } ${
@@ -372,7 +379,7 @@ const EventLineInner = function EventLine({
           삼성은 잡히지만 일부 PC 환경(외장모니터/특수입력장치 등)에서 hover가
           아예 안 먹는 케이스가 있어 우선 데스크탑 결을 살림.
           모바일 액션은 아래 long-press 바텀시트가 담당. */}
-      {!editing && !ev.isRedacted() && (
+      {!editing && !ev.isRedacted() && hoverReady && (
         <div className="absolute -top-3 right-5 z-10 hidden items-center overflow-hidden rounded-md border border-line bg-bg-1 shadow-2xl [@media(hover:hover)]:group-hover:flex [@media(hover:hover)]:group-focus-within:flex">
           {actionList.map((a) => {
             const Icon = a.icon!;

@@ -42,7 +42,7 @@ export function useRooms(client: MatrixClient) {
   }, [client, sort]);
 
   useEffect(() => {
-    const refresh = () => {
+    const refreshNow = () => {
       const all = client.getRooms();
       setInvites(
         all.filter((r) => r.getMyMembership() === KnownMembership.Invite),
@@ -55,7 +55,20 @@ export function useRooms(client: MatrixClient) {
         ),
       );
     };
-    refresh();
+    // ★rAF 배칭 — Timeline/Receipt/Decrypted는 페이지네이션·복호화 중
+    // 메시지당 수십 번 연쇄로 터진다. 배칭 없이 매번 전체 방 목록
+    // filter+sort+setState를 돌리면 사이드바가 리렌더 폭주 (E2EE 방 전환
+    // 버벅임의 숨은 기여자). 타임라인 훅들과 동일 패턴.
+    let scheduled = false;
+    const refresh = () => {
+      if (scheduled) return;
+      scheduled = true;
+      requestAnimationFrame(() => {
+        scheduled = false;
+        refreshNow();
+      });
+    };
+    refreshNow();
 
     const onSync = (state: SyncState) => {
       setSyncState(state);
@@ -69,7 +82,16 @@ export function useRooms(client: MatrixClient) {
     const onMembership = () => refresh();
     // 스레드 이벤트는 방 자체의 lastActive를 안 흔들 수 있어 별도 tick으로 처리.
     // ThreadEvent는 Room emitter가 재방출하므로 방 단위로 구독한다 (client emitter엔 없음).
-    const onThread = () => setThreadTick((n) => n + 1);
+    // 같은 이유로 rAF 배칭 (스레드 답글 폭주 시 사이드바 리렌더 폭주 방지).
+    let threadScheduled = false;
+    const onThread = () => {
+      if (threadScheduled) return;
+      threadScheduled = true;
+      requestAnimationFrame(() => {
+        threadScheduled = false;
+        setThreadTick((n) => n + 1);
+      });
+    };
     function attachRoomThread(room: Room) {
       room.on(ThreadEvent.New, onThread);
       room.on(ThreadEvent.NewReply, onThread);
