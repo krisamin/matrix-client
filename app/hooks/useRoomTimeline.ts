@@ -163,7 +163,18 @@ export function useRoomTimeline(client: MatrixClient, roomId: string) {
       // 서버가 스레드 답글 빼고 줌 (빈 페이지 데드락 원천 차단)
       void (async () => {
         const endFilter = perfSpan("room:filter");
-        const tlSet = await getNoThreadTimelineSet(client, r);
+        // ★ 타임아웃 레이스 — getOrCreateFilter가 HTTP 왕복이라 느린 네트워크에서
+        // 여기 걸리면 fill이 영영 시작 못 해 "방 들어갔는데 로딩만" 증상이 됨.
+        // 3초 안에 안 오면 라이브 타임라인으로 진행(visibleEvents가 클라에서
+        // 스레드 답글을 걸러 표시 자체는 정상). 필터는 서버/스토어에 만들어지는
+        // 중이므로 다음 진입 땐 캐시로 즉시 잡힌다.
+        const tlSet =
+          (await Promise.race([
+            getNoThreadTimelineSet(client, r),
+            new Promise<undefined>((resolve) =>
+              setTimeout(() => resolve(undefined), 3000),
+            ),
+          ])) ?? null;
         endFilter(tlSet ? undefined : "fallback=live");
         if (gen !== genRef.current) return; // await 사이 방 전환됨
         tlSetRef.current = tlSet;
@@ -173,10 +184,35 @@ export function useRoomTimeline(client: MatrixClient, roomId: string) {
       return true;
     };
 
-    const onSync = (state: SyncState) => {
-      if (state === SyncState.Prepared) bind();
+    // ★ bind 재시도 경로 — 기존엔 Prepared에서만 재시도해서, 이미 Prepared가
+    // 지나간 뒤 방이 늦게 도착하는 케이스(초대 수락 직후 navigate — joinRoom
+    // HTTP는 끝났지만 Room 객체는 다음 sync에 생성됨 / 새로 만든 방 즉시 진입)
+    // 에서 getRoom()이 계속 null → LoadingPane 무한 로딩에 갇혔다.
+    // Syncing 틱과 ClientEvent.Room(새 방 생성)에서도 재시도하되, bound 가드로
+    // 성공 후엔 리스너를 즉시 떼 매 sync마다 bind가 반복 실행되는 걸 막는다.
+    let bound = false;
+    const tryBind = (): boolean => {
+      if (bound) return true;
+      if (bind()) {
+        bound = true;
+        client.off(ClientEvent.Sync, onSync);
+        client.off(ClientEvent.Room, onRoom);
+        return true;
+      }
+      return false;
     };
-    if (!bind()) client.on(ClientEvent.Sync, onSync);
+    const onSync = (state: SyncState) => {
+      if (state === SyncState.Prepared || state === SyncState.Syncing) {
+        tryBind();
+      }
+    };
+    const onRoom = (r: Room) => {
+      if (r.roomId === roomId) tryBind();
+    };
+    if (!tryBind()) {
+      client.on(ClientEvent.Sync, onSync);
+      client.on(ClientEvent.Room, onRoom);
+    }
 
     const refreshNow = () => {
       const r = client.getRoom(roomId);
@@ -261,6 +297,7 @@ export function useRoomTimeline(client: MatrixClient, roomId: string) {
 
     return () => {
       client.off(ClientEvent.Sync, onSync);
+      client.off(ClientEvent.Room, onRoom);
       client.off(ClientEvent.Sync, onSyncForThread);
       client.off(RoomEvent.Timeline, onTimeline);
       client.off(MatrixEventEvent.Decrypted, onDecrypted);
@@ -293,6 +330,12 @@ export function useRoomTimeline(client: MatrixClient, roomId: string) {
       commit(room, gen);
       endOlder(`events=${timeline.getEvents().length}`);
       return true;
+    } catch (e) {
+      // 네트워크 오류 등 — 스레드 loadOlder와 동일하게 삼킨다. 스크롤이
+      // 다시 트리거 존에 들어오면 재시도되므로 여기서 상태를 깨지 않는다.
+      // (기존엔 catch가 없어 unhandled rejection으로 콘솔만 더럽혔음)
+      console.warn("[room loadOlder] 실패:", e);
+      return false;
     } finally {
       loadingOlderRef.current = false;
       setLoadingOlder(false);
