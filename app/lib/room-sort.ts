@@ -9,8 +9,6 @@ import { ls } from "./storage";
 
 export type RoomSort = "activity" | "unread" | "alpha";
 
-const _KEY = "matrix-client:room-sort";
-
 export function loadRoomSort(): RoomSort {
   if (typeof window === "undefined") return "activity";
   const v = ls.get("room-sort");

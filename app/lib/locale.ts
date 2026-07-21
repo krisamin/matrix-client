@@ -14,8 +14,6 @@ export const LOCALE_LABEL: Record<Locale, string> = {
 
 import { ls } from "./storage";
 
-const _STORAGE_KEY = "matrix-client:locale";
-
 /** 브라우저 navigator.language → 우리 지원 언어로 매핑.
  *  fallback: ko (마로 기본 사용 언어). */
 export function detectBrowserLocale(): Locale {

@@ -29,9 +29,6 @@ import {
 } from "../lib/notifications";
 import { ls } from "../lib/storage";
 
-const _VERIFY_DISMISS_KEY = "matrix-client:verify-toast-dismissed";
-const _NOTIF_DISMISS_KEY = "matrix-client:notif-toast-dismissed";
-
 export interface AppContext {
   client: MatrixClient;
 }
