@@ -1,5 +1,5 @@
 import { Pin, X } from "lucide-react";
-import type { MatrixClient, Room } from "matrix-js-sdk";
+import type { MatrixClient, MatrixEvent, Room } from "matrix-js-sdk";
 import { RoomStateEvent } from "matrix-js-sdk";
 import { useEffect, useState } from "react";
 import { useT } from "../lib/i18n";
@@ -22,14 +22,19 @@ export function PinnedBanner({
   const [, force] = useState(0);
   const [idx, setIdx] = useState(0);
 
-  // 고정 상태 변화 실시간 반영
+  // 고정 상태 변화 실시간 반영 — 이 방의 pinned_events 변화에만 반응
+  // (client 전역 구독이지만 필터로 무관한 방/이벤트 리렌더 차단)
   useEffect(() => {
-    const bump = () => force((n) => n + 1);
+    const bump = (ev: MatrixEvent) => {
+      if (ev.getRoomId() !== room.roomId) return;
+      if (ev.getType() !== "m.room.pinned_events") return;
+      force((n) => n + 1);
+    };
     client.on(RoomStateEvent.Events, bump);
     return () => {
       client.off(RoomStateEvent.Events, bump);
     };
-  }, [client]);
+  }, [client, room.roomId]);
 
   const pinnedIds = getPinnedEventIds(room);
   if (pinnedIds.length === 0) return null;
