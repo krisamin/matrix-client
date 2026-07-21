@@ -13,7 +13,10 @@ interface ShieldInfo {
 /** 모듈 레벨 캐시 — 가상 스크롤로 EventLine이 재마운트되면 useShield
  *  effect가 다시 실행되며 crypto.getEncryptionInfoForEvent를 매번 호출.
  *  큰 방에서 스크롤 폭주하면 메인 스레드 freeze 유발.
- *  이벤트 id별로 결과 캐시 → 두 번째 호출부터 즉시 반환. */
+ *  이벤트 id별로 결과 캐시 → 두 번째 호출부터 즉시 반환.
+ *  ★ 캡: 세션이 길어지면(수만 메시지 스크롤) 무한 성장 — 상한 도달 시
+ *  전체 클리어(단순·저비용, 재계산은 스크롤 시 자연 재충전). */
+const SHIELD_CACHE_MAX = 5000;
 const shieldCache = new Map<string, ShieldInfo | null>();
 /** 진행 중 promise도 캐시 — 같은 이벤트가 동시에 여러 번 mount 시 1번만 호출. */
 const inflight = new Map<string, Promise<ShieldInfo | null>>();
@@ -48,11 +51,13 @@ export function useShield(
           const v: ShieldInfo | null = res
             ? { colour: res.shieldColour, reason: res.shieldReason }
             : null;
+          if (shieldCache.size >= SHIELD_CACHE_MAX) shieldCache.clear();
           shieldCache.set(eventId, v);
           inflight.delete(eventId);
           return v;
         })
         .catch(() => {
+          if (shieldCache.size >= SHIELD_CACHE_MAX) shieldCache.clear();
           shieldCache.set(eventId, null);
           inflight.delete(eventId);
           return null;
