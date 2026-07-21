@@ -1,10 +1,7 @@
 import type { MatrixClient, Room } from "matrix-js-sdk";
 import { memo, useEffect, useState } from "react";
-import {
-  PRESENCE_LABEL,
-  type Presence,
-  usePresence,
-} from "../hooks/usePresence";
+import { type Presence, usePresence } from "../hooks/usePresence";
+import { useT } from "../lib/i18n";
 import { getDmUserId } from "../lib/matrix";
 import { getThumbnailBlobUrl } from "../lib/media";
 
@@ -17,6 +14,7 @@ export function PresenceDot({
   presence: Presence;
   size?: number;
 }) {
+  const t = useT();
   if (!presence) return null;
   const color =
     presence === "online"
@@ -24,12 +22,19 @@ export function PresenceDot({
       : presence === "unavailable"
         ? "bg-amber-500"
         : "bg-fg-3";
+  const label = t(
+    presence === "online"
+      ? "presence.online"
+      : presence === "unavailable"
+        ? "presence.away"
+        : "presence.offline",
+  );
   return (
     <span
       className={`block rounded-full border-2 border-bg-1 ${color}`}
       style={{ width: size, height: size }}
-      title={PRESENCE_LABEL[presence]}
-      aria-label={PRESENCE_LABEL[presence]}
+      title={label}
+      aria-label={label}
     />
   );
 }

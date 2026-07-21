@@ -561,7 +561,7 @@ const EventLineInner = function EventLine({
         >
           <MessageSquareText className="h-3.5 w-3.5 shrink-0 text-fg-3" />
           <span className="shrink-0 font-medium text-fg-1">
-            답글 {threadLength}
+            {t("thread.replies", { count: threadLength })}
           </span>
           {thread?.replyToEvent && (
             <>

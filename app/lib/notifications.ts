@@ -7,6 +7,7 @@ import {
   RoomEvent,
 } from "matrix-js-sdk";
 import { roomPath } from "./format";
+import { translate } from "./i18n";
 
 /** 데스크톱 알림: 탭이 백그라운드일 때 새 메시지를 Notification API로 표시.
  *  클릭하면 해당 방으로 이동. 권한은 명시적 요청 후에만 동작. */
@@ -29,11 +30,11 @@ export async function requestNotificationPermission(): Promise<boolean> {
 function preview(ev: MatrixEvent): string {
   const content = ev.getContent();
   const msgtype = content.msgtype as string;
-  if (msgtype === "m.image") return "📷 Image";
-  if (msgtype === "m.video") return "🎞 Video";
-  if (msgtype === "m.audio") return "🎙 Audio";
-  if (msgtype === "m.file") return "📎 File";
-  const body: string = content.body ?? "New message";
+  if (msgtype === "m.image") return translate("notif.msg.image");
+  if (msgtype === "m.video") return translate("notif.msg.video");
+  if (msgtype === "m.audio") return translate("notif.msg.audio");
+  if (msgtype === "m.file") return translate("notif.msg.file");
+  const body: string = content.body ?? translate("notif.msg.new");
   const stripped = body.replace(/^(>.*\n)+\n?/, ""); // reply fallback 제거
   return stripped.length > 120 ? `${stripped.slice(0, 120)}…` : stripped;
 }
@@ -58,7 +59,9 @@ async function fireNotification(ev: MatrixEvent, room: Room) {
   const isDm = room.getJoinedMemberCount() <= 2;
   const title = isDm ? sender : `${room.name} — ${sender}`;
   const body =
-    ev.isEncrypted() && !ev.getClearContent() ? "새 메시지" : preview(ev);
+    ev.isEncrypted() && !ev.getClearContent()
+      ? translate("notif.msg.new")
+      : preview(ev);
   const path = roomPath(room.roomId);
 
   try {

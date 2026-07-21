@@ -20,13 +20,13 @@ import { useIsMobile } from "../hooks/useMediaQuery";
 import { useReadReceipt } from "../hooks/useRoomTimeline";
 import { useThreadRoot, useThreadTimeline } from "../hooks/useThreadTimeline";
 import { roomPath } from "../lib/format";
-import { useT } from "../lib/i18n";
+import { translate, useT } from "../lib/i18n";
 import type { Mention } from "../lib/mention";
 import { buildSendContent, quotePreview } from "../lib/reply";
 import { useRoomContext } from "./room";
 
 export function meta() {
-  return [{ title: "Thread — matrix-client" }];
+  return [{ title: translate("page.title.thread") }];
 }
 
 /** 스레드 페인 — 채팅 화면과 100% 동일한 구조 (헤더/타임라인/입력창).

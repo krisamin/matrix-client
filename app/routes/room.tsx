@@ -188,14 +188,16 @@ export default function RoomView() {
               <>
                 <PaneHeaderButton
                   icon={Search}
-                  title="메시지 검색"
+                  title={t("room.action.search")}
                   onClick={() =>
                     setSidePane((v) => (v === "search" ? null : "search"))
                   }
                 />
                 <PaneHeaderButton
                   icon={Users}
-                  title={`멤버 ${room.getJoinedMemberCount()}명`}
+                  title={t("room.action.members", {
+                    count: room.getJoinedMemberCount(),
+                  })}
                   onClick={() =>
                     setSidePane((v) => (v === "info" ? null : "info"))
                   }

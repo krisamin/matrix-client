@@ -7,14 +7,14 @@ import {
   registerOidcClient,
 } from "matrix-js-sdk";
 import { useEffect, useRef, useState } from "react";
-import { useT } from "../lib/i18n";
+import { translate, useT } from "../lib/i18n";
 import { loadRecaptcha, renderRecaptcha } from "../lib/recaptcha";
 import { saveSession } from "../lib/session";
 import { ls } from "../lib/storage";
 import { buildIdentifier, discoverHomeserver } from "../lib/uia";
 
 export function meta() {
-  return [{ title: "Login — matrix-client" }];
+  return [{ title: translate("page.title.login") }];
 }
 
 type AuthFlow =

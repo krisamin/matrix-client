@@ -1,4 +1,5 @@
 import type { MatrixEvent } from "matrix-js-sdk";
+import { translate } from "./i18n";
 import { buildMentionContent, type Mention } from "./mention";
 
 /** 이벤트에서 답장 대상(m.in_reply_to) event_id 추출.
@@ -65,13 +66,14 @@ export function buildSendContent({
 
 /** 인용/미리보기 텍스트 (한 줄 요약) */
 export function quotePreview(ev: MatrixEvent): string {
-  if (ev.isRedacted()) return "Deleted message";
+  if (ev.isRedacted()) return translate("message.deleted");
   const content = ev.getContent();
   const msgtype = content.msgtype as string;
-  if (msgtype === "m.image") return "📷 Image";
-  if (msgtype === "m.video") return "🎞 Video";
-  if (msgtype === "m.audio") return "🎙 Audio";
-  if (msgtype === "m.file") return `📎 ${content.body ?? "File"}`;
+  if (msgtype === "m.image") return translate("media.image");
+  if (msgtype === "m.video") return translate("media.video");
+  if (msgtype === "m.audio") return translate("media.audio");
+  if (msgtype === "m.file")
+    return content.body ? `📎 ${content.body}` : translate("media.file");
   const body: string = content.body ?? "";
   // 구식 reply fallback("> <@u> ..." 인용부) 제거 후 첫 줄
   const stripped = body.replace(/^(>.*\n)+\n?/, "");

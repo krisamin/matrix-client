@@ -48,9 +48,3 @@ export function usePresence(
 
   return presence;
 }
-
-export const PRESENCE_LABEL: Record<NonNullable<Presence>, string> = {
-  online: "online",
-  unavailable: "away",
-  offline: "offline",
-};

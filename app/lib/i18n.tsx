@@ -21,6 +21,29 @@ import {
 type Dict = Record<DictKey, string>;
 const DICT_CACHE: Partial<Record<Locale, Dict>> = { ko };
 
+// 모듈 레벨 현재 사전/locale — React 훅을 못 쓰는 lib 코드(알림, 미리보기,
+// innerHTML 주입 등)용. I18nProvider가 locale 변경 시 갱신한다.
+// 반응성은 없지만 해당 텍스트들은 전부 호출 시점 계산이라 충분.
+let currentDict: Dict = ko;
+let currentLocaleValue: Locale = "ko";
+
+/** 훅 없이 쓰는 번역 — lib 코드 전용. 컴포넌트에선 useT()를 쓸 것. */
+export function translate(
+  key: DictKey,
+  params?: Record<string, string | number>,
+): string {
+  const raw = currentDict[key] ?? ko[key] ?? key;
+  if (!params) return raw;
+  return raw.replace(/\{\{(\w+)\}\}/g, (_, k) =>
+    String(params[k] ?? `{{${k}}}`),
+  );
+}
+
+/** 현재 적용된 locale — 렌더 캐시 키 등에 사용. */
+export function getCurrentLocale(): Locale {
+  return currentLocaleValue;
+}
+
 async function loadDict(locale: Locale): Promise<Dict> {
   if (DICT_CACHE[locale]) return DICT_CACHE[locale] as Dict;
   if (locale === "en") {
@@ -77,7 +100,12 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false;
     loadDict(locale).then((d) => {
-      if (!cancelled) setDict(d);
+      if (!cancelled) {
+        setDict(d);
+        // lib 코드용 모듈 레벨 사전도 함께 갱신 (translate())
+        currentDict = d;
+        currentLocaleValue = locale;
+      }
     });
     return () => {
       cancelled = true;

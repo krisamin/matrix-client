@@ -1,10 +1,11 @@
 import { completeAuthorizationCodeGrant, createClient } from "matrix-js-sdk";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
+import { translate, useT } from "../lib/i18n";
 import { saveSession } from "../lib/session";
 
 export function meta() {
-  return [{ title: "Authenticating — matrix-client" }];
+  return [{ title: translate("page.title.oidc") }];
 }
 
 /** MAS scope에서 device id 추출: urn:matrix:org.matrix.msc2967.client:device:XXXX */
@@ -16,6 +17,7 @@ function deviceIdFromScope(scope?: string): string | undefined {
 
 export default function OidcCallback() {
   const navigate = useNavigate();
+  const t = useT();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -23,7 +25,9 @@ export default function OidcCallback() {
     const code = params.get("code");
     const state = params.get("state");
     if (!code || !state) {
-      setError(params.get("error_description") ?? "Missing code/state params");
+      setError(
+        params.get("error_description") ?? translate("oidc.error.noParams"),
+      );
       return;
     }
     (async () => {
@@ -43,7 +47,7 @@ export default function OidcCallback() {
       const whoami = await tmp.whoami();
       const deviceId =
         deviceIdFromScope(tokenResponse.scope) ?? whoami.device_id;
-      if (!deviceId) throw new Error("Unknown device id");
+      if (!deviceId) throw new Error(translate("oidc.error.noDevice"));
 
       saveSession({
         homeserverUrl,
@@ -66,11 +70,11 @@ export default function OidcCallback() {
         <div className="flex flex-col gap-2 text-center">
           <p className="text-red-500">{error}</p>
           <a className="text-blue-500 underline" href="/login">
-            Retry
+            {t("oidc.retry")}
           </a>
         </div>
       ) : (
-        <p>Exchanging token…</p>
+        <p>{t("oidc.exchange")}</p>
       )}
     </main>
   );

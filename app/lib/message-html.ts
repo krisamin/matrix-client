@@ -1,6 +1,7 @@
 import DOMPurify from "dompurify";
 import hljs from "highlight.js/lib/common";
 import type { MatrixClient, MatrixEvent } from "matrix-js-sdk";
+import { getCurrentLocale, translate } from "./i18n";
 import { hasMarkdown, markdownToMatrixHtml } from "./markdown";
 import { getReplyToId } from "./reply";
 
@@ -192,9 +193,9 @@ function highlightHtml(html: string): string {
     const btn = doc.createElement("button");
     btn.setAttribute("type", "button");
     btn.setAttribute("data-copy", "");
-    btn.setAttribute("aria-label", "Copy code");
+    btn.setAttribute("aria-label", translate("msg.code.copy"));
     btn.className = "code-copy-btn";
-    btn.textContent = "Copy";
+    btn.textContent = translate("msg.code.copy");
     pre.replaceWith(wrap);
     wrap.append(btn, pre);
   }
@@ -210,9 +211,10 @@ export function renderMessageHtml(
 ): string {
   const content = ev.getContent();
   const { body, formatted_body: formattedBody } = content;
-  // 모듈 캐시 키: 이벤트 id + 내용 길이 (수정/복호화로 내용 바뀌면 갱신).
+  // 모듈 캐시 키: 이벤트 id + 내용 길이 (수정/복호화로 내용 바뀌면 갱신) +
+  // locale (코드블록 복사 버튼 라벨이 locale을 따라가므로).
   // 재마운트(가상 스크롤 in/out) 시 useMemo는 날아가지만 이 캐시는 살아남음.
-  const cacheKey = `${ev.getId() ?? "?"}:${((body as string) ?? "").length}:${
+  const cacheKey = `${getCurrentLocale()}:${ev.getId() ?? "?"}:${((body as string) ?? "").length}:${
     ((formattedBody as string) ?? "").length
   }`;
   return getCachedHtml(cacheKey, () => {

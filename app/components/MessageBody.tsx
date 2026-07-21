@@ -1,5 +1,6 @@
 import type { MatrixClient, MatrixEvent } from "matrix-js-sdk";
 import { memo, useEffect, useMemo, useRef } from "react";
+import { translate } from "../lib/i18n";
 import { renderMessageHtml, revealTyping } from "../lib/message-html";
 
 /** 메시지 본문 렌더러: formatted_body(HTML)가 있으면 살균 후 렌더,
@@ -70,10 +71,10 @@ function MessageBodyInner({
     navigator.clipboard
       .writeText(text)
       .then(() => {
-        btn.textContent = "Copied!";
+        btn.textContent = translate("msg.code.copied");
         btn.classList.add("copied");
         window.setTimeout(() => {
-          btn.textContent = "Copy";
+          btn.textContent = translate("msg.code.copy");
           btn.classList.remove("copied");
         }, 1400);
       })

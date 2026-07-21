@@ -1,6 +1,7 @@
 import { Clock3, Search } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import emojiData from "unicode-emoji-json/data-by-group.json";
+import type { DictKey } from "../i18n/ko";
 import { useT } from "../lib/i18n";
 import { AnchoredPopover } from "./AnchoredPopover";
 
@@ -20,16 +21,17 @@ interface EmojiGroup {
 
 const GROUPS = emojiData as EmojiGroup[];
 
-const GROUP_META: Record<string, { label: string; icon: string }> = {
-  smileys_emotion: { label: "Smileys", icon: "😀" },
-  people_body: { label: "People", icon: "👋" },
-  animals_nature: { label: "Nature", icon: "🐻" },
-  food_drink: { label: "Food", icon: "🍔" },
-  travel_places: { label: "Travel", icon: "✈️" },
-  activities: { label: "Activities", icon: "⚽" },
-  objects: { label: "Objects", icon: "💡" },
-  symbols: { label: "Symbols", icon: "🔣" },
-  flags: { label: "Flags", icon: "🚩" },
+// 카테고리 탭/섹션 라벨 — i18n 키로 매핑 (emoji.cat.*)
+const GROUP_META: Record<string, { labelKey: DictKey; icon: string }> = {
+  smileys_emotion: { labelKey: "emoji.cat.smileys", icon: "😀" },
+  people_body: { labelKey: "emoji.cat.people", icon: "👋" },
+  animals_nature: { labelKey: "emoji.cat.animals", icon: "🐻" },
+  food_drink: { labelKey: "emoji.cat.food", icon: "🍔" },
+  travel_places: { labelKey: "emoji.cat.travel", icon: "✈️" },
+  activities: { labelKey: "emoji.cat.activities", icon: "⚽" },
+  objects: { labelKey: "emoji.cat.objects", icon: "💡" },
+  symbols: { labelKey: "emoji.cat.symbols", icon: "🔣" },
+  flags: { labelKey: "emoji.cat.flags", icon: "🚩" },
 };
 
 /* ── 최근 사용 (localStorage) ── */
@@ -151,7 +153,7 @@ export function EmojiPicker({
             key={g.slug}
             type="button"
             className="flex h-7 w-7 items-center justify-center rounded-md text-[15px] grayscale hover:bg-bg-2 hover:grayscale-0"
-            title={GROUP_META[g.slug]?.label ?? g.name}
+            title={GROUP_META[g.slug] ? t(GROUP_META[g.slug].labelKey) : g.name}
             onClick={() => jumpTo(g.slug)}
           >
             {GROUP_META[g.slug]?.icon ?? g.emojis[0]?.emoji}
@@ -214,7 +216,7 @@ export function EmojiPicker({
                 }}
               >
                 <p className="sticky top-0 bg-bg-1 px-1 pb-1 pt-2 text-[11px] font-medium text-fg-2">
-                  {GROUP_META[g.slug]?.label ?? g.name}
+                  {GROUP_META[g.slug] ? t(GROUP_META[g.slug].labelKey) : g.name}
                 </p>
                 <div className="grid grid-cols-8 gap-0.5">
                   {g.emojis.map((e) => (

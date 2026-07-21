@@ -17,6 +17,7 @@ import {
   deriveRecoveryKeyFromPassphrase,
 } from "matrix-js-sdk/lib/crypto-api";
 import type { SecretStorageKeyDescription } from "matrix-js-sdk/lib/secret-storage";
+import { translate } from "./i18n";
 import { attachAutoReconnect } from "./matrix-reconnect";
 import { perfSpan } from "./perf-log";
 import { loadSession, updateSessionTokens } from "./session";
@@ -44,7 +45,8 @@ async function inputToKey(
   try {
     return decodeRecoveryKey(trimmed);
   } catch {
-    if (!keyInfo.passphrase) throw new Error("올바른 보안 키 형식이 아닙니다");
+    if (!keyInfo.passphrase)
+      throw new Error(translate("verify.error.badKeyFormat"));
     return deriveRecoveryKeyFromPassphrase(
       trimmed,
       keyInfo.passphrase.salt,
@@ -134,7 +136,7 @@ export function getReadyClient(): Promise<MatrixClient> | null {
               lastError = e;
             }
           }
-          throw lastError ?? new Error("일치하는 보안 키가 없습니다");
+          throw lastError ?? new Error(translate("verify.error.noKeyMatch"));
         },
       },
     });
@@ -303,7 +305,7 @@ export function quotePreviewById(room: Room, eventId: string): string {
   const ev = room.findEventById(eventId);
   if (!ev) return "";
   // 삭제된 메시지
-  if (ev.isRedacted()) return "삭제된 메시지";
+  if (ev.isRedacted()) return translate("message.deleted");
   const body = ev.getContent()?.body;
   if (typeof body !== "string") return "";
   // 한 줄로 정리 + 길이 제한

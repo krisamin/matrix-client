@@ -8,7 +8,7 @@ import {
 } from "matrix-js-sdk/lib/crypto-api";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { useT } from "../lib/i18n";
+import { translate, useT } from "../lib/i18n";
 import {
   ensureStarted,
   getReadyClient,
@@ -16,7 +16,7 @@ import {
 } from "../lib/matrix";
 
 export function meta() {
-  return [{ title: "Verify — matrix-client" }];
+  return [{ title: translate("page.title.verify") }];
 }
 
 type Step =
@@ -43,19 +43,19 @@ export default function Verify() {
   async function start() {
     setStep({
       kind: "waiting",
-      note: "다른 기기로 인증 요청을 보내는 중...",
+      note: t("verify.note.sending"),
     });
     try {
       const client = await getReadyClient()!;
       if (!client.clientRunning) ensureStarted(client);
       const crypto = client.getCrypto();
-      if (!crypto) throw new Error("암호화 모듈이 초기화되지 않았습니다");
+      if (!crypto) throw new Error(t("verify.error.noCrypto"));
 
       const request = await crypto.requestOwnUserVerification();
       requestRef.current = request;
       setStep({
         kind: "waiting",
-        note: "다른 기기에서 인증 요청을 수락해 주세요 (설정 → 세션 또는 알림 배너)",
+        note: t("verify.note.accept"),
       });
 
       const attachVerifier = () => {
@@ -79,7 +79,9 @@ export default function Verify() {
         if (request.phase === VerificationPhase.Cancelled) {
           setStep({
             kind: "error",
-            message: `상대 기기에서 인증이 취소되었습니다 (${request.cancellationCode ?? "?"})`,
+            message: t("verify.error.cancelled", {
+              code: request.cancellationCode ?? "?",
+            }),
           });
         } else if (request.phase === VerificationPhase.Started) {
           // 상대가 SAS를 시작한 경우
@@ -97,26 +99,23 @@ export default function Verify() {
   }
 
   async function restoreBackup() {
-    setStep({ kind: "restoring", progress: "백업 키 확인 중..." });
+    setStep({ kind: "restoring", progress: t("verify.progress.checking") });
     // secret storage 접근 시 보안 키(또는 passphrase)를 prompt로 입력받음
     setSecretInputProvider(async () => {
-      const input = window.prompt(
-        "보안 키(EsTx ...) 또는 보안 문구를 입력하세요:",
-      );
+      const input = window.prompt(t("verify.prompt.key"));
       return input;
     });
     try {
       const client = await getReadyClient()!;
       const crypto = client.getCrypto();
-      if (!crypto) throw new Error("암호화 모듈이 초기화되지 않았습니다");
+      if (!crypto) throw new Error(t("verify.error.noCrypto"));
 
       // SAS 인증 시 gossip으로 백업 키가 와있을 수 있음. 없으면 4S에서 로드.
       const key = await crypto.getSessionBackupPrivateKey();
       if (!key) {
         setStep({
           kind: "restoring",
-          progress:
-            "백업 키를 가져오는 중... (다른 기기에서 키 공유 승인이 필요할 수 있습니다)",
+          progress: t("verify.progress.fetching"),
         });
         await crypto.loadSessionBackupPrivateKeyFromSecretStorage();
       }
@@ -125,7 +124,7 @@ export default function Verify() {
 
       // 4S가 열린 김에 cross-signing 개인키도 가져와서 이 기기를 자기 서명
       // (이게 없으면 백업은 풀려도 기기가 '미인증'으로 남음)
-      setStep({ kind: "restoring", progress: "기기 cross-signing 서명 중..." });
+      setStep({ kind: "restoring", progress: t("verify.progress.signing") });
       await crypto.bootstrapCrossSigning({});
       await crypto.crossSignDevice(client.getDeviceId()!);
 
@@ -135,8 +134,11 @@ export default function Verify() {
             kind: "restoring",
             progress:
               p.stage === ImportRoomKeyStage.LoadKeys
-                ? `키 가져오는 중... ${p.successes}/${p.total}`
-                : "백업에서 키 받아오는 중...",
+                ? t("verify.progress.importing", {
+                    successes: p.successes,
+                    total: p.total,
+                  })
+                : t("verify.progress.loading"),
           }),
       });
       setStep({
@@ -147,7 +149,7 @@ export default function Verify() {
     } catch (e) {
       setStep({
         kind: "error",
-        message: `백업 복구 실패: ${e instanceof Error ? e.message : String(e)}`,
+        message: `${t("verify.error.restoreFailed")}: ${e instanceof Error ? e.message : String(e)}`,
       });
     } finally {
       setSecretInputProvider(null);

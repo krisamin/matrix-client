@@ -91,7 +91,7 @@ export function getThumbnailBlobUrl(
       true,
       true, // useAuthentication
     );
-    if (!httpUrl) throw new Error("mxc URL 변환 실패");
+    if (!httpUrl) throw new Error("mxc URL conversion failed");
     const res = await fetch(httpUrl, {
       headers: { Authorization: `Bearer ${client.getAccessToken()}` },
     });
