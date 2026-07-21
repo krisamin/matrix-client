@@ -344,6 +344,7 @@ export const en: Record<keyof typeof ko, string> = {
   "msg.delete": "Delete",
   "timeline.loading": "Loading older messages…",
   "timeline.start": "Start of conversation",
+  "room.notFound": "Room not found — it may not exist or you may have left it",
   "timeline.typing": "{{names}} typing",
   "timeline.scrollDown": "Scroll to bottom",
   "lightbox.close": "Close (Esc)",

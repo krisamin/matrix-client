@@ -1,11 +1,11 @@
-import { ArrowLeft, Lock, Search, Users } from "lucide-react";
+import { ArrowLeft, Lock, MessageSquareOff, Search, Users } from "lucide-react";
 import {
   EventType,
   type MatrixClient,
   type MatrixEvent,
   type Room,
 } from "matrix-js-sdk";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Outlet,
   useNavigate,
@@ -89,6 +89,17 @@ export default function RoomView() {
 
   const threadFull = threadId != null && searchParams.get("full") === "1";
 
+  // ★ 방 로딩 데드라인 — room이 계속 null(존재하지 않는 방/탈퇴한 방/오래된
+  // 딥링크)이면 LoadingPane이 무한히 돌았다. 8초 지나도 못 잡으면 안내 +
+  // 홈 복귀 버튼을 보여준다. 방이 잡히면 타이머는 의미 없어짐(표시 안 함).
+  const [roomTimedOut, setRoomTimedOut] = useState(false);
+  useEffect(() => {
+    setRoomTimedOut(false);
+    if (room) return;
+    const timer = setTimeout(() => setRoomTimedOut(true), 8000);
+    return () => clearTimeout(timer);
+  }, [room]);
+
   /** 모바일에서 스레드가 열려있을 때 채팅 페인을 숨길지 여부.
    *  좁은 화면에선 분할이 불가능 → 스레드만 풀폭으로 보여준다. CSS 미디어 쿼리로
    *  처리해 데스크탑 결은 완전히 그대로(분할 유지). */
@@ -102,6 +113,24 @@ export default function RoomView() {
   );
 
   if (!room) {
+    if (roomTimedOut) {
+      return (
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
+          <MessageSquareOff className="h-8 w-8 text-fg-3" strokeWidth={1.25} />
+          <p className="text-[14px] font-semibold text-fg-0">
+            {t("room.notFound")}
+          </p>
+          <p className="max-w-md font-mono text-[11px] text-fg-3">{roomId}</p>
+          <button
+            type="button"
+            onClick={() => navigate("/")}
+            className="rounded-md border border-line bg-bg-2 px-3 py-1.5 text-[13px] text-fg-1 hover:bg-bg-3 hover:text-fg-0"
+          >
+            {t("common.back")}
+          </button>
+        </div>
+      );
+    }
     return <LoadingPane />;
   }
 

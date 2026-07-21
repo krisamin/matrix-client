@@ -353,6 +353,7 @@ export const ko = {
   "msg.delete": "삭제",
   "timeline.loading": "과거 메시지 불러오는 중...",
   "timeline.start": "대화의 시작",
+  "room.notFound": "방을 찾을 수 없어요 — 존재하지 않거나 나간 방이에요",
   "timeline.typing": "{{names}} 입력 중",
   "timeline.scrollDown": "맨 아래로",
   "lightbox.close": "닫기 (Esc)",

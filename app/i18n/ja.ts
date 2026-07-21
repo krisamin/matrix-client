@@ -343,6 +343,7 @@ export const ja: Record<keyof typeof ko, string> = {
   "msg.delete": "削除",
   "timeline.loading": "過去のメッセージ読み込み中…",
   "timeline.start": "会話の始まり",
+  "room.notFound": "ルームが見つかりません — 存在しないか退出済みです",
   "timeline.typing": "{{names}} 入力中",
   "timeline.scrollDown": "最下部へ",
   "lightbox.close": "閉じる (Esc)",
