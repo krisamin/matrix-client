@@ -182,22 +182,25 @@ export const RoomNode = memo(function RoomNodeInner({
   const fav = isFavourite(room);
   const muted = isMuted(client, room);
 
-  // 스레드 정렬:
-  //  - useTimelineSet=true 경로: /v1/rooms/{roomId}/threads 응답이 이미
-  //    latest_event ts 내림차순(서버 보장). MSC3856 기본 정렬.
-  //    timelineSet events는 backwards 응답을 prepend해 자연 reverse →
-  //    역순(.reverse())으로 뒤집으면 최신이 위로. lastReply 기반 재정렬은
-  //    하지 않음 — All/My 두 응답이 비동기로 도착하며 lastReply 갱신 시
-  //    순서가 두 번 흔들리는 문제 회피.
-  //  - getThreads() fallback 경로(MSC3856 미지원): SDK가 생성순으로 주니
-  //    lastReply ts로 직접 정렬해서 최신 활동을 위로.
-  const sortedThreads = useTimelineSet
-    ? [...threads].reverse()
-    : [...threads].sort((a, b) => {
-        const tsA = a.lastReply()?.getTs() ?? a.rootEvent?.getTs() ?? 0;
-        const tsB = b.lastReply()?.getTs() ?? b.rootEvent?.getTs() ?? 0;
-        return tsB - tsA;
-      });
+  // 스레드 정렬: 두 경로 모두 lastReply(없으면 root) ts 내림차순 안정 정렬.
+  //  - 과거엔 useTimelineSet 경로를 [...].reverse()로만 처리했는데,
+  //    threadsTimelineSets[0]의 events 순서는 서버 초기 응답 이후 SDK가
+  //    수시로 재배치한다: Room.onThreadReply → updateThreadRootEvents(recreate=true)
+  //    가 timelineSet.removeEvent(rootId) 후 addLiveEvent로 "라이브 끝"에
+  //    재삽입한다. 초기 fetch 완료(initialEventsFetched=true 전환 시 replayEvents
+  //    flush → NewReply emit)나 gappy sync 복구 때도 발동하는데, 발동 순서 =
+  //    네트워크 응답 순서라 예측 불가 → 서버가 준 latest_event desc 정렬이
+  //    깨지고 "오래된 스레드가 위로 튀는" 증상(사이드바)이 생겼다.
+  //  - 재배치 후에도 각 Thread.lastReply()는 항상 실제 최신 답글을 가리키므로
+  //    이걸 정렬 키로 쓰면 배열 순서와 무관하게 항상 최신-위 정렬이 보장된다.
+  //  - 동률(같은 ts)일 때 thread.id로 tiebreak → All/My 두 응답이 비동기로
+  //    도착해 lastReply가 갱신돼도 순서가 흔들리지 않는(안정) 정렬.
+  const sortedThreads = [...threads].sort((a, b) => {
+    const tsA = a.lastReply()?.getTs() ?? a.rootEvent?.getTs() ?? 0;
+    const tsB = b.lastReply()?.getTs() ?? b.rootEvent?.getTs() ?? 0;
+    if (tsB !== tsA) return tsB - tsA;
+    return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+  });
 
   const showChildren = hasThreads && (expanded || active);
 
