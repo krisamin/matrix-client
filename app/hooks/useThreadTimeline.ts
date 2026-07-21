@@ -101,14 +101,34 @@ export function useThreadTimeline(
       setEvents(next);
     };
 
+    // initialising 해제 1회 가드 — 정상 경로(refreshNow)로 해제되면 워치독
+    // 타이머를 취소해 중복 발화를 막는다. 백필 재킥은 기존 동작 그대로
+    // (backfillingRef가 동시 진입을 가드하므로 매번 불러도 안전).
+    let initialResolved = false;
+    let watchdog: ReturnType<typeof setTimeout> | undefined;
+    const resolveInitial = () => {
+      if (!initialResolved) {
+        initialResolved = true;
+        clearTimeout(watchdog);
+        setInitialising(false);
+      }
+      void backfillUntilVisible();
+    };
+
     const refreshNow = () => {
       // 주의: liveTimeline 레퍼런스를 미리 잡아두면 안 됨 —
       // SDK가 초기화 시 resetLiveTimeline()으로 갈아끼움.
       // thread.events getter는 항상 현재 타임라인을 가리킴.
       commit();
-      if (thread.initialEventsFetched) {
-        setInitialising(false);
-        void backfillUntilVisible();
+      // initialising 해제 조건 완화:
+      //  - 기존엔 thread.initialEventsFetched만 봤는데, 오래된 스레드는 루트가
+      //    메인 타임라인에 없어 SDK가 fetchRootEvent를 먼저 돈다. 이 과정에서
+      //    updateThreadMetadata의 processRootEventPromise가 지연/실패로 굳으면
+      //    initialEventsFetched가 영영 true가 안 돼 LoadingPane이 무한히 돈다.
+      //  - 이미 표시할 이벤트가 하나라도 잡혔으면 초기 fetch 완료를 기다리지
+      //    말고 즉시 해제 → 최신 답글부터 보여주고 나머지는 백필로 채운다.
+      if (thread.initialEventsFetched || thread.events.length > 0) {
+        resolveInitial();
       }
     };
     // 복호화/수정 이벤트 연쇄 → 프레임당 1회 배칭 (리렌더 폭주 방지)
@@ -175,6 +195,36 @@ export function useThreadTimeline(
 
     refreshNow();
 
+    // ★ 오래된 스레드 무한로딩 방어 (2단 안전장치)
+    //
+    // 증상: 루트가 메인 타임라인에 없는 오래된 스레드에 진입하면 LoadingPane이
+    // 무한히 도는 경우. 원인은 SDK updateThreadMetadata의 processRootEventPromise
+    // (fetchRootEvent 포함)가 한 번 만들어지면 재사용되는데, 첫 호출에서
+    // 지연/실패로 pending에 굳으면 그 아래 초기 이벤트 fetch 코드(paginate)에
+    // 영영 도달하지 못해 initialEventsFetched가 계속 false로 남고, 우리 훅은
+    // ThreadEvent.Update만 기다리다 멈춘다.
+    //
+    // fetchRootEvent는 SDK private이라 직접 못 부른다(캐스팅 우회는 지양). 대신
+    // thread.liveTimeline을 직접 backward paginate하면 initialEventsFetched와
+    // 무관하게 서버에서 답글이 곧장 로드된다(thread.events = liveTimeline.getEvents()).
+    // 즉 SDK의 자동 초기 fetch가 굳어도 우리가 직접 답글을 끌어와 화면을 채운다.
+    //
+    // 1) 아직 SDK 초기 fetch가 안 끝났고 표시할 것도 없으면 백필을 즉시 킥.
+    //    (initialEventsFetched=true면 refreshNow가 이미 백필을 걸었다.)
+    if (!thread.initialEventsFetched && thread.events.length === 0) {
+      void backfillUntilVisible();
+    }
+    // 2) 워치독: 일정 시간 뒤에도 initialising이 안 풀렸으면 강제로 해제.
+    //    이 시점에 events가 있으면 그거라도 보여주고(백필로 이어감), 하나도
+    //    없으면 최소한 빈 스레드 UI + 입력창을 띄워 사용자가 멈춰있지 않게 한다.
+    //    위 refreshNow()가 동기로 이미 해제했으면 아예 스케줄하지 않는다.
+    if (!initialResolved) {
+      watchdog = setTimeout(() => {
+        commit();
+        resolveInitial();
+      }, 4000);
+    }
+
     // SDK가 초기 fetch(리셋 + 최신 답글 로드)를 스스로 수행하고
     // 끝나면 ThreadEvent.Update / RoomEvent.TimelineReset을 emit함
     const onUpdate = () => refresh();
@@ -205,6 +255,7 @@ export function useThreadTimeline(
     };
     client.on(RoomEvent.Receipt, onReceipt);
     return () => {
+      clearTimeout(watchdog);
       thread.off(ThreadEvent.Update, onUpdate);
       thread.off(ThreadEvent.NewReply, onUpdate);
       thread.off(RoomEvent.Timeline, onUpdate);
