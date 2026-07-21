@@ -82,6 +82,9 @@ export default function AppLayout() {
   }, [location.pathname, navigate]);
 
   const [client, setClient] = useState<MatrixClient | null>(null);
+  // 부팅 실패 메시지 — crypto WASM 로드 실패/스토리지 오류 등. 기존엔 catch가
+  // 없어 조용히 로딩 스피너에 영영 갇혔다(불안정 체감의 한 축).
+  const [bootError, setBootError] = useState<string | null>(null);
   const [verified, setVerified] = useState<boolean | null>(null);
   const [notifPerm, setNotifPerm] = useState(notificationPermission());
   const [verifyDismissed, setVerifyDismissed] = useState(
@@ -130,14 +133,21 @@ export default function AppLayout() {
       navigate("/login", { replace: true });
       return;
     }
-    promise.then((cl) => {
-      setClient(cl);
-      ensureStarted(cl);
-      attachNotifications(cl);
-      cl.getCrypto()
-        ?.getDeviceVerificationStatus(cl.getUserId()!, cl.getDeviceId()!)
-        .then((s) => setVerified(s?.crossSigningVerified ?? false));
-    });
+    promise
+      .then((cl) => {
+        setBootError(null);
+        setClient(cl);
+        ensureStarted(cl);
+        attachNotifications(cl);
+        cl.getCrypto()
+          ?.getDeviceVerificationStatus(cl.getUserId()!, cl.getDeviceId()!)
+          .then((s) => setVerified(s?.crossSigningVerified ?? false));
+      })
+      .catch((e) => {
+        // getReadyClient가 실패 시 싱글턴을 비워두므로(재부팅 가능) 여기서
+        // 재시도 UI만 보여주면 된다 — 새로고침 없이 복구 경로 제공.
+        setBootError(e instanceof Error ? e.message : String(e));
+      });
   }, [navigate]);
 
   // 네이티브 우클릭 메뉴 차단 — 단, 텍스트 선택이 가능한 영역(메시지 본문/
@@ -164,6 +174,27 @@ export default function AppLayout() {
   }, []);
 
   if (!client) {
+    // 부팅 실패: 재시도 버튼 제공 (getReadyClient 싱글턴이 비워져 있어
+    // 새로고침이 곧 재부팅 — SW 캐시로 오프라인에서도 셸은 뜬다).
+    if (bootError) {
+      return (
+        <div className="flex h-dvh flex-col items-center justify-center gap-3 p-6 text-center">
+          <p className="text-[14px] font-semibold text-fg-0">
+            {t("error.boundary.plain")}
+          </p>
+          <p className="max-w-md break-words font-mono text-[11px] text-fg-3">
+            {bootError}
+          </p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="rounded-md border border-line bg-bg-2 px-3 py-1.5 text-[13px] text-fg-1 hover:bg-bg-3 hover:text-fg-0"
+          >
+            {t("error.boundary.retry")}
+          </button>
+        </div>
+      );
+    }
     return (
       <div className="flex h-dvh items-center justify-center">
         <span className="flex items-center gap-1.5 font-mono text-[12px] text-fg-3">

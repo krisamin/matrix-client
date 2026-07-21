@@ -61,7 +61,7 @@ export function getReadyClient(): Promise<MatrixClient> | null {
   if (clientPromise) return clientPromise;
   const session = loadSession();
   if (!session) return null;
-  clientPromise = (async () => {
+  const promise = (async () => {
     // 콜드 스타트 계측 — 어느 단계가 무거운지 (설정 → 진단에서 열람)
     const endBootTotal = perfSpan("boot:total");
     // OIDC 토큰 자동 갱신: M_UNKNOWN_TOKEN 시 http-api가 이 함수를 호출
@@ -164,6 +164,14 @@ export function getReadyClient(): Promise<MatrixClient> | null {
     }
     return client;
   })();
+  // ★ 부팅 실패 시 promise를 비워 다음 시도에서 재부팅 가능하게 한다.
+  //   실패한 promise가 싱글턴에 박제되면(기존 동작) crypto WASM 로드 실패나
+  //   일시적 IndexedDB 오류 한 번에 "새로고침해야만 열리는" 앱이 됐다.
+  clientPromise = promise;
+  promise.catch((e) => {
+    console.warn("MatrixClient 부팅 실패 — 다음 시도에서 재부팅:", e);
+    if (clientPromise === promise) clientPromise = null;
+  });
   return clientPromise;
 }
 
