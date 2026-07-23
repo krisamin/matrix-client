@@ -182,7 +182,7 @@ export const RoomNode = memo(function RoomNodeInner({
   const fav = isFavourite(room);
   const muted = isMuted(client, room);
 
-  // 스레드 정렬: 두 경로 모두 lastReply(없으면 root) ts 내림차순 안정 정렬.
+  // 스레드 정렬: 두 경로 모두 replyToEvent(없으면 root) ts 내림차순 안정 정렬.
   //  - 과거엔 useTimelineSet 경로를 [...].reverse()로만 처리했는데,
   //    threadsTimelineSets[0]의 events 순서는 서버 초기 응답 이후 SDK가
   //    수시로 재배치한다: Room.onThreadReply → updateThreadRootEvents(recreate=true)
@@ -191,13 +191,21 @@ export const RoomNode = memo(function RoomNodeInner({
   //    flush → NewReply emit)나 gappy sync 복구 때도 발동하는데, 발동 순서 =
   //    네트워크 응답 순서라 예측 불가 → 서버가 준 latest_event desc 정렬이
   //    깨지고 "오래된 스레드가 위로 튀는" 증상(사이드바)이 생겼다.
-  //  - 재배치 후에도 각 Thread.lastReply()는 항상 실제 최신 답글을 가리키므로
-  //    이걸 정렬 키로 쓰면 배열 순서와 무관하게 항상 최신-위 정렬이 보장된다.
+  //  - 정렬 키는 lastReply()가 아니라 replyToEvent를 쓴다:
+  //    lastReply()는 로컬에 로드된 thread.timeline을 뒤에서 훑는 함수라
+  //    "아직 안 들어가본 스레드"는 타임라인이 비어 null → root ts fallback
+  //    으로 밑에 깔렸다가, 클릭해 들어가 타임라인이 fetch되는 순간 진짜
+  //    최신 답글 ts로 점프해 위로 튀는 증상이 있었다(클릭 전/후 순서 상이).
+  //    replyToEvent(lastPendingEvent ?? lastEvent ?? lastReply())는 스레드
+  //    목록 API가 bundled relation으로 내려준 latest_event(lastEvent)를
+  //    포함하므로 타임라인 로드 여부와 무관하게 서버 기준 최신 답글 ts를
+  //    반환하고, 로컬로 새 답글이 오면 SDK가 lastEvent를 비워 lastReply()
+  //    체인으로 넘어가므로 항상 실제 최신을 가리킨다.
   //  - 동률(같은 ts)일 때 thread.id로 tiebreak → All/My 두 응답이 비동기로
-  //    도착해 lastReply가 갱신돼도 순서가 흔들리지 않는(안정) 정렬.
+  //    도착해 최신 답글이 갱신돼도 순서가 흔들리지 않는(안정) 정렬.
   const sortedThreads = [...threads].sort((a, b) => {
-    const tsA = a.lastReply()?.getTs() ?? a.rootEvent?.getTs() ?? 0;
-    const tsB = b.lastReply()?.getTs() ?? b.rootEvent?.getTs() ?? 0;
+    const tsA = a.replyToEvent?.getTs() ?? a.rootEvent?.getTs() ?? 0;
+    const tsB = b.replyToEvent?.getTs() ?? b.rootEvent?.getTs() ?? 0;
     if (tsB !== tsA) return tsB - tsA;
     return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
   });
