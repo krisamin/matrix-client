@@ -94,7 +94,9 @@ export function mentionsUser(
   const mentions = content["m.mentions"] as { user_ids?: string[] } | undefined;
   if (mentions?.user_ids?.includes(myUserId)) return true;
   // 구식 클라이언트 fallback: body에 userId 또는 @표시이름 평문 포함
-  const body = (content.body as string) ?? "";
+  // (비문자열 body 방어 — 매 이벤트 렌더 경로라 throw 시 타임라인 전멸)
+  const rawBody = content.body;
+  const body = typeof rawBody === "string" ? rawBody : "";
   return (
     body.includes(myUserId) || (myName !== "" && body.includes(`@${myName}`))
   );

@@ -48,7 +48,9 @@ function ResultRow({
   query: string;
   onJump: (eventId: string) => void;
 }) {
-  const body: string = ev.getContent().body ?? "";
+  // 비문자열 body 방어 — Snippet의 .toLowerCase()에서 throw 방지
+  const rawBody = ev.getContent().body;
+  const body: string = typeof rawBody === "string" ? rawBody : "";
   return (
     <button
       type="button"

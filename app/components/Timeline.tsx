@@ -15,6 +15,7 @@ import { groupTimeline } from "../lib/group";
 import { useT } from "../lib/i18n";
 import { useTypingMembers } from "../lib/typing";
 import { DateDivider, UnreadDivider } from "./DateDivider";
+import { ErrorBoundary } from "./ErrorBoundary";
 import { EventLine } from "./EventLine";
 
 /** 부모(점프/검색)가 호출하는 명령형 핸들. */
@@ -197,9 +198,16 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
         markerIndex >= 0 && markerIndex < items.length - 1 ? markerIndex : -1;
 
       items.forEach(({ ev, showHeader, dateDivider, contentVersion }, i) => {
+        // ★key는 txnId 우선 — 내가 보낸 메시지는 local echo 동안 임시 id
+        //   (~room:txn)였다가 서버 ack로 실제 event id로 바뀐다. getId()를
+        //   key로 쓰면 그 순간 key가 바뀌어 행이 리마운트(등장 애니메이션
+        //   재생/열림 상태 소실). txnId는 ack 전후 동일(unsigned.
+        //   transaction_id)하므로 행 정체성이 유지된다.
         out.push({
           kind: "event",
-          key: ev.getId() ?? `idx-${i}`,
+          key: ev.getTxnId()
+            ? `txn-${ev.getTxnId()}`
+            : (ev.getId() ?? `idx-${i}`),
           ev,
           showHeader,
           dateDivider,
@@ -523,18 +531,23 @@ export const Timeline = forwardRef<TimelineHandle, TimelineProps>(
               return (
                 <div key={row.key}>
                   {row.dateDivider && <DateDivider label={row.dateDivider} />}
-                  <EventLine
-                    ev={row.ev}
-                    contentVersion={row.contentVersion}
-                    myUserId={myUserId}
-                    client={client}
-                    room={room}
-                    showHeader={row.showHeader}
-                    onOpenThread={onOpenThread}
-                    onReply={onReply}
-                    onJumpTo={onJumpTo}
-                    highlighted={highlightId === row.ev.getId()}
-                  />
+                  {/* 행 단위 격리 — 변조/예상외 이벤트 하나가 렌더에서 던져도
+                      타임라인 전체가 아닌 그 행만 죽는다 (Element의 행 단위
+                      TileErrorBoundary와 같은 접근) */}
+                  <ErrorBoundary size="inline" resetKey={row.contentVersion}>
+                    <EventLine
+                      ev={row.ev}
+                      contentVersion={row.contentVersion}
+                      myUserId={myUserId}
+                      client={client}
+                      room={room}
+                      showHeader={row.showHeader}
+                      onOpenThread={onOpenThread}
+                      onReply={onReply}
+                      onJumpTo={onJumpTo}
+                      highlighted={highlightId === row.ev.getId()}
+                    />
+                  </ErrorBoundary>
                   {row.unreadAfter && <UnreadDivider />}
                 </div>
               );

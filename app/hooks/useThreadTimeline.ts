@@ -32,7 +32,8 @@ export function useThreadRoot(
   const root = room.findEventById(rootId) ?? room.getThread(rootId)?.rootEvent;
   useEffect(() => {
     // 암호화된 루트는 복호화 트리거 — 완료되면 아래 Decrypted 리스너가 리렌더
-    if (root) client.decryptEventIfNeeded(root);
+    // (삭제된 루트는 스킵 — ciphertext prune으로 복호화 대상 자체가 없음)
+    if (root && !root.isRedacted()) client.decryptEventIfNeeded(root);
     // useThreadTimeline의 effect가 먼저 실행돼 thread를 생성해두므로
     // (훅 선언 순서 = effect 실행 순서) 여기선 getThread로 충분.
     const thread = room.getThread(rootId);

@@ -117,7 +117,10 @@ export function ToolCallChip({
   ev: MatrixEvent;
 }) {
   const t = useT();
-  const body = (ev.getContent().body as string) ?? "";
+  // ★body는 공격자 통제값 — 비문자열이면 buildSections의 .trim()에서 throw
+  //   (행 ErrorBoundary 부재 → 타임라인 전체 크래시). 문자열만 신뢰.
+  const rawBody = ev.getContent().body;
+  const body = typeof rawBody === "string" ? rawBody : "";
   const toolName = getToolName(ev);
   const sections = buildSections(body);
   if (sections.length === 0) {
@@ -139,13 +142,13 @@ export function ToolCallChip({
   }
   return (
     <div className="my-0.5 flex flex-col gap-1">
-      {sections.map((s) => (
-        // 헤더+본문 길이 조합 — 같은 헤더가 두 번 나와도 본문이 다르면 분리
-        <ToolSectionRow
-          key={`${s.header}:${s.body.length}`}
-          section={s}
-          toolName={toolName}
-        />
+      {sections.map((s, i) => (
+        // ★위치 기반 key — 이전 `${header}:${body.length}`는 같은 헤더+같은
+        //   길이 코드블록 2개에서 중복 key 충돌, 스트리밍(m.replace)으로
+        //   본문이 자랄 때마다 key가 바뀌어 리마운트→펼침 상태 소실.
+        //   섹션은 위치가 정체성(i번째 코드블록)이라 index가 맞다.
+        // biome-ignore lint/suspicious/noArrayIndexKey: 위 설명 — 위치가 곧 정체성
+        <ToolSectionRow key={i} section={s} toolName={toolName} />
       ))}
     </div>
   );

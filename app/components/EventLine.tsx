@@ -287,7 +287,9 @@ const EventLineInner = function EventLine({
       label: t(copied ? "common.copied" : "message.action.copyMarkdown"),
       show: true,
       onClick: () => {
-        copy((ev.getContent().body as string) ?? "");
+        // 비문자열 body 방어 (WebIDL 강제변환에 안 기대고 명시적으로)
+        const b = ev.getContent().body;
+        copy(typeof b === "string" ? b : "");
         closeMenus();
       },
     },

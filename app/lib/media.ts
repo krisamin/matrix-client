@@ -10,6 +10,40 @@ import type { EncryptedFile } from "matrix-js-sdk/lib/@types/media";
 /** mxc URL → blob object URL 캐시 (세션 동안 유지) */
 const blobUrlCache = new Map<string, Promise<string>>();
 
+/** blob URL에 그대로 실어도 안전한 mimetype allowlist (Element의
+ *  getBlobSafeMimeType과 동일 접근). blob: URL은 앱 origin을 상속하므로
+ *  text/html·image/svg+xml 같은 스크립트 실행 가능 타입을 첨부 mimetype
+ *  (공격자 통제값) 그대로 실으면, 이미지를 "새 탭에서 열기"만 해도 앱
+ *  origin에서 스크립트가 돈다(stored XSS). 목록 밖은 전부 octet-stream. */
+const BLOB_SAFE_MIMETYPES = new Set([
+  "image/jpeg",
+  "image/gif",
+  "image/png",
+  "image/apng",
+  "image/webp",
+  "image/avif",
+  "video/mp4",
+  "video/webm",
+  "video/ogg",
+  "video/quicktime",
+  "audio/mp4",
+  "audio/webm",
+  "audio/aac",
+  "audio/mpeg",
+  "audio/ogg",
+  "audio/wave",
+  "audio/wav",
+  "audio/x-wav",
+  "audio/x-pn-wav",
+  "audio/flac",
+  "audio/x-flac",
+]);
+
+function blobSafeMimetype(mimetype?: string): string {
+  const mt = mimetype?.toLowerCase().split(";")[0].trim() ?? "";
+  return BLOB_SAFE_MIMETYPES.has(mt) ? mt : "application/octet-stream";
+}
+
 export interface MediaSource {
   /** 평문 방: mxc:// URL */
   url?: string;
@@ -56,7 +90,8 @@ export function getMediaBlobUrl(
       buffer = await decryptAttachment(buffer, source.file);
     }
     const blob = new Blob([buffer], {
-      type: source.mimetype ?? "application/octet-stream",
+      // ★첨부 mimetype은 공격자 통제값 — allowlist 밖은 octet-stream 강제
+      type: blobSafeMimetype(source.mimetype),
     });
     return URL.createObjectURL(blob);
   })();

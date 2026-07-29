@@ -35,8 +35,9 @@ export function buildSendContent({
   const content = buildMentionContent(text, mentions);
 
   if (replyTo) {
-    // 구식 클라용 fallback 인용문 (스펙 권장)
-    const orig: string = replyTo.getContent().body ?? "";
+    // 구식 클라용 fallback 인용문 (스펙 권장) — 비문자열 body 방어 포함
+    const rawOrig = replyTo.getContent().body;
+    const orig: string = typeof rawOrig === "string" ? rawOrig : "";
     const fallbackQuote = orig
       .split("\n")
       .map((l: string, i: number) =>
@@ -73,8 +74,11 @@ export function quotePreview(ev: MatrixEvent): string {
   if (msgtype === "m.video") return translate("media.video");
   if (msgtype === "m.audio") return translate("media.audio");
   if (msgtype === "m.file")
-    return content.body ? `📎 ${content.body}` : translate("media.file");
-  const body: string = content.body ?? "";
+    return typeof content.body === "string" && content.body
+      ? `📎 ${content.body}`
+      : translate("media.file");
+  // ★비문자열 body 방어 — .replace()/.split()에서 throw 방지
+  const body: string = typeof content.body === "string" ? content.body : "";
   // 구식 reply fallback("> <@u> ..." 인용부) 제거 후 첫 줄
   const stripped = body.replace(/^(>.*\n)+\n?/, "");
   return stripped.split("\n")[0];

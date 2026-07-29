@@ -35,7 +35,11 @@ function ReplyQuoteInner({
         if (!alive) return;
         const { MatrixEvent: MatrixEventCls } = await import("matrix-js-sdk");
         const ev = new MatrixEventCls(raw);
-        if (ev.isEncrypted()) await client.decryptEventIfNeeded(ev);
+        // 삭제된 이벤트는 복호화 스킵 — ciphertext가 prune돼 있어 시도해봐야
+        // 실패 → "불러오기 실패"로 오표시된다. isRedacted면 quotePreview가
+        // "삭제된 메시지"를 그리므로 그대로 통과.
+        if (ev.isEncrypted() && !ev.isRedacted())
+          await client.decryptEventIfNeeded(ev);
         if (alive) setOriginal(ev);
       })
       .catch(() => alive && setFailed(true));

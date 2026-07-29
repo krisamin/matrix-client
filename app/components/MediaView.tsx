@@ -17,6 +17,8 @@ export function MediaView({
   const [error, setError] = useState<string | null>(null);
   const content = ev.getContent();
   const msgtype = content.msgtype as string;
+  // 비문자열 body 방어 — body가 객체면 React child 렌더에서 throw
+  const fileName = typeof content.body === "string" ? content.body : "";
 
   useEffect(() => {
     // content는 매 렌더 새 객체 — ev 기준으로만 재실행 (수정 시 ev 교체됨)
@@ -49,7 +51,10 @@ export function MediaView({
       key: ev.getId() ?? blobUrl,
       ts: ev.getTs(),
       url: blobUrl,
-      name: (ev.getContent().body as string) ?? t("media.imageAlt"),
+      name:
+        typeof ev.getContent().body === "string"
+          ? (ev.getContent().body as string)
+          : t("media.imageAlt"),
     });
   }, [msgtype, blobUrl, ev, t]);
 
@@ -63,16 +68,14 @@ export function MediaView({
         <button
           type="button"
           className="block cursor-zoom-in"
-          onClick={() =>
-            openLightbox(blobUrl, content.body ?? t("media.imageAlt"))
-          }
+          onClick={() => openLightbox(blobUrl, fileName || t("media.imageAlt"))}
           title={t("media.openLarge")}
         >
           <img
             loading="lazy"
             decoding="async"
             src={blobUrl}
-            alt={content.body ?? t("media.imageAlt")}
+            alt={fileName || t("media.imageAlt")}
             className="max-h-80 max-w-full rounded-lg border border-line object-contain"
           />
         </button>
@@ -91,10 +94,10 @@ export function MediaView({
       return (
         <a
           href={blobUrl}
-          download={content.body ?? "file"}
+          download={fileName || "file"}
           className="text-fg-0 underline underline-offset-2"
         >
-          📎 {content.body ?? t("media.downloadFile")}
+          📎 {fileName || t("media.downloadFile")}
         </a>
       );
   }

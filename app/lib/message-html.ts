@@ -47,7 +47,6 @@ const ALLOWED_TAGS = [
   "img",
   "details",
   "summary",
-  "button", // 코드블록 복사 버튼 (highlightHtml에서 주입)
 ];
 
 const ALLOWED_ATTR = [
@@ -66,11 +65,14 @@ const ALLOWED_ATTR = [
   "data-mx-bg-color",
   "data-mx-color",
   "data-mx-spoiler", // matrix 확장
-  "class", // code language-* (구문 강조 훅)
-  "type",
-  "data-copy", // 코드블록 복사 버튼 (클릭 위임 식별)
-  "aria-label",
+  "class", // code language-* 전용 — 아래 훅에서 그 외 값은 전부 제거
 ];
+
+/** 메시지 내 인라인 이미지로 허용하는 src prefix — 우리 homeserver의
+ *  인증 미디어 URL만. renderMessageHtml이 매 호출 갱신한다.
+ *  ★외부 http(s) 이미지를 허용하면 메시지에 트래킹 픽셀을 심어
+ *  수신자 IP/열람 시각이 유출된다 (Element도 mxc 유래만 렌더). */
+let allowedMediaPrefix: string | null = null;
 
 // 외부 링크는 새 탭 + noopener 강제
 DOMPurify.addHook("afterSanitizeAttributes", (node) => {
@@ -78,10 +80,26 @@ DOMPurify.addHook("afterSanitizeAttributes", (node) => {
     node.setAttribute("target", "_blank");
     node.setAttribute("rel", "noreferrer noopener");
   }
-  // img src는 mxc 변환된 http(s)만 허용 (data: 등 차단)
+  // img src는 우리 homeserver의 mxc 변환 URL만 허용.
+  // data:/blob:/외부 http 전부 차단 (트래킹 픽셀 + 스킴 악용 방지)
   if (node.tagName === "IMG") {
     const src = node.getAttribute("src") ?? "";
-    if (!src.startsWith("http")) node.removeAttribute("src");
+    if (!allowedMediaPrefix || !src.startsWith(allowedMediaPrefix))
+      node.removeAttribute("src");
+  }
+  // class는 코드블록 구문 강조 식별용(language-*/lang-*)만 통과.
+  // ★그 외 임의 class를 허용하면 번들된 Tailwind 유틸리티(fixed inset-0
+  //   z-50 등)를 메시지가 착용 → 전화면 오버레이 클릭재킹/UI 위장 가능.
+  if (node.hasAttribute("class")) {
+    const kept = (node.getAttribute("class") ?? "")
+      .split(/\s+/)
+      .filter(
+        (c) =>
+          (node.tagName === "CODE" || node.tagName === "PRE") &&
+          /^(?:language-|lang-)[\w+-]+$/.test(c),
+      );
+    if (kept.length > 0) node.setAttribute("class", kept.join(" "));
+    else node.removeAttribute("class");
   }
 });
 
@@ -110,12 +128,16 @@ function stripInterTagNewlines(html: string): string {
   return html.replace(/>\n+</g, "><");
 }
 
-/** 평문에서 URL 자동 링크화 + 줄바꿈 <br> 변환 (formatted_body 없는 메시지용) */
+/** 평문에서 URL 자동 링크화 + 줄바꿈 <br> 변환 (formatted_body 없는 메시지용)
+ *  ★따옴표도 이스케이프 — URL 정규식이 `"`를 포함할 수 있어, 안 하면
+ *  href="..." 속성을 탈출해 임의 속성 주입이 가능하다 (뒤의 DOMPurify가
+ *  대부분 거르지만 문자열 단계에서 원천 차단). */
 function linkifyPlain(text: string): string {
   const escaped = text
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
   return escaped
     .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1">$1</a>')
     .replace(/\n/g, "<br/>");
@@ -210,35 +232,39 @@ export function renderMessageHtml(
   ev: MatrixEvent,
 ): string {
   const content = ev.getContent();
-  const { body, formatted_body: formattedBody } = content;
+  // ★비문자열 body 방어 — 악성/변조 이벤트가 body: 42 처럼 보내면
+  //   .trim()/.replace()에서 throw → 행 ErrorBoundary가 없어 타임라인
+  //   전체가 죽는다. 문자열만 신뢰, 그 외는 빈 문자열 취급.
+  const bodyStr = typeof content.body === "string" ? content.body : "";
+  const formattedStr =
+    typeof content.formatted_body === "string" ? content.formatted_body : "";
+  // img src 허용 prefix 갱신 — 우리 homeserver의 미디어 URL만 렌더
+  // (sanitize 훅이 모듈 레벨이라 여기서 최신 baseUrl을 밀어넣는다)
+  allowedMediaPrefix = `${client.baseUrl.replace(/\/+$/, "")}/`;
   // 모듈 캐시 키: 이벤트 id + 내용 길이 (수정/복호화로 내용 바뀌면 갱신) +
   // locale (코드블록 복사 버튼 라벨이 locale을 따라가므로).
   // 재마운트(가상 스크롤 in/out) 시 useMemo는 날아가지만 이 캐시는 살아남음.
-  const cacheKey = `${getCurrentLocale()}:${ev.getId() ?? "?"}:${((body as string) ?? "").length}:${
-    ((formattedBody as string) ?? "").length
+  const cacheKey = `${getCurrentLocale()}:${ev.getId() ?? "?"}:${bodyStr.length}:${
+    formattedStr.length
   }`;
   return getCachedHtml(cacheKey, () => {
     const useHtml =
-      content.format === "org.matrix.custom.html" &&
-      typeof content.formatted_body === "string";
+      content.format === "org.matrix.custom.html" && formattedStr !== "";
     // 답장 메시지의 평문 fallback 인용부는 ReplyQuote가 따로 그리므로 제거.
     // 양 끝 공백/빈 줄(\n, 보이지 않는 whitespace)도 트림 — 게이트웨이가 가끔
     // 메시지 앞뒤로 줄바꿈을 여러 개 붙여 보내, 칩 다음 답이 큰 공백으로
     // 시작하거나 끝나는 시각적 이슈가 있었음.
     const isReply = getReplyToId(ev) != null;
     const plainBody = (
-      isReply
-        ? stripPlainReplyFallback(content.body ?? "")
-        : (content.body ?? "")
+      isReply ? stripPlainReplyFallback(bodyStr) : bodyStr
     ).trim();
     // HTML formatted body는 앞뒤 공백/`<br>`/`<br/>`/`<p></p>` 같은 빈
     // 블록을 정리해 양 끝 시각적 공백 제거.
-    const trimmedFormatted =
-      useHtml && typeof content.formatted_body === "string"
-        ? content.formatted_body
-            .replace(/^(?:\s|<br\s*\/?>|<p>\s*<\/p>)+/i, "")
-            .replace(/(?:\s|<br\s*\/?>|<p>\s*<\/p>)+$/i, "")
-        : "";
+    const trimmedFormatted = useHtml
+      ? formattedStr
+          .replace(/^(?:\s|<br\s*\/?>|<p>\s*<\/p>)+/i, "")
+          .replace(/(?:\s|<br\s*\/?>|<p>\s*<\/p>)+$/i, "")
+      : "";
     const raw = useHtml
       ? stripInterTagNewlines(
           convertMxcUrls(client, stripMxReply(trimmedFormatted)),
