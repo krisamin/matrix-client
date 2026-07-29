@@ -162,14 +162,19 @@ const EventLineInner = function EventLine({
     MEDIA_MSGTYPES.includes(content.msgtype as string) &&
     !ev.isRedacted();
   // 일반 텍스트 메시지(마크다운/HTML 포함)는 MessageBody가 렌더,
-  // 그 외 상태(복호화중/실패/삭제)는 평문 placeholder
+  // 그 외 상태(삭제/복호화중/실패)는 평문 placeholder
+  //
+  // ★분기 순서: 삭제 검사가 반드시 먼저다. E2EE 메시지가 삭제되면 SDK
+  //   makeRedacted()가 clearEvent를 undefined로 지워 getType()이 다시
+  //   m.room.encrypted로 돌아간다(복호화 전 wire 타입). 암호화 타입 검사를
+  //   먼저 하면 삭제된 E2EE 메시지가 영영 "복호화 중..."으로 박제된다.
   let placeholder: string | null = null;
-  if (ev.isDecryptionFailure()) {
+  if (ev.isRedacted()) {
+    placeholder = t("msg.deleted");
+  } else if (ev.isDecryptionFailure()) {
     placeholder = t("msg.cantDecrypt");
   } else if (ev.getType() === EventType.RoomMessageEncrypted) {
     placeholder = t("msg.decrypting");
-  } else if (ev.isRedacted()) {
-    placeholder = t("msg.deleted");
   } else if (!isMedia && content.body == null) {
     placeholder = `(${content.msgtype ?? ev.getType()})`;
   }

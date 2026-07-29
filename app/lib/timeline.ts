@@ -11,13 +11,16 @@ import { eventVersion } from "./group";
 
 /** 배열 내 미복호화(RoomMessageEncrypted) 이벤트에 복호화를 시도한다.
  *  fire-and-forget — 완료되면 SDK가 Decrypted 이벤트를 emit해 타임라인이
- *  갱신된다. 룸/스레드 타임라인이 공유. */
+ *  갱신된다. 룸/스레드 타임라인이 공유.
+ *  ★삭제된 이벤트 제외: E2EE 메시지가 삭제되면 makeRedacted()가 clearEvent를
+ *  지워 getType()이 m.room.encrypted로 되돌아간다. 복호화할 내용 자체가
+ *  없으므로(서버가 ciphertext를 prune) 재시도해봐야 헛돈다. */
 export function decryptPending(
   client: MatrixClient,
   events: MatrixEvent[],
 ): void {
   for (const ev of events) {
-    if (ev.getType() === EventType.RoomMessageEncrypted) {
+    if (ev.getType() === EventType.RoomMessageEncrypted && !ev.isRedacted()) {
       client.decryptEventIfNeeded(ev);
     }
   }
