@@ -243,8 +243,6 @@ export const ko = {
   "msg.decrypting": "🔒 복호화 중...",
   "msg.deleted": "삭제된 메시지입니다",
   "msg.confirmDelete": "이 메시지를 삭제할까요?",
-  "input.uploading": "{{name}} 업로드 중...",
-  "input.uploadingPct": "{{name}} 업로드 중... {{pct}}%",
   "search.title.close": "닫기 (Esc)",
   "search.placeholder.local2": "검색 (로드된 메시지에서)…",
   "search.placeholder.server2": "검색 (Enter)…",

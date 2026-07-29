@@ -231,8 +231,6 @@ export const en: Record<keyof typeof ko, string> = {
   "msg.decrypting": "🔒 Decrypting…",
   "msg.deleted": "Deleted message",
   "msg.confirmDelete": "Delete this message?",
-  "input.uploading": "Uploading {{name}}…",
-  "input.uploadingPct": "Uploading {{name}}… {{pct}}%",
   "search.title.close": "Close (Esc)",
   "search.placeholder.local2": "Search (loaded only)…",
   "search.placeholder.server2": "Search (Enter)…",

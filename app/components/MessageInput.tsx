@@ -1,4 +1,11 @@
-import { Clock, Paperclip, SendHorizontal, SmilePlus, X } from "lucide-react";
+import {
+  Clock,
+  Paperclip,
+  SendHorizontal,
+  SmilePlus,
+  Upload,
+  X,
+} from "lucide-react";
 import type { MatrixClient, MatrixEvent, Room } from "matrix-js-sdk";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { sendDelayedMessage } from "../lib/delayed-events";
@@ -52,7 +59,13 @@ export function MessageInput({
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [uploading, setUploading] = useState<string | null>(null);
+  // 업로드 진행 — 파일명 + 퍼센트 (+ 멀티파일이면 n/총). 바(진행 필) 렌더용.
+  const [uploading, setUploading] = useState<{
+    name: string;
+    pct: number;
+    /** 멀티파일 드롭 시 "2/3" 표기용 (단일 파일이면 null) */
+    seq: string | null;
+  } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textInputRef = useRef<HTMLTextAreaElement>(null);
   // 현재 방/스레드의 draft 보존 키. 방 전환 시 아래 effect에서 갱신된다.
@@ -185,16 +198,19 @@ export function MessageInput({
   async function sendFiles(files: FileList | File[]) {
     if (uploading) return;
     setError(null);
+    const list = Array.from(files);
     try {
-      for (const file of Array.from(files)) {
-        setUploading(t("input.uploading", { name: file.name }));
+      for (let i = 0; i < list.length; i++) {
+        const file = list[i];
+        const seq = list.length > 1 ? `${i + 1}/${list.length}` : null;
+        setUploading({ name: file.name, pct: 0, seq });
         await uploadAndSendFile(
           client,
           room.roomId,
           file,
           (loaded, total) => {
             const pct = total ? Math.round((loaded / total) * 100) : 0;
-            setUploading(t("input.uploadingPct", { name: file.name, pct }));
+            setUploading({ name: file.name, pct, seq });
           },
           threadId,
         );
@@ -241,17 +257,44 @@ export function MessageInput({
           ))}
         </div>
       )}
-      {/* 상태 줄: 업로드/에러 — 입력 바 위 오버레이 (레이아웃 영향 없음).
-          타이핑 표시는 Timeline 맨 아래 행으로 옮겨 메시지를 안 가린다. */}
-      {(error || uploading) && (
-        <div className="pointer-events-none absolute inset-x-0 bottom-full z-10 flex justify-start px-4 pb-1">
-          <span className="msg-in flex items-center gap-1.5 rounded-full border border-line bg-bg-2/95 px-2.5 py-0.5 text-[11px] text-fg-2 shadow-lg backdrop-blur">
-            {error ? (
-              <span className="text-red-400">⚠ {error}</span>
-            ) : (
-              <span className="animate-pulse">{uploading}</span>
-            )}
+      {/* 업로드 진행 바 — 답장 인용 바와 같은 문법(입력 바 위 부착형 h-8 바).
+          예전 떠있는 알약+pulse는 옛 타이핑 표시 스타일과 겹쳐서 교체.
+          진행률은 바 전체 높이 필(fill)의 폭으로 전달 — 텍스트 %는 보조. */}
+      {uploading && (
+        <div className="relative flex h-8 items-center gap-1.5 overflow-hidden border-t border-line bg-bg-1 px-5 text-[12px] text-fg-2">
+          <div
+            className="absolute inset-y-0 left-0 bg-bg-3 transition-[width] duration-200 ease-out"
+            style={{ width: `${uploading.pct}%` }}
+          />
+          <Upload className="relative h-3 w-3 shrink-0" />
+          <span className="relative min-w-0 flex-1 truncate text-fg-1">
+            {uploading.name}
           </span>
+          {uploading.seq && (
+            <span className="relative shrink-0 font-mono text-[11px] text-fg-3">
+              {uploading.seq}
+            </span>
+          )}
+          <span className="relative shrink-0 font-mono text-[11px] text-fg-3">
+            {uploading.pct}%
+          </span>
+        </div>
+      )}
+
+      {/* 에러 바 — 업로드/전송 실패. 같은 부착형 바 문법 + 닫기 버튼. */}
+      {error && (
+        <div className="flex h-8 items-center gap-1.5 border-t border-line bg-bg-1 px-5 text-[12px]">
+          <span className="min-w-0 flex-1 truncate text-red-400">
+            ⚠ {error}
+          </span>
+          <button
+            type="button"
+            className="shrink-0 rounded p-0.5 text-fg-2 hover:text-fg-0"
+            onClick={() => setError(null)}
+            title={t("common.close")}
+          >
+            <X className="h-3 w-3" />
+          </button>
         </div>
       )}
 

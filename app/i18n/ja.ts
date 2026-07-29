@@ -231,8 +231,6 @@ export const ja: Record<keyof typeof ko, string> = {
   "msg.decrypting": "🔒 復号化中…",
   "msg.deleted": "削除されたメッセージ",
   "msg.confirmDelete": "このメッセージを削除しますか?",
-  "input.uploading": "{{name}} アップロード中…",
-  "input.uploadingPct": "{{name}} アップロード中… {{pct}}%",
   "search.title.close": "閉じる (Esc)",
   "search.placeholder.local2": "検索 (読み込み済み)…",
   "search.placeholder.server2": "検索 (Enter)…",
