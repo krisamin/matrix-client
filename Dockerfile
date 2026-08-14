@@ -13,6 +13,12 @@ RUN corepack enable && corepack prepare pnpm@10 --activate
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN pnpm run typecheck && pnpm run build
+# ★정적 자산 사전 압축 — nginx gzip_static이 이 .gz를 그대로 전송한다.
+#   특히 matrix_sdk_crypto_wasm(5.4MB)이 무압축으로 나가던 걸 1.77MB로 줄인다.
+#   -k(원본 유지): gzip 미지원 클라이언트용 fallback이 필요하다.
+RUN find build/client -type f \
+      \( -name '*.js' -o -name '*.css' -o -name '*.wasm' -o -name '*.svg' -o -name '*.json' \) \
+      -size +1k -exec gzip -9 -k -f {} \;
 
 # Runtime: nginx serves the SPA build directly. /index.html is the app shell;
 # all other unknown routes also fall back to it (client-side routing).

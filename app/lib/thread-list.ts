@@ -106,12 +106,18 @@ export interface ThreadSummaryPage {
 /**
  * 스레드 목록 한 페이지를 요약으로 가져온다 (HTTP 1건).
  * `from`을 주면 이어받기(더 보기).
+ *
+ * ★limit 기본값 12 (2026-08 실측): 응답이 스레드당 ~10KB다(루트 이벤트 본문이
+ * bundled로 통째 실려온다 — E2EE ciphertext라 압축도 안 먹음).
+ *   limit=30 → 316KB / limit=20 → 204KB / limit=12 → 136KB
+ * 사이드바는 한 화면에 그렇게 많이 안 보여주고 `loadMore`가 있으니, 첫 장은
+ * 12로 충분하다. 30→12 로 낮춰 180KB 절감.
  */
 export const fetchThreadSummaryPage = async (
   client: MatrixClient,
   room: Room,
   from: string | null = null,
-  limit = 30,
+  limit = 12,
 ): Promise<ThreadSummaryPage> => {
   const res = await client.createThreadListMessagesRequest(
     room.roomId,

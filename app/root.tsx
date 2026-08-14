@@ -9,6 +9,9 @@ import {
 } from "react-router";
 import type { Route } from "./+types/root";
 import "./app.css";
+// 이모지 폰트(Tossface) @font-face — 원본 CDN css의 깨진 unicode-range를 고친
+// 자동 생성본. 갱신: `node scripts/gen-tossface-css.mjs`
+import "./tossface.css";
 import { I18nProvider } from "./lib/i18n";
 import { registerServiceWorker } from "./lib/register-sw";
 
@@ -25,19 +28,24 @@ export const links: Route.LinksFunction = () => [
     crossOrigin: "anonymous",
   },
   // 본문: Wanted Sans Variable / 고정폭(시간·코드): Fira Code
+  //
+  // ★`complete` 대신 `split` (2026-08 실측): complete는 전 글리프를 담은 단일
+  //   woff2 1.29MB를 **무조건** 받는다. split은 unicode-range로 92조각이라
+  //   화면에 실제 등장한 글자의 조각만 받는다 — 한국어 채팅 화면 기준 5조각
+  //   64.7KB로 **1.22MB(95%) 절감**. 폰트 모양은 동일(같은 v1.0.3 소스).
   {
     rel: "stylesheet",
-    href: "https://cdn.jsdelivr.net/gh/wanteddev/wanted-sans@v1.0.3/packages/wanted-sans/fonts/webfonts/variable/complete/WantedSansVariable.min.css",
+    href: "https://cdn.jsdelivr.net/gh/wanteddev/wanted-sans@v1.0.3/packages/wanted-sans/fonts/webfonts/variable/split/WantedSansVariable.min.css",
   },
   {
     rel: "stylesheet",
     href: "https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&display=swap",
   },
   // 이모지: Tossface — OS 기본 대신 통일된 이모지 렌더링 (unicode-range 분할 로드)
-  {
-    rel: "stylesheet",
-    href: "https://cdn.jsdelivr.net/gh/toss/tossface/dist/tossface.css",
-  },
+  //   ※ @font-face 선언은 CDN css 대신 app/tossface.css(자동 생성본)를 쓴다.
+  //     원본 css는 chunk 11의 unicode-range가 스펙 위반이라 파서가 range를 통째로
+  //     버리고 "전 범위 매칭"이 돼, 이모지가 없는 화면에서도 532KB를 받았다.
+  //     woff2 실체는 여전히 jsDelivr에서 받으므로 preconnect는 유지.
   // PWA: 설치형 앱 (macOS Safari "Dock에 추가" / iOS "홈 화면에 추가")
   { rel: "manifest", href: "/manifest.webmanifest" },
   { rel: "icon", href: "/icon-192.png", type: "image/png" },

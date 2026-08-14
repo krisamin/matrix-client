@@ -86,15 +86,21 @@ export function useRoomTimeline(client: MatrixClient, roomId: string) {
     // 보이는 이벤트가 최소치를 넘거나 타임라인 끝에 닿을 때까지 backwards 페이지네이션
     // ★적응형 limit: 리액션 비중이 높은 방(실측 94%가 m.reaction인 방 존재)은
     // 고정 30이면 페이지당 실메시지 ~2개 → 10왕복(1.1s+). 부족할수록 페이지를
-    // 2배씩 키워(40→80→160→320) 왕복 수를 로그 스케일로 줄인다. 리액션 적은
-    // 방은 첫 40으로 끝나므로 과다 로드 없음.
+    // 키워 왕복 수를 줄인다.
+    //
+    // ★상한 320은 과했다(2026-08 실측). 이 방은 리액션이 아니라 **본문이 긴**
+    // 방이라 이벤트 중앙값이 12KB(E2EE ciphertext) — limit=40 한 장이 585KB,
+    // limit=80이면 1.16MB다. 목표는 "보이는 15개"인데 40장을 받는 건 2.7배 과다.
+    // → 첫 장을 목표에 맞춘 20으로 낮추고(339KB), 증가도 2배가 아닌 +20씩,
+    //   상한 80으로 제한. 리액션 많은 방은 몇 장 더 돌지만 장당 비용이 싸다.
+    //   (limit=20 → 339KB / 15개면 충분, 모자랄 때만 40·60·80으로 확장)
     // ref guard: 빠른 방 전환 + scroll 시 fillUntilVisible과 loadOlder 동시 진입 방지.
     const fillUntilVisible = async (r: Room) => {
       if (loadingOlderRef.current) return;
       loadingOlderRef.current = true;
       const endFill = perfSpan("room:fill");
       let pages = 0;
-      let limit = 40;
+      let limit = 20;
       // 이전에 예산 소진했던 방(리액션/스레드 위주 등)은 1페이지만 — 최신분 보충용.
       // ★localStorage 영속(lib/fill-memo) — 모듈 메모리였을 땐 PWA가 OS에
       //   discard된 뒤 재실행할 때마다 메모가 비어 844KB를 다시 긁었다.
@@ -121,7 +127,7 @@ export function useRoomTimeline(client: MatrixClient, roomId: string) {
               limit,
             });
             pages++;
-            limit = Math.min(limit * 2, 320);
+            limit = Math.min(limit + 20, 80);
           } catch (e) {
             console.warn("[fillUntilVisible] paginate 실패:", e);
             break;
@@ -140,7 +146,15 @@ export function useRoomTimeline(client: MatrixClient, roomId: string) {
         }
         // 예산(페이지/시간)을 다 쓰고도 목표 미달 + 타임라인 끝도 아님
         // → 이 방은 fill로 채울 수 없는 방. 기억해서 재진입 낭비 차단.
-        if (visibleCount < 15 && !sawEnd && pages >= maxPages) {
+        //
+        // ★버그(2026-08 실측): 조건이 `pages >= maxPages`뿐이라 **시간 예산**으로
+        //   빠져나온 경우엔 메모가 안 걸렸다. 이 방은 항상 3초 deadline에 먼저
+        //   걸려서(페이지당 응답이 커서 10장을 못 채움) 메모가 영영 기록되지 않고,
+        //   결과적으로 방에 들어갈 때마다 매번 3초·850KB를 새로 태웠다.
+        //   (localStorage 영속화를 해놨는데 정작 쓰는 쪽이 한 번도 저장을 안 함)
+        //   → 종료 사유를 구분하지 말고 "예산을 다 썼는가"로 판정한다.
+        const budgetSpent = pages >= maxPages || performance.now() >= deadline;
+        if (visibleCount < 15 && !sawEnd && budgetSpent) {
           markFillExhausted(r.roomId);
         } else if (visibleCount >= 15 && exhausted) {
           // 소진 표시가 있었는데 이번엔 목표를 채웠다 = 방 성격이 바뀜
