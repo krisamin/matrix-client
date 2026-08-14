@@ -10,6 +10,11 @@ import {
   ThreadEvent,
 } from "matrix-js-sdk";
 import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  clearFillExhausted,
+  isFillExhausted,
+  markFillExhausted,
+} from "../lib/fill-memo";
 import { getNoThreadTimelineSet } from "../lib/matrix";
 import { perfSpan } from "../lib/perf-log";
 import {
@@ -17,14 +22,6 @@ import {
   eventsSignature,
   visibleEvents,
 } from "../lib/timeline";
-
-/** fill이 페이지 예산을 다 쓰고도 목표 미달로 끝난 방 (모듈 레벨 기억).
- *  스레드 위주 E2EE 방(DM 등)은 메인 타임라인에 표시할 메시지가 원래 거의
- *  없어 "15개 모으기"가 도달 불가능한 목표다 — 서버가 스레드 답글을 못
- *  거르므로(암호문 속 rel_type) 긁고→복호화→버리기만 반복. 실측: 진입마다
- *  10페이지 ~2400이벤트 풀 소진(2.7~6.2s). 한 번 소진을 확인한 방은
- *  재진입 시 1페이지만 시도해 최신분만 보충한다. */
-const fillExhaustedRooms = new Set<string>();
 
 /** fill 루프 시간 예산(ms) — 이 시간을 넘기면 목표 미달이어도 중단.
  *  느린 모바일/콜드 크립토에서 방 진입이 수 초씩 잠기는 것 방지. */
@@ -98,8 +95,10 @@ export function useRoomTimeline(client: MatrixClient, roomId: string) {
       const endFill = perfSpan("room:fill");
       let pages = 0;
       let limit = 40;
-      // 이전에 예산 소진했던 방(스레드 위주 등)은 1페이지만 — 최신분 보충용
-      const exhausted = fillExhaustedRooms.has(r.roomId);
+      // 이전에 예산 소진했던 방(리액션/스레드 위주 등)은 1페이지만 — 최신분 보충용.
+      // ★localStorage 영속(lib/fill-memo) — 모듈 메모리였을 땐 PWA가 OS에
+      //   discard된 뒤 재실행할 때마다 메모가 비어 844KB를 다시 긁었다.
+      const exhausted = isFillExhausted(r.roomId);
       const maxPages = exhausted ? 1 : 10;
       const deadline = performance.now() + FILL_BUDGET_MS;
       try {
@@ -142,7 +141,11 @@ export function useRoomTimeline(client: MatrixClient, roomId: string) {
         // 예산(페이지/시간)을 다 쓰고도 목표 미달 + 타임라인 끝도 아님
         // → 이 방은 fill로 채울 수 없는 방. 기억해서 재진입 낭비 차단.
         if (visibleCount < 15 && !sawEnd && pages >= maxPages) {
-          fillExhaustedRooms.add(r.roomId);
+          markFillExhausted(r.roomId);
+        } else if (visibleCount >= 15 && exhausted) {
+          // 소진 표시가 있었는데 이번엔 목표를 채웠다 = 방 성격이 바뀜
+          // (리액션 놀이 끝, 일반 대화 재개 등) → 메모 해제해 정상 예산 복귀.
+          clearFillExhausted(r.roomId);
         }
         endFill(
           `pages=${pages} visible=${visibleCount}${exhausted ? " (exhausted-skip)" : ""}`,

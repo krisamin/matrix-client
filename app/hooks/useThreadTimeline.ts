@@ -8,6 +8,11 @@ import {
   ThreadEvent,
 } from "matrix-js-sdk";
 import { useEffect, useReducer, useRef, useState } from "react";
+import {
+  clearFillExhausted,
+  isFillExhausted,
+  markFillExhausted,
+} from "../lib/fill-memo";
 import { perfSpan } from "../lib/perf-log";
 import { eventsSignature, visibleThreadEvents } from "../lib/timeline";
 
@@ -53,8 +58,9 @@ export function useThreadRoot(
 
 /** 백필 예산 소진 스레드 기억 + 시간 예산 — room fill과 동일 처방.
  *  실측: thread:fill 10192ms pages=10 visible=0 (표시할 게 없는 스레드를
- *  향해 10페이지 풀 소진). 소진 확인한 스레드는 재진입 시 1페이지만. */
-const backfillExhaustedThreads = new Set<string>();
+ *  향해 10페이지 풀 소진). 소진 확인한 스레드는 재진입 시 1페이지만.
+ *  ★lib/fill-memo로 localStorage 영속 — 모듈 메모리였을 땐 PWA 콜드 스타트마다
+ *  메모가 비어 같은 낭비를 반복했다. */
 const THREAD_FILL_BUDGET_MS = 3000;
 
 /**
@@ -173,7 +179,7 @@ export function useThreadTimeline(
       // 적응형 limit — 리액션 많은 스레드도 왕복 수를 로그 스케일로 제한
       // (useRoomTimeline.fillUntilVisible과 동일 패턴)
       let limit = 50;
-      const exhausted = backfillExhaustedThreads.has(rootId);
+      const exhausted = isFillExhausted(rootId);
       const maxPages = exhausted ? 1 : 10;
       const deadline = performance.now() + THREAD_FILL_BUDGET_MS;
       try {
@@ -232,12 +238,15 @@ export function useThreadTimeline(
             console.warn(
               `[thread backfill] 진행 없음 중단: root=${rootId} page=${pages}`,
             );
-            backfillExhaustedThreads.add(rootId);
+            markFillExhausted(rootId);
             break;
           }
         }
         if (visibleCount < 15 && !sawEnd && pages >= maxPages) {
-          backfillExhaustedThreads.add(rootId);
+          markFillExhausted(rootId);
+        } else if (visibleCount >= 15 && exhausted) {
+          // 이번엔 채워짐 = 스레드가 활성화됨 → 메모 해제(정상 예산 복귀).
+          clearFillExhausted(rootId);
         }
         endFill(
           `pages=${pages} visible=${visibleCount}${exhausted ? " (exhausted-skip)" : ""}`,

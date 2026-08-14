@@ -18,6 +18,7 @@ import {
 } from "matrix-js-sdk/lib/crypto-api";
 import type { SecretStorageKeyDescription } from "matrix-js-sdk/lib/secret-storage";
 import { translate } from "./i18n";
+import { attachLazyThreads } from "./matrix-lazy-threads";
 import { attachAutoReconnect } from "./matrix-reconnect";
 import { perfSpan } from "./perf-log";
 import { loadSession, updateSessionTokens } from "./session";
@@ -243,6 +244,9 @@ export {
  *  내부적으로 access_token을 Authorization 헤더로 보내는 경로를 이미 사용
  *  중이라 별도 설정 불필요. */
 export function ensureStarted(client: MatrixClient): void {
+  // ★startClient 전에 적용 — sync/페이지네이션이 스레드 루트를 보는 순간부터
+  //   Thread 자동 생성(루트당 HTTP 2건)이 시작되므로 그 전에 막아야 한다.
+  attachLazyThreads(client);
   if (!client.clientRunning) {
     // 첫 sync 완료(Prepared)까지 계측 — IndexedDB 복원이면 수백 ms,
     // 서버 initial sync를 타면 수 초 단위로 갈린다 (콜드 스타트 범인 판별용)

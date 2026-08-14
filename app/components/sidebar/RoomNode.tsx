@@ -6,18 +6,12 @@ import {
   Star,
 } from "lucide-react";
 import type { MatrixClient, Room } from "matrix-js-sdk";
-import {
-  EventTimeline,
-  FeatureSupport,
-  NotificationCountType,
-  RoomEvent,
-  Thread,
-  ThreadEvent,
-} from "matrix-js-sdk";
+import { NotificationCountType, RoomEvent } from "matrix-js-sdk";
 import { memo, useEffect, useState } from "react";
 import { Link } from "react-router";
 import { useLongPress } from "../../hooks/useLongPress";
 import { useIsMobile } from "../../hooks/useMediaQuery";
+import { useThreadSummaries } from "../../hooks/useThreadSummaries";
 import { roomPath, threadPath } from "../../lib/format";
 import { useT } from "../../lib/i18n";
 import {
@@ -26,7 +20,6 @@ import {
   toggleFavourite,
   toggleMute,
 } from "../../lib/matrix";
-import { quotePreview } from "../../lib/reply";
 import { ActionMenu, type ActionMenuItem } from "../ActionMenu";
 import { RoomAvatar } from "../Avatar";
 
@@ -50,61 +43,19 @@ export const RoomNode = memo(function RoomNodeInner({
   // 모바일에선 룸 아바타를 키워 가독성 ↑ (PC 16px / 모바일 22px)
   const avatarSize = isMobile ? 22 : 16;
   const [, force] = useState(0);
-  // hasMoreThreads는 명시 state로 — fetchRoomThreads 완료 후, paginate 후
-  // 매 시점에 동기화. SDK timelineSet이 처음 빈 배열이라 token 추출이
-  // 첫 렌더 시 무조건 null인 문제도 회피.
-  const [hasMoreThreads, setHasMoreThreads] = useState(false);
-  const [loadingMoreThreads, setLoadingMoreThreads] = useState(false);
 
-  function syncHasMore() {
-    const tl = room.threadsTimelineSets[0]?.getLiveTimeline();
-    setHasMoreThreads(!!tl?.getPaginationToken(EventTimeline.BACKWARDS));
-  }
-
-  // 방 mount 시 1회 — threadsTimelineSets 초기화 + 서버 thread 목록 fetch.
-  // 1) createThreadsTimelineSets(): SDK가 자동 호출 안 함. threadSupport
-  //    옵션이 켜진 client에서 timelineSets[0/1] 빈 EventTimelineSet 생성.
-  // 2) fetchRoomThreads(): /v1/rooms/{roomId}/threads (MSC3856) 또는
-  //    /messages 필터로 thread root 목록 받아 timelineSet에 채움.
-  //
-  // ★ active 방에서만 발사. 방 100개 사이드바면 100개 RoomNode가 동시
-  // mount되는데, 각각 fetch 발사하면 서버에 100 req + 메인 스레드 폭주
-  // → 사이드바 클릭 시 "응답없음" 유발. active일 때만 하면 사용자가 보는
-  // 방의 thread만 즉시 채워지고 나머지는 클릭 시점에 fetch.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: syncHasMore는 매 렌더 새 inline 함수 — deps 누락이 의도(ThreadEvent listener 무한 재등록 방지)
-  useEffect(() => {
-    if (!active) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        await room.createThreadsTimelineSets();
-        if (cancelled) return;
-        await room.fetchRoomThreads();
-      } catch {
-        // 실패해도 timeline에 있는 thread는 그대로 보이니 무시
-      }
-      if (cancelled) return;
-      syncHasMore();
-      force((n) => n + 1);
-    })();
-    // 새 thread / 답글 / 삭제 시 리렌더 + hasMore 재평가 (active 방만 구독)
-    const bump = () => {
-      if (cancelled) return;
-      syncHasMore();
-      force((n) => n + 1);
-    };
-    room.on(ThreadEvent.New, bump);
-    room.on(ThreadEvent.Update, bump);
-    room.on(ThreadEvent.NewReply, bump);
-    room.on(ThreadEvent.Delete, bump);
-    return () => {
-      cancelled = true;
-      room.off(ThreadEvent.New, bump);
-      room.off(ThreadEvent.Update, bump);
-      room.off(ThreadEvent.NewReply, bump);
-      room.off(ThreadEvent.Delete, bump);
-    };
-  }, [room, active]);
+  // ★스레드 목록 = 요약 fetch 1건 (lib/thread-list.ts).
+  //   예전엔 room.createThreadsTimelineSets() + room.fetchRoomThreads()로
+  //   루트마다 SDK Thread를 만들었는데, Thread 생성자가 루트당
+  //   /event/{id} + /relations/{id}를 호출해 방 진입 1회에 61 HTTP / ~2MB가
+  //   나갔다(실측). 이제 /threads 한 번만 치고, 실제 Thread 객체는 사용자가
+  //   스레드를 열 때 useThreadTimeline이 하나만 만든다.
+  const {
+    thread: threadSummary,
+    hasMore: hasMoreThreads,
+    loadingMore: loadingMoreThreads,
+    loadMore: loadMoreThreads,
+  } = useThreadSummaries(client, room, active);
 
   // 읽음 상태(안 읽음 카운트) 실시간 갱신 — 이 방의 Receipt / UnreadNotifications
   // 변화 시 force 리렌더. RoomNode는 memo라서 room 객체 참조가 그대로면(useRooms가
@@ -122,45 +73,10 @@ export const RoomNode = memo(function RoomNodeInner({
       room.off(RoomEvent.Timeline, bump);
     };
   }, [room]);
-  // Thread 리스트 source 분기:
-  //  - 서버가 MSC3856 (/v1/rooms/{roomId}/threads) 지원 → threadsTimelineSets
-  //    [0]만 표시 (Element와 동일, 옛 메시지 스크롤로 thread가 임의 추가
-  //    되지 않음).
-  //  - 미지원 → fallback: room.getThreads() 그대로 (메인 timeline 발견 포함).
-  //    이 경로에선 옛 thread가 스크롤할 때마다 추가될 수 있지만 서버가
-  //    지원 안 하니 다른 방법 없음.
-  const useTimelineSet =
-    Thread.hasServerSideListSupport === FeatureSupport.Stable ||
-    Thread.hasServerSideListSupport === FeatureSupport.Experimental;
-  const threads = useTimelineSet
-    ? (room.threadsTimelineSets[0]?.getLiveTimeline().getEvents() ?? [])
-        .map((ev) => room.getThread(ev.getId() ?? ""))
-        .filter((th): th is NonNullable<typeof th> => !!th)
-    : room.getThreads();
-  const hasThreads = threads.length > 0;
+  const hasThreads = threadSummary.length > 0;
   // 활성 방은 기본 펼침
   const [expanded, setExpanded] = useState(active);
 
-  async function loadMoreThreads() {
-    if (loadingMoreThreads) return;
-    setLoadingMoreThreads(true);
-    try {
-      // 두 timelineSet(All/My) 둘 다 한 페이지씩 — SDK 기본 limit=30씩 추가
-      await Promise.all(
-        room.threadsTimelineSets
-          .map((ts) => ts.getLiveTimeline())
-          .filter((tl): tl is NonNullable<typeof tl> => !!tl)
-          .filter((tl) => tl.getPaginationToken(EventTimeline.BACKWARDS))
-          .map((tl) => client.paginateEventTimeline(tl, { backwards: true })),
-      );
-      syncHasMore();
-      force((n) => n + 1);
-    } catch {
-      // 실패해도 기존 목록은 유지
-    } finally {
-      setLoadingMoreThreads(false);
-    }
-  }
   // PC 우클릭 컨텍스트 메뉴 위치 (null=닫힘). 모바일 long-press는 sheetOpen로 분기.
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
   // 모바일 long-press 액션 바텀시트 열림 여부 — 같은 액션(fav/mute)을 시트로.
@@ -182,33 +98,14 @@ export const RoomNode = memo(function RoomNodeInner({
   const fav = isFavourite(room);
   const muted = isMuted(client, room);
 
-  // 스레드 정렬: 두 경로 모두 replyToEvent(없으면 root) ts 내림차순 안정 정렬.
-  //  - 과거엔 useTimelineSet 경로를 [...].reverse()로만 처리했는데,
-  //    threadsTimelineSets[0]의 events 순서는 서버 초기 응답 이후 SDK가
-  //    수시로 재배치한다: Room.onThreadReply → updateThreadRootEvents(recreate=true)
-  //    가 timelineSet.removeEvent(rootId) 후 addLiveEvent로 "라이브 끝"에
-  //    재삽입한다. 초기 fetch 완료(initialEventsFetched=true 전환 시 replayEvents
-  //    flush → NewReply emit)나 gappy sync 복구 때도 발동하는데, 발동 순서 =
-  //    네트워크 응답 순서라 예측 불가 → 서버가 준 latest_event desc 정렬이
-  //    깨지고 "오래된 스레드가 위로 튀는" 증상(사이드바)이 생겼다.
-  //  - 정렬 키는 lastReply()가 아니라 replyToEvent를 쓴다:
-  //    lastReply()는 로컬에 로드된 thread.timeline을 뒤에서 훑는 함수라
-  //    "아직 안 들어가본 스레드"는 타임라인이 비어 null → root ts fallback
-  //    으로 밑에 깔렸다가, 클릭해 들어가 타임라인이 fetch되는 순간 진짜
-  //    최신 답글 ts로 점프해 위로 튀는 증상이 있었다(클릭 전/후 순서 상이).
-  //    replyToEvent(lastPendingEvent ?? lastEvent ?? lastReply())는 스레드
-  //    목록 API가 bundled relation으로 내려준 latest_event(lastEvent)를
-  //    포함하므로 타임라인 로드 여부와 무관하게 서버 기준 최신 답글 ts를
-  //    반환하고, 로컬로 새 답글이 오면 SDK가 lastEvent를 비워 lastReply()
-  //    체인으로 넘어가므로 항상 실제 최신을 가리킨다.
-  //  - 동률(같은 ts)일 때 thread.id로 tiebreak → All/My 두 응답이 비동기로
-  //    도착해 최신 답글이 갱신돼도 순서가 흔들리지 않는(안정) 정렬.
-  const sortedThreads = [...threads].sort((a, b) => {
-    const tsA = a.replyToEvent?.getTs() ?? a.rootEvent?.getTs() ?? 0;
-    const tsB = b.replyToEvent?.getTs() ?? b.rootEvent?.getTs() ?? 0;
-    if (tsB !== tsA) return tsB - tsA;
-    return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
-  });
+  // 스레드 정렬은 useThreadSummaries(mergeThreadSummaries)가 이미 수행한다:
+  //  - 정렬 키 = 서버 /threads의 bundled latest_event.origin_server_ts,
+  //    라이브 Thread가 있으면 그 replyToEvent ts와 큰 쪽.
+  //  - 동률은 id tiebreak(안정 정렬) → All/My 응답이 비동기로 도착해도
+  //    "오래된 스레드가 위로 튀는" 증상이 안 생긴다.
+  //  - 예전엔 여기서 Thread 객체 배열을 정렬했는데, 그 배열을 만들려면
+  //    루트마다 Thread를 생성해야 했다(= HTTP 2건씩). 상세는 lib/thread-list.ts.
+  const sortedThreads = threadSummary;
 
   const showChildren = hasThreads && (expanded || active);
 
@@ -324,10 +221,9 @@ export const RoomNode = memo(function RoomNodeInner({
       {showChildren && (
         <div className="tree-children">
           {sortedThreads.map((thread) => {
-            const root = thread.rootEvent;
-            const preview = root ? quotePreview(root) : "";
-            // 빈 미리보기(미디어/encrypted/공백 등) fallback — 'Thread' 라벨
-            const title = preview.trim() || t("thread.untitled");
+            // 미리보기는 요약 fetch 시점에 (필요하면 복호화까지) 만들어 둔다.
+            // 빈 값이면 미디어/암호화 실패 등 → 'Thread' 라벨 fallback.
+            const title = thread.preview || t("thread.untitled");
             // 스레드별 안 읽음 카운트 (SDK 공식 API).
             const tUnread = room.getThreadUnreadNotificationCount(
               thread.id,
