@@ -30,6 +30,12 @@ jobs:
       - name: Lint (Biome)
         run: pnpm run lint
 
+      - name: Lint (아키텍처 — 레이어 방향/순환/정책 상수 단일 소유)
+        run: pnpm run lint:arch
+
+      - name: Test (회귀 — 채우기 예산 판정)
+        run: pnpm run test
+
       - name: Typecheck
         run: pnpm run typecheck
 

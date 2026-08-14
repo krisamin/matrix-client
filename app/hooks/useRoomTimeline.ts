@@ -11,9 +11,15 @@ import {
 } from "matrix-js-sdk";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  clearFillExhausted,
+  FILL_BUDGET_MS,
+  FILL_LIMIT_MAX,
+  FILL_LIMIT_START,
+  FILL_LIMIT_STEP,
+  FILL_MAX_PAGES,
+  FILL_MAX_PAGES_EXHAUSTED,
+  FILL_TARGET_VISIBLE,
   isFillExhausted,
-  markFillExhausted,
+  settleFillOutcome,
 } from "../lib/fill-memo";
 import { getNoThreadTimelineSet } from "../lib/matrix";
 import { perfSpan } from "../lib/perf-log";
@@ -22,10 +28,6 @@ import {
   eventsSignature,
   visibleEvents,
 } from "../lib/timeline";
-
-/** fill 루프 시간 예산(ms) — 이 시간을 넘기면 목표 미달이어도 중단.
- *  느린 모바일/콜드 크립토에서 방 진입이 수 초씩 잠기는 것 방지. */
-const FILL_BUDGET_MS = 3000;
 
 /**
  * 방 타임라인 훅 — 채팅 화면의 데이터 레이어 전부.
@@ -37,6 +39,9 @@ const FILL_BUDGET_MS = 3000;
  * - 실시간 리스너: Timeline / Decrypted / Replaced(E2EE 수정 반영) /
  *   LocalEchoUpdated(전송 상태) / ThreadEvent(답글 배지)
  * - loadOlder: backwards 페이지네이션 (동시 호출 가드 포함)
+ *
+ * ※ 채우기 예산·limit 정책은 `lib/fill-memo`가 단일 소유 —
+ *   스레드 훅과 값이 갈라지지 않도록 여기서 상수를 재정의하지 말 것.
  */
 export function useRoomTimeline(client: MatrixClient, roomId: string) {
   const [room, setRoom] = useState<Room | null>(null);
@@ -83,29 +88,20 @@ export function useRoomTimeline(client: MatrixClient, roomId: string) {
     // total은 "화면에 메시지가 처음 뜰 때까지"의 체감 시간과 대응.
     const endSwitchTotal = perfSpan(`room:total ${roomId.slice(0, 12)}`);
 
-    // 보이는 이벤트가 최소치를 넘거나 타임라인 끝에 닿을 때까지 backwards 페이지네이션
-    // ★적응형 limit: 리액션 비중이 높은 방(실측 94%가 m.reaction인 방 존재)은
-    // 고정 30이면 페이지당 실메시지 ~2개 → 10왕복(1.1s+). 부족할수록 페이지를
-    // 키워 왕복 수를 줄인다.
-    //
-    // ★상한 320은 과했다(2026-08 실측). 이 방은 리액션이 아니라 **본문이 긴**
-    // 방이라 이벤트 중앙값이 12KB(E2EE ciphertext) — limit=40 한 장이 585KB,
-    // limit=80이면 1.16MB다. 목표는 "보이는 15개"인데 40장을 받는 건 2.7배 과다.
-    // → 첫 장을 목표에 맞춘 20으로 낮추고(339KB), 증가도 2배가 아닌 +20씩,
-    //   상한 80으로 제한. 리액션 많은 방은 몇 장 더 돌지만 장당 비용이 싸다.
-    //   (limit=20 → 339KB / 15개면 충분, 모자랄 때만 40·60·80으로 확장)
+    // 보이는 이벤트가 최소치를 넘거나 타임라인 끝에 닿을 때까지 backwards 페이지네이션.
+    // 예산·limit 정책은 lib/fill-memo가 단일 소유(스레드 훅과 공유) — 근거 주석은 거기.
     // ref guard: 빠른 방 전환 + scroll 시 fillUntilVisible과 loadOlder 동시 진입 방지.
     const fillUntilVisible = async (r: Room) => {
       if (loadingOlderRef.current) return;
       loadingOlderRef.current = true;
       const endFill = perfSpan("room:fill");
       let pages = 0;
-      let limit = 20;
+      let limit = FILL_LIMIT_START;
       // 이전에 예산 소진했던 방(리액션/스레드 위주 등)은 1페이지만 — 최신분 보충용.
       // ★localStorage 영속(lib/fill-memo) — 모듈 메모리였을 땐 PWA가 OS에
       //   discard된 뒤 재실행할 때마다 메모가 비어 844KB를 다시 긁었다.
       const exhausted = isFillExhausted(r.roomId);
-      const maxPages = exhausted ? 1 : 10;
+      const maxPages = exhausted ? FILL_MAX_PAGES_EXHAUSTED : FILL_MAX_PAGES;
       const deadline = performance.now() + FILL_BUDGET_MS;
       try {
         const tlSet = tlSetRef.current;
@@ -115,7 +111,9 @@ export function useRoomTimeline(client: MatrixClient, roomId: string) {
         let sawEnd = false;
         for (
           let i = 0;
-          i < maxPages && visibleCount < 15 && performance.now() < deadline;
+          i < maxPages &&
+          visibleCount < FILL_TARGET_VISIBLE &&
+          performance.now() < deadline;
           i++
         ) {
           if (gen !== genRef.current) return; // 방 전환됨 — 중단
@@ -127,7 +125,7 @@ export function useRoomTimeline(client: MatrixClient, roomId: string) {
               limit,
             });
             pages++;
-            limit = Math.min(limit + 20, 80);
+            limit = Math.min(limit + FILL_LIMIT_STEP, FILL_LIMIT_MAX);
           } catch (e) {
             console.warn("[fillUntilVisible] paginate 실패:", e);
             break;
@@ -144,23 +142,12 @@ export function useRoomTimeline(client: MatrixClient, roomId: string) {
             break;
           }
         }
-        // 예산(페이지/시간)을 다 쓰고도 목표 미달 + 타임라인 끝도 아님
-        // → 이 방은 fill로 채울 수 없는 방. 기억해서 재진입 낭비 차단.
-        //
-        // ★버그(2026-08 실측): 조건이 `pages >= maxPages`뿐이라 **시간 예산**으로
-        //   빠져나온 경우엔 메모가 안 걸렸다. 이 방은 항상 3초 deadline에 먼저
-        //   걸려서(페이지당 응답이 커서 10장을 못 채움) 메모가 영영 기록되지 않고,
-        //   결과적으로 방에 들어갈 때마다 매번 3초·850KB를 새로 태웠다.
-        //   (localStorage 영속화를 해놨는데 정작 쓰는 쪽이 한 번도 저장을 안 함)
-        //   → 종료 사유를 구분하지 말고 "예산을 다 썼는가"로 판정한다.
-        const budgetSpent = pages >= maxPages || performance.now() >= deadline;
-        if (visibleCount < 15 && !sawEnd && budgetSpent) {
-          markFillExhausted(r.roomId);
-        } else if (visibleCount >= 15 && exhausted) {
-          // 소진 표시가 있었는데 이번엔 목표를 채웠다 = 방 성격이 바뀜
-          // (리액션 놀이 끝, 일반 대화 재개 등) → 메모 해제해 정상 예산 복귀.
-          clearFillExhausted(r.roomId);
-        }
+        settleFillOutcome(
+          r.roomId,
+          { pages, visibleCount, sawEnd },
+          deadline,
+          exhausted,
+        );
         endFill(
           `pages=${pages} visible=${visibleCount}${exhausted ? " (exhausted-skip)" : ""}`,
         );

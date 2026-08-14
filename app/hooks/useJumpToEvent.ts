@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import type { TimelineHandle } from "../components/Timeline";
+import type { TimelineHandle } from "../lib/timeline-handle";
 
 /** 검색 결과/인용 클릭 → 해당 이벤트로 스크롤 + 잠깐 강조. 룸/스레드 공용.
  *  로드된 범위에 없으면 과거를 더 불러오며 시도 (최대 5페이지).

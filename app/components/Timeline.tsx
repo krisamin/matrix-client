@@ -13,18 +13,16 @@ import {
 import { Virtualizer, type VirtualizerHandle } from "virtua";
 import { groupTimeline } from "../lib/group";
 import { useT } from "../lib/i18n";
+// 핸들 계약은 lib/timeline-handle이 소유(레이어 역방향 의존 제거) —
+// 기존 import 경로(`from "../components/Timeline"`)를 깨지 않도록 재수출한다.
+// (재수출만으로는 이 파일 스코프에 이름이 안 들어와 별도 import가 필요)
+import type { TimelineHandle } from "../lib/timeline-handle";
 import { useTypingMembers } from "../lib/typing";
 import { DateDivider, UnreadDivider } from "./DateDivider";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { EventLine } from "./EventLine";
 
-/** 부모(점프/검색)가 호출하는 명령형 핸들. */
-export interface TimelineHandle {
-  /** 로드된 범위에 해당 이벤트가 있으면 그 행으로 스크롤하고 true 반환 */
-  scrollToEvent: (eventId: string) => boolean;
-  /** 무조건 바닥으로 + stick 복구. 전송 직후 호출용. */
-  scrollToBottom: () => void;
-}
+export type { TimelineHandle } from "../lib/timeline-handle";
 
 /** 렌더 행 — topSlot/시작구분선/이벤트를 한 배열로 통합. dateDivider/
  *  UnreadDivider는 해당 이벤트 행 내부(위/아래)에 같이 렌더. */

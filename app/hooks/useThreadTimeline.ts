@@ -9,9 +9,16 @@ import {
 } from "matrix-js-sdk";
 import { useEffect, useReducer, useRef, useState } from "react";
 import {
-  clearFillExhausted,
+  FILL_BUDGET_MS,
+  FILL_LIMIT_MAX,
+  FILL_LIMIT_START,
+  FILL_LIMIT_STEP,
+  FILL_MAX_PAGES,
+  FILL_MAX_PAGES_EXHAUSTED,
+  FILL_TARGET_VISIBLE,
   isFillExhausted,
   markFillExhausted,
+  settleFillOutcome,
 } from "../lib/fill-memo";
 import { perfSpan } from "../lib/perf-log";
 import { eventsSignature, visibleThreadEvents } from "../lib/timeline";
@@ -56,12 +63,13 @@ export function useThreadRoot(
   return root;
 }
 
-/** 백필 예산 소진 스레드 기억 + 시간 예산 — room fill과 동일 처방.
+/** 백필 예산 소진 스레드 기억 + 시간 예산 — room fill과 **동일 상수**를 쓴다.
  *  실측: thread:fill 10192ms pages=10 visible=0 (표시할 게 없는 스레드를
  *  향해 10페이지 풀 소진). 소진 확인한 스레드는 재진입 시 1페이지만.
  *  ★lib/fill-memo로 localStorage 영속 — 모듈 메모리였을 땐 PWA 콜드 스타트마다
- *  메모가 비어 같은 낭비를 반복했다. */
-const THREAD_FILL_BUDGET_MS = 3000;
+ *  메모가 비어 같은 낭비를 반복했다.
+ *  ★예산값은 lib/fill-memo가 단일 소유 — 여기서 따로 선언하지 말 것
+ *  (예전엔 THREAD_FILL_BUDGET_MS를 따로 두어 방 훅과 값이 갈라졌다). */
 
 /**
  * 스레드 타임라인 훅 — ThreadPanel에서 추출한 데이터 레이어:
@@ -176,12 +184,11 @@ export function useThreadTimeline(
       backfillingRef.current = true;
       const endFill = perfSpan("thread:fill");
       let pages = 0;
-      // 적응형 limit — 리액션 많은 스레드도 왕복 수를 로그 스케일로 제한
-      // (useRoomTimeline.fillUntilVisible과 동일 패턴)
-      let limit = 50;
+      // 예산·limit 정책은 lib/fill-memo가 단일 소유(방 훅과 공유) — 근거 주석은 거기.
+      let limit = FILL_LIMIT_START;
       const exhausted = isFillExhausted(rootId);
-      const maxPages = exhausted ? 1 : 10;
-      const deadline = performance.now() + THREAD_FILL_BUDGET_MS;
+      const maxPages = exhausted ? FILL_MAX_PAGES_EXHAUSTED : FILL_MAX_PAGES;
+      const deadline = performance.now() + FILL_BUDGET_MS;
       try {
         // 조건용 카운트는 paginate 결과로만 갱신 — 매 반복 전체 필터+정렬
         // (visibleThreadEvents) 재계산을 피한다. 최초 1회만 현재 상태를 센다.
@@ -189,7 +196,9 @@ export function useThreadTimeline(
         let sawEnd = false;
         for (
           let i = 0;
-          i < maxPages && visibleCount < 15 && performance.now() < deadline;
+          i < maxPages &&
+          visibleCount < FILL_TARGET_VISIBLE &&
+          performance.now() < deadline;
           i++
         ) {
           // ★진행 없음 브레이커 재료 — paginate 전 back 토큰/원시 이벤트 수.
@@ -207,7 +216,7 @@ export function useThreadTimeline(
             limit,
           });
           pages++;
-          limit = Math.min(limit * 2, 320);
+          limit = Math.min(limit + FILL_LIMIT_STEP, FILL_LIMIT_MAX);
           // paginate 후 한 번만 필터 — 조건용 카운트와 commit이 같은 배열 공유.
           const next = visibleThreadEvents(client, thread.events);
           visibleCount = next.length;
@@ -242,12 +251,15 @@ export function useThreadTimeline(
             break;
           }
         }
-        if (visibleCount < 15 && !sawEnd && pages >= maxPages) {
-          markFillExhausted(rootId);
-        } else if (visibleCount >= 15 && exhausted) {
-          // 이번엔 채워짐 = 스레드가 활성화됨 → 메모 해제(정상 예산 복귀).
-          clearFillExhausted(rootId);
-        }
+        // ★버그(2026-08): 예전엔 여기 조건이 `pages >= maxPages`뿐이라
+        //   **시간 예산**으로 빠져나온 경우 메모가 영영 기록되지 않았다.
+        //   판정을 settleFillOutcome(공용)으로 옮겨 두 훅이 같은 규칙을 쓴다.
+        settleFillOutcome(
+          rootId,
+          { pages, visibleCount, sawEnd },
+          deadline,
+          exhausted,
+        );
         endFill(
           `pages=${pages} visible=${visibleCount}${exhausted ? " (exhausted-skip)" : ""}`,
         );
