@@ -10,6 +10,7 @@ import {
 import { RelationsEvent } from "matrix-js-sdk/lib/models/relations";
 import { memo, useEffect, useRef, useState } from "react";
 import { useT } from "../lib/i18n";
+import { loadReactionsFor } from "../lib/reaction-lazy";
 
 /** 리액션 칩 + 추가 버튼. 메인/스레드 공용 (relations 컨테이너는 room 단위 공유) */
 function ReactionBarInner({
@@ -36,6 +37,20 @@ function ReactionBarInner({
         EventType.Reaction,
       )
     : undefined;
+
+  // 과거 리액션 지연 로딩 — 메인 타임라인 필터가 m.reaction을 빼므로(대역폭
+  // 91% 절감, lib/matrix 주석 참조) 화면에 보이는 메시지만 여기서 보충한다.
+  // 타임라인은 가상 스크롤이라 이 컴포넌트는 보이는 행에만 마운트된다 =
+  // 스크롤한 만큼만 요청. 결과는 room.relations에 주입돼 아래 경로가 그대로 씀.
+  useEffect(() => {
+    let alive = true;
+    loadReactionsFor(client, room, ev).then(() => {
+      if (alive) force((n) => n + 1);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [client, room, ev]);
 
   // 리액션이 아직 없는 메시지는 relations 컨테이너 자체가 없음 —
   // 첫 리액션 도착으로 컨테이너가 생기면 리렌더해서 구독 경로 재구성

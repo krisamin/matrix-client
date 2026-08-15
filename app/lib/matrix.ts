@@ -333,9 +333,12 @@ export async function getNoThreadTimelineSet(
     filter.setDefinition({
       room: {
         timeline: {
-          // 메시지 + 리액션만 (리액션은 화면에 직접 안 그리지만
-          // SDK relations aggregation에 필요 — 칩 렌더의 데이터 소스)
-          types: ["m.room.message", "m.room.encrypted", "m.reaction"],
+          // 메시지만. 리액션은 여기서 받지 않는다 —
+          // ★실측: 스레드 위주 방에서 이 필터로 받은 이벤트의 91%가 리액션이고
+          //   메시지는 limit=80 한 장에 1~6개뿐이었다(15행 채우는 데 8장/699KB).
+          //   리액션을 빼면 같은 15행이 1장/198KB. 칩은 `lib/reaction-lazy`가
+          //   화면에 보이는 메시지에 한해 개당 ~477B로 되받아온다.
+          types: ["m.room.message", "m.room.encrypted"],
         },
       },
     });
