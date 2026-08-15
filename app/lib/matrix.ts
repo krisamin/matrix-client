@@ -21,6 +21,7 @@ import { translate } from "./i18n";
 import { attachLazyThreads } from "./matrix-lazy-threads";
 import { attachAutoReconnect } from "./matrix-reconnect";
 import { perfSpan } from "./perf-log";
+import { clearScrollbackCache } from "./scrollback-cache";
 import { loadSession, updateSessionTokens } from "./session";
 
 let clientPromise: Promise<MatrixClient> | null = null;
@@ -186,6 +187,9 @@ export function resetClient(): void {
       await c.store.deleteAllData().catch(() => {});
     })
     .catch(() => {});
+  // 스크롤백 캐시는 SDK 스토어 밖(별도 IndexedDB)이라 따로 지워야 한다 —
+  // 안 지우면 다음 계정에 이전 사용자의 메시지가 남는다.
+  void clearScrollbackCache();
   clientPromise = null;
 }
 

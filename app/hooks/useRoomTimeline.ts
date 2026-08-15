@@ -23,6 +23,7 @@ import {
 } from "../lib/fill-memo";
 import { getNoThreadTimelineSet } from "../lib/matrix";
 import { perfSpan } from "../lib/perf-log";
+import { restoreScrollback, saveScrollback } from "../lib/scrollback-cache";
 import {
   decryptPending,
   eventsSignature,
@@ -97,6 +98,25 @@ export function useRoomTimeline(client: MatrixClient, roomId: string) {
       const endFill = perfSpan("room:fill");
       let pages = 0;
       let limit = FILL_LIMIT_START;
+      // ★캐시 재생을 페이지네이션 **전에** — 실측상 재방문 시 sync는 355KB→28KB로
+      //   줄지만 /messages는 629KB→628KB로 안 줄었다(SDK 스토어는 sync만 영속화).
+      //   캐시가 목표 행수를 채우면 아래 루프가 아예 안 돈다.
+      const endRestore = perfSpan("room:cache-restore");
+      const restored = await restoreScrollback(client, r, tlSetRef.current);
+      endRestore(`events=${restored}`);
+      if (gen !== genRef.current) {
+        loadingOlderRef.current = false;
+        return;
+      }
+      if (restored > 0) {
+        decryptPending(
+          client,
+          (
+            tlSetRef.current?.getLiveTimeline() ?? r.getLiveTimeline()
+          ).getEvents(),
+        );
+        commit(r, gen);
+      }
       // 이전에 예산 소진했던 방(리액션/스레드 위주 등)은 1페이지만 — 최신분 보충용.
       // ★localStorage 영속(lib/fill-memo) — 모듈 메모리였을 땐 PWA가 OS에
       //   discard된 뒤 재실행할 때마다 메모가 비어 844KB를 다시 긁었다.
@@ -152,6 +172,13 @@ export function useRoomTimeline(client: MatrixClient, roomId: string) {
           `pages=${pages} visible=${visibleCount}${exhausted ? " (exhausted-skip)" : ""}`,
         );
         endSwitchTotal();
+        // ★다음 방문용 캐시 저장 — fill 루프가 **완전히 끝난 뒤** 최종 타임라인을
+        //   저장한다. settleFillOutcome 앞에 두면 아직 페이지네이션이 반영되기
+        //   전 상태(실측 20개)가 찍혀 다음 방문에 캐시가 목표를 못 채운다.
+        //   재생만으로 끝난 방문(pages===0)은 저장 내용이 같으므로 건너뛴다.
+        if (pages > 0 && gen === genRef.current) {
+          void saveScrollback(r, tlSetRef.current);
+        }
       } finally {
         loadingOlderRef.current = false;
       }
