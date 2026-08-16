@@ -1,0 +1,4 @@
+# esbuild 는 설치 시 postinstall 로 플랫폼별 네이티브 바이너리를 배치한다.
+# 허용하지 않으면 vite/react-router 빌드가 esbuild 바이너리를 못 찾는다.
+allowBuilds:
+  esbuild: true

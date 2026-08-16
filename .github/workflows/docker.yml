@@ -46,6 +46,26 @@ jobs:
             type=sha,prefix=,suffix=,format=short
             type=raw,value=latest,enable={{is_default_branch}}
 
+      # 런타임 설정 주입(/config.js)은 컨테이너를 실제로 띄워야만 검증된다.
+      # 과거 이 층에서 두 번 조용히 깨졌다(sed 치환 무효화 / readOnly 루트 기동
+      # 실패). push 전에 게이트로 돌려서 깨진 이미지가 GHCR 에 올라가지 않게 한다.
+      # amd64 단일 플랫폼으로 로컬 로드 — 아래 멀티아치 빌드와 캐시를 공유한다.
+      - name: Build (amd64, local) for runtime-config verification
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          push: false
+          load: true
+          tags: matrix-client-verify:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Verify runtime config injection
+        env:
+          IMAGE: matrix-client-verify:ci
+        run: scripts/verify-runtime-config.sh
+
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
