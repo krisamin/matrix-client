@@ -145,6 +145,106 @@ for (const [f, src] of source) {
   }
 }
 
+// ── 4. 테스트가 복제한 로직의 드리프트 ───────────────────────────
+// SPA 코드는 브라우저 전용 번들이라 node:test에서 직접 import할 수 없다.
+// 그래서 일부 테스트는 소스 함수를 **손으로 복제**해 검증한다. 복제본은
+// 소스가 바뀌어도 조용히 옛 로직을 계속 통과시킨다 — §3의 쌍둥이 발산과
+// 정확히 같은 사고다. 여기서 본문을 기계 대조한다.
+{
+  const twins = [
+    {
+      test: "scripts/server-name.test.mjs",
+      src: "lib/uia.ts",
+      fn: "serverNameFromInput",
+    },
+  ];
+  // 함수 본문만 뽑는다(주석/타입 표기/들여쓰기 차이는 무시).
+  //
+  // ★ 중괄호를 세서 끝을 찾을 때 **문자열·정규식 리터럴 안의 괄호**를 반드시
+  //   건너뛰어야 한다. 처음에 그냥 셌더니 `replace(/\/+$/, "")` 의 `$/` 뒤
+  //   중괄호를 함수 끝으로 오인해 본문이 잘렸고, 잘린 뒷부분에 넣은 사보타주가
+  //   비교에서 빠져 가드가 조용히 통과했다(A/B 둘 다 통과 = 계측 무효).
+  const bodyOf = (text, fn) => {
+    const i = text.search(new RegExp(`function\\s+${fn}\\b`));
+    if (i < 0) return null;
+    const open = text.indexOf("{", i);
+    if (open < 0) return null;
+    let depth = 0;
+    let j = open;
+    while (j < text.length) {
+      const c = text[j];
+      // 줄/블록 주석
+      if (c === "/" && text[j + 1] === "/") {
+        j = text.indexOf("\n", j);
+        if (j < 0) return null;
+        continue;
+      }
+      if (c === "/" && text[j + 1] === "*") {
+        j = text.indexOf("*/", j + 2);
+        if (j < 0) return null;
+        j += 2;
+        continue;
+      }
+      // 문자열 리터럴
+      if (c === '"' || c === "'" || c === "`") {
+        j++;
+        while (j < text.length && text[j] !== c) j += text[j] === "\\" ? 2 : 1;
+        j++;
+        continue;
+      }
+      // 정규식 리터럴 — 직전 유효 문자로 나눗셈과 구분한다.
+      if (c === "/") {
+        const prev = text.slice(open, j).trimEnd().slice(-1);
+        if (prev === "" || "(,=:[!&|?{};+-*%~^".includes(prev)) {
+          j++;
+          let cls = false;
+          while (j < text.length) {
+            if (text[j] === "\\") j += 2;
+            else if (text[j] === "[") (cls = true), j++;
+            else if (text[j] === "]") (cls = false), j++;
+            else if (text[j] === "/" && !cls) break;
+            else j++;
+          }
+          j++;
+          continue;
+        }
+      }
+      if (c === "{") depth++;
+      else if (c === "}" && --depth === 0) {
+        return text
+          .slice(open + 1, j)
+          .replace(/:\s*string\b/g, "")
+          .replace(/\s+/g, "");
+      }
+      j++;
+    }
+    return null;
+  };
+  for (const t of twins) {
+    const testPath = path.resolve(APP, "..", t.test);
+    const srcText = source.get(t.src);
+    if (!fs.existsSync(testPath) || srcText === undefined) {
+      problems.push(
+        `복제 대조 불가: ${t.test} 또는 ${t.src} 를 찾을 수 없다.\n` +
+          `    경로가 바뀌었으면 check-architecture.mjs 의 twins 목록도 갱신할 것.`,
+      );
+      continue;
+    }
+    const a = bodyOf(srcText, t.fn);
+    const b = bodyOf(fs.readFileSync(testPath, "utf8"), t.fn);
+    if (a === null || b === null) {
+      problems.push(
+        `복제 대조 불가: ${t.fn} 본문을 ${a === null ? t.src : t.test} 에서 못 찾았다.`,
+      );
+    } else if (a !== b) {
+      problems.push(
+        `테스트 복제본 드리프트: ${t.test} 의 ${t.fn} 이 ${t.src} 와 다르다.\n` +
+          `    복제본이 옛 로직을 통과시키고 있다 — 소스 본문을 그대로 옮길 것.`,
+      );
+    }
+  }
+}
+
 // ── 결과 ─────────────────────────────────────────────────────────
 if (problems.length === 0) {
   console.log(`✅ 아키텍처 검사 통과 (${files.length}개 모듈)`);
