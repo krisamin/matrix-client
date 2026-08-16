@@ -33,6 +33,10 @@ export default defineConfig(({ command }) => ({
                 /^\/.well-known/,
               ],
               globPatterns: ["**/*.{js,css,html,svg,png,ico,wasm}"],
+              // /config.js 는 컨테이너가 런타임에 만드는 배포처별 설정.
+              // 빌드 시점엔 없지만, 명시해두지 않으면 향후 누가 만들어 넣을 때
+              // precache 에 딸려 들어가 배포처가 값을 바꿔도 옛 값이 남는다.
+              globIgnores: ["config.js"],
               // crypto WASM(~5.5MB)까지 precache에 포함 — 오프라인 cold boot
               // 시에도 E2EE 스택이 뜨도록 (4MB 캡이면 wasm이 빠짐)
               maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,

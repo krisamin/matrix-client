@@ -36,11 +36,16 @@ ingress:
     # - hosts: [chat.example.com]
     #   secretName: chat-example-com-tls
 
-# Default homeserver URL injected at startup. The SPA stores per-user
-# overrides in localStorage; this only sets the *first-load* default.
-# Set to "" to keep the in-source default (matrix.org).
+# Default homeserver injected at startup (written to /config.js by the
+# container entrypoint, loaded by index.html before the app bundle).
+# The SPA stores per-user overrides in localStorage; this only sets the
+# *first-load* default. Leave "" to keep the built-in default (matrix.org).
+#
+# A bare server name is preferred over a URL — the client resolves the real
+# API base URL via .well-known delegation, so "example.com" keeps the login
+# form showing your apex even when the API lives on matrix.example.com.
 config:
-  defaultHomeserver: ""
+  defaultHomeserver: ""   # e.g. "example.com"
 
 # Pod-level overrides
 podAnnotations: {}

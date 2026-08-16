@@ -5,7 +5,7 @@
 # Exposes the SPA at http://localhost:8080. The bundled image is a static
 # nginx serve of the Vite build.  Set DEFAULT_HOMESERVER to make the login
 # screen point at your own homeserver by default (users can still change
-# it on the form). Leave it unset to keep the source default (matrix.org).
+# it on the form). Leave it unset to keep the built-in default (matrix.org).
 services:
   matrix-client:
     build: .
@@ -13,7 +13,8 @@ services:
     ports:
       - "8080:80"
     environment:
-      # Override or set in a sibling .env file. Example:
-      #   DEFAULT_HOMESERVER=https://matrix.example.com
+      # Override or set in a sibling .env file. A bare server name is
+      # preferred — .well-known delegation resolves the real API base URL:
+      #   DEFAULT_HOMESERVER=example.com
       DEFAULT_HOMESERVER: ${DEFAULT_HOMESERVER:-}
     restart: unless-stopped

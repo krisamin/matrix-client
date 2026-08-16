@@ -72,6 +72,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <meta name="theme-color" content="#111113" />
         <Meta />
         <Links />
+        {/* 런타임 설정 주입 — 컨테이너가 DEFAULT_HOMESERVER 로 /config.js 를
+            만든다. 앱 번들보다 **먼저** 실행돼야 하므로 head 에서 동기 로드.
+            파일이 없어도(로컬 dev / 미설정 배포) 404 무시하고 빌트인
+            fallback 으로 동작한다. 상세는 app/lib/runtime-config.ts */}
+        <script src="/config.js" />
       </head>
       <body className="font-sans text-[14px] leading-[1.5] antialiased">
         {children}

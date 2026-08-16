@@ -23,14 +23,15 @@ RUN find build/client -type f \
 # Runtime: nginx serves the SPA build directly. /index.html is the app shell;
 # all other unknown routes also fall back to it (client-side routing).
 #
-# Runtime config: DEFAULT_HOMESERVER env var (optional) is sed'd into the
-# JS bundle at startup via docker/entrypoint.sh — empty/unset keeps the
-# source default (matrix.org).  Generic image, no rebuild needed per site.
+# Runtime config: the optional DEFAULT_HOMESERVER env var is written to
+# /config.js at startup by docker/entrypoint.sh, and index.html loads it before
+# the app bundle.  Unset leaves the built-in default (matrix.org).  The image
+# stays generic — no rebuild needed per deployment.
 FROM nginx:1.27-alpine AS runtime
 COPY --from=build /app/build/client /usr/share/nginx/html
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
-COPY docker/entrypoint.sh /docker-entrypoint.d/40-default-homeserver.sh
-RUN chmod +x /docker-entrypoint.d/40-default-homeserver.sh
+COPY docker/entrypoint.sh /docker-entrypoint.d/40-runtime-config.sh
+RUN chmod +x /docker-entrypoint.d/40-runtime-config.sh
 EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
   CMD wget -q -O /dev/null http://localhost/ || exit 1

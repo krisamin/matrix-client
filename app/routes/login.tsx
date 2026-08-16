@@ -9,9 +9,14 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { translate, useT } from "../lib/i18n";
 import { loadRecaptcha, renderRecaptcha } from "../lib/recaptcha";
+import { defaultHomeserver } from "../lib/runtime-config";
 import { saveSession } from "../lib/session";
 import { ls } from "../lib/storage";
-import { buildIdentifier, discoverHomeserver } from "../lib/uia";
+import {
+  buildIdentifier,
+  discoverHomeserver,
+  serverNameFromInput,
+} from "../lib/uia";
 
 export function meta() {
   return [{ title: translate("page.title.login") }];
@@ -33,11 +38,15 @@ type Mode = "signin" | "signup" | "reset";
 
 export default function Login() {
   const t = useT();
-  const [homeserver, setHomeserver] = useState(
-    typeof window !== "undefined"
-      ? (ls.get("last-homeserver") ?? "https://matrix.org")
-      : "https://matrix.org",
-  );
+  // 폼에 담는 값은 **서버 이름**(krisam.in)이지 API base URL이 아니다.
+  // delegation 결과(matrix.krisam.in)를 되돌려 넣으면 사용자가 apex를
+  // 입력해도 다음 방문 때 서브도메인이 되살아난다 — uia.serverNameFromInput 주석 참고.
+  // 과거 버전이 base URL을 저장해뒀을 수 있어 읽을 때 한 번 정규화한다.
+  const [homeserver, setHomeserver] = useState(() => {
+    if (typeof window === "undefined") return defaultHomeserver();
+    const saved = ls.get("last-homeserver");
+    return saved ? serverNameFromInput(saved) : defaultHomeserver();
+  });
   const [mode, setMode] = useState<Mode>("signin");
   /** signin 모드에서 OIDC + password 둘 다 지원할 때, 사용자가 'password로
    *  로그인' 토글을 눌렀는지. 기본은 OIDC (모던 흐름이 우선). */
@@ -186,7 +195,7 @@ export default function Login() {
         redirectUri,
         nonce: crypto.randomUUID(),
       });
-      ls.set("last-homeserver", flow.baseUrl);
+      ls.set("last-homeserver", serverNameFromInput(homeserver));
       window.location.href = url;
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -280,7 +289,7 @@ export default function Login() {
       userId: result.user_id,
       deviceId: result.device_id,
     });
-    ls.set("last-homeserver", flow.baseUrl);
+    ls.set("last-homeserver", serverNameFromInput(homeserver));
     window.location.href = "/";
   }
 
@@ -369,7 +378,7 @@ export default function Login() {
         userId: result.user_id,
         deviceId: result.device_id,
       });
-      ls.set("last-homeserver", flow.baseUrl);
+      ls.set("last-homeserver", serverNameFromInput(homeserver));
       window.location.href = "/";
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));

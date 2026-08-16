@@ -35,22 +35,31 @@ browser (localStorage + IndexedDB), so any static file server works. Images
 are published to `ghcr.io/krisamin/matrix-client` (nginx serving the bundle,
 SPA fallback wired in `docker/nginx.conf`).
 
-The only knob is `DEFAULT_HOMESERVER`: an entrypoint script rewrites the
-baked-in `https://matrix.org` default in the JS bundle at container startup.
-Leave it unset and the image stays generic; users can always type their own
-homeserver on the login screen (last used one is sticky).
+The only knob is `DEFAULT_HOMESERVER`, the homeserver the login form starts
+with. At container startup the entrypoint writes it to `/config.js`, which
+`index.html` loads before the app bundle. Leave it unset and the image stays
+generic (falls back to `matrix.org`); users can always type their own
+homeserver on the login screen, and the last one they used is sticky.
+
+Prefer a bare server name over a URL. The client resolves the real API base
+URL through `.well-known` delegation, so `example.com` keeps the login form
+showing your apex even when Synapse actually lives at `matrix.example.com`.
 
 ```bash
 # Docker
-docker run -e DEFAULT_HOMESERVER=https://matrix.example.com \
+docker run -e DEFAULT_HOMESERVER=example.com \
   -p 8080:80 ghcr.io/krisamin/matrix-client:latest
 
 # Helm (chart in charts/matrix-client)
 helm install my-chat ./charts/matrix-client \
   --set ingress.enabled=true \
   --set ingress.hosts[0].host=chat.example.com \
-  --set config.defaultHomeserver=https://matrix.example.com
+  --set config.defaultHomeserver=example.com
 ```
+
+Running with `readOnlyRootFilesystem: true` is supported — the entrypoint
+writes its config under `/run` (the chart mounts an `emptyDir` there) instead
+of the read-only html directory.
 
 `docker compose up --build` runs the Vite dev server with HMR;
 `docker compose -f docker-compose.prod.yml up --build` mirrors the production

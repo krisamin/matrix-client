@@ -29,16 +29,23 @@ spec:
               containerPort: 80
           # nginx needs writable /var/cache/nginx and /var/run with
           # readOnlyRootFilesystem=true — wire up emptyDirs.
+          #
+          # /run/matrix-client is where the entrypoint writes config.js when
+          # the html dir is read-only; nginx serves that file as /config.js.
+          # Without this mount DEFAULT_HOMESERVER is silently ignored
+          # (measured: the old sed-based entrypoint crashed the pod outright).
           volumeMounts:
             - name: nginx-cache
               mountPath: /var/cache/nginx
             - name: nginx-run
               mountPath: /var/run
+            - name: runtime-config
+              mountPath: /run/matrix-client
           {{- if .Values.config.defaultHomeserver }}
-          # Optional: rewrite the bundled homeserver default at startup.
-          # The image's /docker-entrypoint.d/40-default-homeserver.sh reads
-          # this env var and sed's the JS bundle before nginx starts —
-          # idempotent, no postStart race.
+          # Optional: set the first-load homeserver default at startup.
+          # The image's /docker-entrypoint.d/40-runtime-config.sh reads this
+          # env var and writes /config.js, which index.html loads before the
+          # app bundle — no rebuild, no postStart race.
           env:
             - name: DEFAULT_HOMESERVER
               value: {{ .Values.config.defaultHomeserver | quote }}
@@ -63,6 +70,8 @@ spec:
         - name: nginx-cache
           emptyDir: {}
         - name: nginx-run
+          emptyDir: {}
+        - name: runtime-config
           emptyDir: {}
       {{- with .Values.nodeSelector }}
       nodeSelector:
