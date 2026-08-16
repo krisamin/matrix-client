@@ -61,6 +61,18 @@ Running with `readOnlyRootFilesystem: true` is supported — the entrypoint
 writes its config under `/run` (the chart mounts an `emptyDir` there) instead
 of the read-only html directory.
 
+After touching the Dockerfile, nginx config, or the entrypoint, run the
+container-level check — the unit tests can't see this layer:
+
+```bash
+scripts/verify-runtime-config.sh
+```
+
+It builds the image and asserts that `DEFAULT_HOMESERVER` actually reaches the
+browser, that an unset value degrades to a plain 404 (not an HTML page served
+as JavaScript), that the app still boots under `readOnlyRootFilesystem`, and
+that `gzip_static` still fires. Every one of those has broken silently before.
+
 `docker compose up --build` runs the Vite dev server with HMR;
 `docker compose -f docker-compose.prod.yml up --build` mirrors the production
 image locally.
