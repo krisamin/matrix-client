@@ -22,7 +22,16 @@ export default defineConfig(({ command }) => ({
             manifest: false,
             workbox: {
               navigateFallback: "/index.html",
-              navigateFallbackDenylist: [/^\/_/, /^\/oidc/, /^\/.well-known/],
+              // /mas = MAS(인증서버) 서브패스. denylist에 없으면 SW가
+              // navigation을 가로채 index.html을 주고 SPA가 자체 404를 띄운다
+              // (네트워크를 안 타서 MAS 로그에도 안 남음). OIDC 로그인 중
+              // upstream/link 단계에서 실측으로 밟은 함정.
+              navigateFallbackDenylist: [
+                /^\/_/,
+                /^\/oidc/,
+                /^\/mas/,
+                /^\/.well-known/,
+              ],
               globPatterns: ["**/*.{js,css,html,svg,png,ico,wasm}"],
               // crypto WASM(~5.5MB)까지 precache에 포함 — 오프라인 cold boot
               // 시에도 E2EE 스택이 뜨도록 (4MB 캡이면 wasm이 빠짐)
