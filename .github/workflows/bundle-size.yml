@@ -15,11 +15,11 @@ jobs:
   size:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
         with:
-          version: 10
-      - uses: actions/setup-node@v4
+          version: 11
+      - uses: actions/setup-node@v7
         with:
           node-version: "20"
           cache: pnpm
@@ -55,6 +55,6 @@ jobs:
 
       - name: Comment PR
         if: github.event_name == 'pull_request'
-        uses: marocchino/sticky-pull-request-comment@v2
+        uses: marocchino/sticky-pull-request-comment@v3
         with:
           path: /tmp/report.md
