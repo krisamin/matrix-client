@@ -3,8 +3,14 @@
 
 image:
   repository: ghcr.io/krisamin/matrix-client
-  tag: ""              # defaults to .Chart.AppVersion when empty
-  pullPolicy: IfNotPresent
+  # `latest` tracks main. No semver tags are published yet, so leaving this
+  # empty (which would fall back to .Chart.AppVersion) points at an image
+  # that does not exist and the install fails with ImagePullBackOff.
+  # Pin a digest or a tag of your own if you want reproducible deploys.
+  tag: "latest"
+  # `latest` is mutable, so IfNotPresent would pin you to whatever was cached
+  # on the node at first pull.
+  pullPolicy: Always
 
 replicaCount: 1
 

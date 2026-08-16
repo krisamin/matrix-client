@@ -57,6 +57,16 @@ helm install my-chat ./charts/matrix-client \
   --set config.defaultHomeserver=example.com
 ```
 
+Both default to the `latest` tag, which tracks `main`. There are no semver
+releases yet, so pin the short commit SHA if you want reproducible deploys —
+every push to `main` publishes one (e.g. `7882c3e`):
+
+```bash
+helm install my-chat ./charts/matrix-client \
+  --set image.tag=7882c3e \
+  --set config.defaultHomeserver=example.com
+```
+
 Running with `readOnlyRootFilesystem: true` is supported — the entrypoint
 writes its config under `/run` (the chart mounts an `emptyDir` there) instead
 of the read-only html directory.
